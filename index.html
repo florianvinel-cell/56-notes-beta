@@ -1,0 +1,2174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+</head>
+<body>
+<title>Le ciel des 56 notes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout : une galaxie fixe derrière tout ; par-dessus, un écran à la fois (le ciel, ce soir, le carnet), une barre d'icônes en bas */
+:root{
+  --void:#0a0809;
+  --glass:rgba(14,11,11,.84);
+  --moonc:216,220,230; /* la lumière lunaire, teintée par la couleur choisie */
+  --moon:rgb(var(--moonc));
+  --acc:230,184,102; /* la couleur des accents, réglable par la personne */
+  --gold:rgb(var(--acc));
+  --copper:#c26a3d;
+  --text:#ece5d8;
+  --soft:#cfc6b7;
+  --muted:#a89f92;
+  --faint:#5d564e;
+  --hair:rgba(var(--acc),.16);
+  --f-display:"Cormorant Garamond","Cormorant",Garamond,"Times New Roman",serif;
+  --f-body:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --dock-h:78px;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--void);-webkit-tap-highlight-color:transparent}
+canvas,button,a{-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--void);color:var(--text);font-family:var(--f-body);font-weight:300;font-size:1.0625rem;line-height:1.72;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.col{max-width:68rem;margin:0 auto}
+.read{max-width:38rem}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+a:focus-visible,button:focus-visible,canvas:focus-visible,textarea:focus-visible{outline:1px solid var(--gold);outline-offset:4px;border-radius:4px}
+button{font:inherit;cursor:pointer}
+
+#galaxy{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+/* ---------- le cadenas ---------- */
+.lock{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:radial-gradient(70% 60% at 50% 45%, rgba(10,8,9,.35), rgba(10,8,9,.82));transition:opacity 1.4s ease,transform 1.4s ease}
+.lock.opening{opacity:0;transform:scale(1.04);pointer-events:none}
+.lock-inner{display:grid;justify-items:center;gap:.9rem;text-align:center;max-width:26rem}
+.lock-kicker{font-family:var(--f-display);font-style:italic;font-size:1.25rem;color:var(--gold);margin:0}
+.lock-kicker b{font-weight:300}
+.lock-title{font-family:var(--f-display);font-weight:300;font-size:clamp(2rem,8vw,2.8rem);line-height:1.08;margin:0;text-wrap:balance}
+.lock-sub{color:var(--muted);margin:0;min-height:3.4em;text-wrap:balance}
+.lock-ring{position:relative;width:min(290px,78vw);aspect-ratio:1/1;max-width:100%;margin:.6rem 0}
+.lock-ring svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.lock-ring polyline{fill:none;stroke:rgba(var(--acc),.55);stroke-width:.5;stroke-linejoin:round;stroke-linecap:round;transition:opacity .9s}
+.lock-ring.fade polyline{opacity:0}
+.lk{position:absolute;width:64px;height:64px;transform:translate(-50%,-50%);border:0;background:transparent;display:grid;place-items:center;align-content:center;gap:.35rem;color:var(--muted);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.lk .pt{width:10px;height:10px;border-radius:50%;background:var(--moon);opacity:.7;box-shadow:0 0 10px 2px rgba(var(--moonc),.25);transition:background .5s,box-shadow .5s,transform .5s,opacity .5s}
+.lk .lb{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em}
+.lk:hover .pt{opacity:1}
+.lk.hit .pt{background:var(--gold);opacity:1;transform:scale(1.5);box-shadow:0 0 18px 6px rgba(var(--acc),.45)}
+.lock-ring.waiting .lk{opacity:.3;pointer-events:none}
+.lock-dots{display:flex;gap:.7rem;min-height:10px}
+.lock-dots i{width:8px;height:8px;border-radius:50%;border:1px solid rgba(var(--acc),.5);transition:background .4s,box-shadow .4s,opacity .9s}
+.lock-dots i.on{background:var(--gold);box-shadow:0 0 10px rgba(var(--acc),.7)}
+.lock-dots.fade i{opacity:.25}
+.lock-erase{visibility:hidden}
+.lock-erase.show{visibility:visible}
+
+/* ---------- l'app ---------- */
+#app{position:relative;z-index:1;transition:opacity 1.4s ease}
+#app.veiled{opacity:0}
+.bar{position:relative;z-index:3;display:flex;justify-content:space-between;align-items:center;gap:1rem;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:.25rem;min-height:56px}
+/* le logo : le 56, en italique, dans la couleur des accents */
+.mark{font-family:var(--f-display);font-size:2rem;line-height:1;letter-spacing:-.01em;color:var(--text);text-decoration:none;transition:opacity .8s}
+.mark .n{font-style:italic;color:var(--gold);text-shadow:0 0 18px rgba(var(--acc),.35)}
+.mark.hide{opacity:0;pointer-events:none}
+.sound{width:40px;height:40px;border-radius:50%;border:1px solid var(--hair);background:rgba(10,8,9,.5);color:var(--muted);display:grid;place-items:center;transition:color .6s,border-color .6s,box-shadow .6s}
+.sound svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+#soundBtn .waves{opacity:0;transition:opacity .6s}
+#soundBtn .mute{opacity:.8;transition:opacity .4s}
+#soundBtn[aria-pressed="true"] .waves{opacity:1}
+#soundBtn[aria-pressed="true"] .mute{opacity:0}
+.sound[aria-pressed="true"]{color:var(--gold);border-color:rgba(var(--acc),.45);box-shadow:0 0 16px rgba(var(--acc),.18)}
+
+.view{padding-bottom:calc(var(--dock-h) + 40px + env(safe-area-inset-bottom,0px))}
+.view.enter{animation:enter .9s ease both}
+@keyframes enter{from{opacity:.0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* le ciel */
+.hero{padding-block:1.5rem 1rem}
+h1{font-family:var(--f-display);font-weight:300;font-size:clamp(3.4rem,13vw,7.5rem);line-height:.92;letter-spacing:-.015em;margin:0 0 1.2rem;text-wrap:balance}
+h1 .n{font-style:italic;color:var(--gold)}
+.lede{font-family:var(--f-display);font-size:clamp(1.35rem,3.6vw,1.75rem);line-height:1.35;max-width:34rem;margin:0 0 .9rem;color:var(--text);text-wrap:balance}
+.lede em{color:var(--gold)}
+.principle{font-style:italic;color:var(--muted);margin:0;max-width:30rem}
+.sky{position:relative;width:100%}
+.sky canvas{display:block;width:100%}
+#dust{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transition:opacity 1.2s ease}
+#dust.off{opacity:0}
+#stars{position:relative;touch-action:manipulation}
+.carte{display:grid;gap:1.1rem;padding-block:2.2rem 0}
+/* la carte : deux lignes de quatre semaines ; chaque semaine a son bouton lecture, et des points assez grands pour le doigt */
+.carte-dots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem 1.8rem}
+.carte-week{display:flex;align-items:center;gap:.4rem;min-width:0}
+.cw-play{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--hair);background:rgba(10,8,9,.5);color:var(--gold);display:grid;place-items:center;cursor:pointer;padding:0;transition:border-color .3s,box-shadow .3s;-webkit-tap-highlight-color:transparent}
+.cw-play svg{width:9px;height:9px;fill:currentColor;margin-left:2px}
+.cw-play:hover:not(:disabled),.cw-play:focus-visible{border-color:rgba(var(--acc),.55);box-shadow:0 0 12px rgba(var(--acc),.2);outline:none}
+.cw-play:disabled{color:var(--faint);cursor:default;opacity:.55}
+.cw-days{display:flex;flex:1;min-width:0;justify-content:space-between}
+.cd{flex:1 1 0;min-width:0;max-width:32px;height:32px;border:0;background:transparent;padding:0;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cd i{display:block;width:7px;height:7px;border-radius:50%;background:rgba(var(--moonc),.28);transition:transform .4s}
+.cd:hover i,.cd:focus-visible i{transform:scale(1.5)}
+.cd:focus-visible{outline:none}
+.cd.lived i{width:10px;height:10px;background:var(--gold);box-shadow:0 0 9px 2px rgba(var(--acc),.5)}
+.cd.tonight i{width:11px;height:11px;background:transparent;border:1px solid var(--gold);animation:pulse 2.6s ease-in-out infinite}
+@media (max-width:640px){ .carte-dots{grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem 1.1rem} }
+.cd.silence i{background:transparent;border:1px solid rgba(var(--moonc),.35)}
+@keyframes pulse{50%{box-shadow:0 0 10px 2px rgba(var(--acc),.45)}}
+.carte-hint{margin:-.5rem 0 0;font-style:italic;color:var(--muted);font-size:.92rem}
+.carte-line{display:flex;align-items:center;gap:.6rem;margin:.55rem 0 0;font-family:var(--f-display);font-size:1.15rem;line-height:1.35;color:var(--soft)}
+.carte-line svg{width:26px;height:26px;flex:none}
+.hero.intro .moonline{opacity:0}
+.hero .moonline{transition:opacity 2s ease}
+.carte-line em{color:var(--text)}
+
+/* la fiche d'un soir */
+.sheet-back{position:fixed;inset:0;z-index:14;background:rgba(5,4,5,.55);opacity:0;transition:opacity .5s}
+.sheet-back.open{opacity:1}
+.sheet{position:fixed;z-index:15;left:0;right:0;bottom:0;margin:0 auto;max-width:42rem;max-height:82vh;overflow:auto;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--hair);border-bottom:0;border-radius:22px 22px 0 0;
+  padding:1.6rem max(20px,env(safe-area-inset-right,0px)) calc(1.8rem + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));transform:translateY(104%);transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+.sheet.open{transform:none}
+.sheet-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:1px solid var(--hair);background:transparent;color:var(--muted);font-size:1rem}
+.day-card{transition:opacity .4s ease}
+.day-card.fading{opacity:0}
+.day-head{display:flex;gap:1rem;align-items:center;margin:0 2.5rem 1.3rem 0}
+.day-head svg{width:46px;height:46px;flex:none}
+.day-date{font-family:var(--f-display);font-size:1.85rem;line-height:1.1;margin:0;font-weight:300;text-wrap:balance}
+.day-meta{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.1em;color:var(--muted);margin:.35rem 0 0;display:flex;flex-wrap:wrap;gap:.2rem 1rem}
+.day-meta .note{color:var(--gold)}
+.day-why{font-size:1.12rem;line-height:1.8;margin:0;white-space:pre-line}
+.day-why.quiet{color:var(--muted);font-style:italic}
+.row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.day-nav{margin-top:1.8rem}
+.ghost{background:transparent;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:.45rem 1.05rem;font-size:.92rem;transition:color .5s,border-color .5s}
+.ghost:hover{color:var(--text);border-color:rgba(var(--acc),.45)}
+.ghost:disabled{opacity:.35;cursor:default}
+.glow{background:transparent;color:var(--gold);border:1px solid rgba(var(--acc),.5);border-radius:999px;padding:.55rem 1.35rem;font-size:1rem;transition:box-shadow .8s,background .8s,opacity .6s}
+.glow:hover{box-shadow:0 0 22px rgba(var(--acc),.18);background:rgba(var(--acc),.05)}
+.glow:disabled{opacity:.35;cursor:default;box-shadow:none;background:transparent}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:4px;font-size:.9rem;padding:.3rem}
+
+/* ce soir */
+.steps{list-style:none;display:flex;justify-content:center;gap:0;margin:1.2rem auto 2.4rem;padding:0;max-width:30rem}
+.steps li{flex:1;display:grid;justify-items:center;gap:.45rem;position:relative;font-family:var(--f-mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);transition:color .8s}
+.steps li::before{content:"";position:absolute;top:4px;left:-50%;width:100%;height:1px;background:var(--hair)}
+.steps li:first-child::before{display:none}
+.steps li i{position:relative;width:9px;height:9px;border-radius:50%;border:1px solid var(--faint);background:var(--void);transition:all .8s}
+.steps li.past{color:var(--muted)}
+.steps li.past i{background:var(--gold);border-color:var(--gold)}
+.steps li.now{color:var(--gold)}
+.steps li.now i{border-color:var(--gold);box-shadow:0 0 12px rgba(var(--acc),.6)}
+.step{display:grid;justify-items:center;text-align:center;gap:1rem}
+.step.enter{animation:enter .9s ease both}
+.step-date{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0}
+h2{font-family:var(--f-display);font-weight:300;font-size:clamp(2.3rem,8vw,3.4rem);line-height:1;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.step-sub{color:var(--muted);margin:0;max-width:28rem;text-wrap:balance}
+#presence{display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer}
+html.lockscroll,html.lockscroll body{overflow:hidden;overscroll-behavior:none}
+html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, presque vide, couperait le grand logo */
+#v-soir{position:fixed;left:0;right:0;top:calc(62px + env(safe-area-inset-top,0px));bottom:calc(var(--dock-h) + 22px + env(safe-area-inset-bottom,0px));padding-bottom:0;display:flex;flex-direction:column;overflow:hidden}
+#v-soir>.col{flex:1;min-height:0;width:100%;display:flex;flex-direction:column}
+#v-soir .steps{flex:none;width:100%;margin:.1rem auto 1rem}
+#v-soir .step{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem}
+#v-soir .step>*{flex:none}
+#v-soir h2{font-size:clamp(2rem,7vw,3rem)}
+.stage-box{flex:1 1 0!important;min-height:0;width:100%;display:grid;place-items:center}
+#v-soir .story{flex:1 1 0;min-height:6rem;resize:none}
+.partial:empty{display:none}
+@media (max-height:720px){
+  #v-soir .steps{margin-bottom:.4rem}
+  #v-soir .step{gap:.45rem}
+  #v-soir .step-sub{font-size:.92rem;line-height:1.5}
+  #v-soir .word{font-size:1.35rem;min-height:1.8rem}
+  #v-soir h2{font-size:clamp(1.8rem,6vw,2.4rem)}
+}
+.word{font-family:var(--f-display);font-style:italic;font-size:1.75rem;min-height:2.4rem;margin:0;transition:opacity .9s}
+.story{width:min(36rem,100%);min-height:14rem;resize:vertical;background:rgba(14,11,11,.6);color:var(--text);border:1px solid var(--hair);border-radius:16px;padding:1.1rem 1.2rem;font:inherit;font-size:1.08rem;line-height:1.75;text-align:left}
+.story:focus{border-color:rgba(var(--acc),.45);outline:none;box-shadow:0 0 0 1px rgba(var(--acc),.25)}
+.story::placeholder{color:var(--muted);font-style:italic;opacity:.8}
+.partial{color:var(--muted);font-style:italic;min-height:1.6em;margin:0;max-width:36rem}
+.tr-stage{flex:1 1 0!important;min-height:0;display:flex;align-items:center;gap:.8rem;width:min(30rem,100%);justify-content:center}
+#tr{display:block;touch-action:none;cursor:ns-resize}
+.tr-side{display:grid;gap:.6rem}
+.tr-side .ghost{width:44px;height:44px;padding:0;font-size:.85rem}
+.tr-label{display:grid;gap:.15rem;margin:0}
+#trSub em{font-style:italic;color:var(--text)}
+#trSub.listening{animation:hear 2.4s ease-in-out infinite}
+@keyframes hear{0%,100%{opacity:.45}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#trSub.listening{animation:none}}
+.tr-note{font-family:var(--f-display);font-size:2.2rem;line-height:1;color:var(--gold)}
+.tr-rel{color:var(--muted);font-style:italic}
+.posed{font-family:var(--f-display);font-size:1.4rem;color:var(--soft);margin:0}
+
+/* le carnet */
+.carnet-head{padding-block:1.5rem 1.2rem;display:grid;justify-items:start;gap:0}
+.c-new{margin-top:1.1rem}
+/* le carnet comme une ligne du temps : semaines, puis jours ; un jour s'ouvre sur ses pensées */
+.timeline{display:grid;gap:.4rem;padding-bottom:1rem}
+.c-week{margin:1.4rem 0 .3rem;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;gap:.7rem;align-items:center}
+.c-week::after{content:"";flex:1;height:1px;background:var(--hair)}
+.c-week b{font-weight:500;color:var(--gold)}
+.c-day{border:1px solid transparent;border-radius:16px;transition:background .4s,border-color .4s}
+.c-day.open{background:rgba(14,11,11,.45);border-color:var(--hair)}
+.c-dayhead{width:100%;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:.9rem;align-items:center;text-align:left;background:none;border:0;color:var(--text);padding:.75rem .8rem;cursor:pointer;font:inherit;border-radius:16px;-webkit-tap-highlight-color:transparent}
+.c-dayhead:hover .c-dname,.c-dayhead:focus-visible .c-dname{color:var(--gold)}
+.c-dayhead:focus-visible{outline:1px solid rgba(var(--acc),.5);outline-offset:-1px}
+.c-star{width:40px;height:40px;display:grid;place-items:center;position:relative}
+.c-star i{width:9px;height:9px;border-radius:50%;background:rgba(var(--moonc),.35)}
+.c-star.lived i{width:11px;height:11px}
+.c-dname{font-family:var(--f-display);font-size:1.4rem;line-height:1.2;transition:color .3s;display:block}
+.c-dmeta{display:flex;align-items:center;gap:.5rem;font-family:var(--f-mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:.15rem}
+.c-dmeta svg{width:13px;height:13px}
+.c-count{display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--muted);white-space:nowrap}
+.c-count i{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px rgba(var(--acc),.6);margin-left:3px}
+.c-items{display:grid;gap:.5rem;padding:0 .8rem .9rem calc(.8rem + 40px + .9rem)}
+.c-item{display:grid;grid-template-columns:40px minmax(0,1fr);gap:.8rem;align-items:center;text-align:left;width:100%;background:rgba(20,16,15,.55);border:1px solid var(--hair);border-radius:14px;padding:.7rem .9rem;color:var(--text);cursor:pointer;font:inherit;animation:enter .7s ease both;transition:border-color .3s,box-shadow .3s}
+.c-item:hover,.c-item:focus-visible{border-color:rgba(var(--acc),.45);box-shadow:0 0 22px rgba(var(--acc),.08);outline:none}
+.c-item svg{width:40px;height:40px}
+.c-item .f-title{font-family:var(--f-display);font-style:italic;font-size:1.3rem;line-height:1.15;display:block}
+.c-item .f-ex{color:var(--muted);font-size:.9rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.c-empty{color:var(--muted);font-style:italic;margin:1rem 0}
+@media (max-width:640px){ .c-items{padding-left:.8rem} .c-dname{font-size:1.25rem} }
+.composer{display:grid;gap:.7rem;margin:.2rem 0 1.4rem;padding:1.1rem;border:1px solid var(--hair);border-radius:18px;background:rgba(14,11,11,.5);animation:enter .7s ease both}
+.composer h3{margin:0;font-family:var(--f-display);font-weight:300;font-size:1.8rem}
+.c-title-in{width:100%;background:transparent;border:0;border-bottom:1px solid var(--hair);color:var(--text);font-family:var(--f-display);font-style:italic;font-size:1.35rem;padding:.4rem 0}
+.c-title-in:focus{outline:none;border-bottom-color:rgba(var(--acc),.5)}
+.c-title-in::placeholder{color:var(--muted);opacity:.8}
+.composer .story{width:100%;min-height:11rem}
+.composer .row{justify-content:flex-start}
+#readerDel{margin-top:1.2rem}
+.fragments{display:grid;gap:.9rem}
+.fragment{display:grid;grid-template-columns:56px minmax(0,1fr);gap:1rem;align-items:center;text-align:left;width:100%;background:rgba(14,11,11,.45);border:1px solid var(--hair);border-radius:18px;padding:1.1rem 1.2rem;color:var(--text);transition:border-color .7s,box-shadow .7s,background .7s}
+.fragment:hover{border-color:rgba(var(--acc),.4);box-shadow:0 0 30px rgba(var(--acc),.08);background:rgba(20,15,14,.6)}
+.fragment svg{width:56px;height:56px}
+.fragment .f-date{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+.fragment .f-date svg{width:14px;height:14px}
+.fragment .f-title{font-family:var(--f-display);font-style:italic;font-size:1.65rem;line-height:1.15;margin:.2rem 0 .25rem;display:block}
+.fragment .f-ex{color:var(--muted);font-size:.95rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.reader{padding-top:.5rem}
+.reader .r-glyph{width:84px;height:84px;margin:1.2rem 0 .6rem}
+.reader .r-date{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:.5rem;margin:0 0 .6rem}
+.reader .r-date svg{width:16px;height:16px}
+.reader h3{font-family:var(--f-display);font-weight:300;font-style:italic;font-size:clamp(2.2rem,8vw,3.2rem);line-height:1.05;margin:0 0 1.6rem;text-wrap:balance}
+.reader p{margin:0 0 1.2rem;font-size:1.12rem;line-height:1.85;color:var(--soft)}
+.reader p.enter{animation:enter 1.1s ease both}
+.reader p:first-of-type::first-letter{font-family:var(--f-display);float:left;font-size:3.6rem;line-height:.8;padding:.35rem .5rem 0 0;color:var(--gold)}
+
+/* barre du bas */
+.dock{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:.2rem;padding:6px;background:rgba(12,10,10,.74);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:999px}
+.dock a{display:grid;justify-items:center;gap:3px;padding:8px 18px 6px;white-space:nowrap;color:var(--muted);text-decoration:none;font-family:var(--f-mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;border-radius:999px;transition:color .6s,background .6s}
+.dock a svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.dock a svg .fill{fill:currentColor;stroke:none}
+.dock a[aria-current="page"]{color:var(--gold);background:rgba(var(--acc),.07)}
+.dock a[aria-current="page"] svg{filter:drop-shadow(0 0 5px rgba(var(--acc),.6))}
+
+.toast{position:fixed;z-index:12;left:50%;bottom:calc(var(--dock-h) + 30px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--glass);border:1px solid rgba(var(--acc),.35);border-radius:999px;padding:.55rem 1.3rem;font-family:var(--f-display);font-style:italic;font-size:1.2rem;color:var(--gold);opacity:0;transition:opacity 1s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1}
+.redo{background:none;border:0;padding:.4rem .6rem;margin-top:.4rem;font:inherit;font-size:.85rem;color:var(--muted);text-decoration:underline;text-decoration-color:rgba(168,159,146,.35);text-underline-offset:4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.redo:hover,.redo:focus-visible{color:var(--text)}
+.redo.ask{color:var(--gold);text-decoration-color:rgba(var(--acc),.5)}
+.beta-tag{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:.25rem .6rem;margin-right:.2rem}
+.bar-r{display:flex;gap:.5rem;align-items:center;margin-left:auto}
+.sound.lang{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.1em;color:var(--soft);cursor:pointer}
+.sound.lang:hover,.sound.lang:focus-visible{color:var(--gold);border-color:rgba(var(--acc),.45);outline:none}
+.prefs-back{position:fixed;inset:0;z-index:17;background:rgba(5,4,5,.5);opacity:0;transition:opacity .5s}
+.prefs-back.open{opacity:1}
+.prefs{position:fixed;z-index:18;left:0;right:0;bottom:0;margin:0 auto;max-width:30rem;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--hair);border-bottom:0;border-radius:22px 22px 0 0;padding:18px max(18px,env(safe-area-inset-left,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-right,0px));display:grid;gap:.7rem;transform:translateY(100%);transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.prefs.open{transform:none}
+.prefs-head{display:flex;justify-content:space-between;align-items:center}
+.prefs-head h2{margin:0;font-family:var(--f-display);font-weight:300;font-size:1.7rem}
+.prefs-k{margin:.4rem 0 0;font-family:var(--f-mono);font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.swatches{display:flex;flex-wrap:wrap;gap:.55rem}
+.sw{width:38px;height:38px;border-radius:50%;border:1px solid rgba(236,229,216,.18);background:transparent;display:grid;place-items:center;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+.sw i{width:20px;height:20px;border-radius:50%;display:block;transition:transform .3s,box-shadow .3s}
+.sw[aria-checked="true"]{border-color:rgba(236,229,216,.6)}
+.sw[aria-checked="true"] i{transform:scale(1.15)}
+.sw:focus-visible{outline:1px solid var(--text);outline-offset:2px}
+.custom{display:flex;align-items:center;gap:.6rem;color:var(--soft);font-size:.95rem;cursor:pointer;width:max-content}
+.custom input{width:38px;height:38px;border-radius:50%;border:1px solid rgba(236,229,216,.18);padding:0;background:none;cursor:pointer}
+.custom input::-webkit-color-swatch-wrapper{padding:4px}
+.custom input::-webkit-color-swatch{border:0;border-radius:50%}
+.custom input::-moz-color-swatch{border:0;border-radius:50%}
+.range{display:flex;align-items:center;gap:.7rem;font-size:.85rem;color:var(--muted)}
+.range input{flex:1;accent-color:var(--gold)}
+.prefs-note{margin:0;font-size:.85rem;color:var(--muted);min-height:1.2em}
+.prefs .redo{justify-self:start;margin:0;padding-left:0}
+/* l'entrée du ciel, après la mélodie : des notes forment le 56, puis le texte se dépose mot à mot */
+#introCv{position:fixed;inset:0;width:100%;height:100%;z-index:25;pointer-events:none}
+.hero h1 .n{display:inline-block;transition:opacity 1.4s ease,filter 1.8s ease,transform 1.8s cubic-bezier(.2,.8,.2,1)}
+.hero.nwait h1 .n{opacity:0;filter:blur(12px);transform:scale(.97)}
+.hero .w{display:inline-block;opacity:0;transform:translateY(.32em);filter:blur(6px);transition:opacity 1s ease,transform 1.2s cubic-bezier(.2,.8,.2,1),filter 1.1s ease}
+.hero .w.on{opacity:1;transform:none;filter:blur(0)}
+.hero.intro .principle,.hero.intro .lede{opacity:0}
+.hero.intro h1{color:transparent}
+.hero .principle{transition:opacity 2s ease}
+/* le reflet sur la fin de la phrase : chaque mot s'illumine à son tour, de gauche à droite, sans toucher à la mise en page */
+.lede em .w.gleam{animation:gleam 1.5s ease-in-out both}
+@keyframes gleam{0%{color:var(--gold);text-shadow:0 0 0 rgba(var(--acc),0)}45%{color:#fff6e4;text-shadow:0 0 14px rgba(var(--acc),.75)}100%{color:var(--gold);text-shadow:0 0 0 rgba(var(--acc),0)}}
+@media (prefers-reduced-motion:reduce){ .hero .w,.hero h1 .n{transition:opacity .6s ease;transform:none!important;filter:none!important} }
+.coda{position:fixed;inset:0;z-index:20;display:grid;align-items:end;justify-items:center;padding:24px max(16px,env(safe-area-inset-left,0px)) calc(34px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,rgba(8,6,7,.38) 0%,rgba(8,6,7,.8) 34%,rgba(8,6,7,.94) 66%);opacity:0;transition:opacity 1.8s ease}
+.coda.show{opacity:1}
+.coda-in{width:min(30rem,100%);display:grid;gap:1rem;text-align:center;justify-items:center}
+.coda-in>*{opacity:0;transform:translateY(8px);transition:opacity 1.6s ease,transform 1.6s ease}
+.coda.show .coda-in>*{opacity:1;transform:none}
+.coda.show .coda-in>:nth-child(2){transition-delay:.5s}
+.coda.show .coda-in>:nth-child(3){transition-delay:1.1s}
+.coda.show .coda-in>:nth-child(4){transition-delay:2s}
+.coda.show .coda-in>:nth-child(5),.coda.show .coda-in>:nth-child(6){transition-delay:3.4s}
+.coda h2{margin:0}
+.coda-seq{margin:0;font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:center;gap:.3rem .7rem}
+.coda-seq b{font-weight:400;color:var(--gold)}
+.coda-poem{margin:0;font-family:var(--f-display);font-style:italic;font-size:1.3rem;line-height:1.55;color:var(--soft);text-wrap:pretty}
+.coda-poem span{display:block}
+.coda-poem span+span{margin-top:.5rem}
+.coda-where{margin:0;color:var(--muted);font-size:.85rem}
+@media (prefers-reduced-motion:reduce){.coda,.coda-in>*{transition:none}}
+
+/* grand écran seulement : plus d'air à gauche, le titre remonte dans la barre, et le ciel tient dans l'écran (layoutSky) */
+@media (min-width:900px){
+  .gut{padding-left:max(56px,env(safe-area-inset-left,0px));padding-right:max(56px,env(safe-area-inset-right,0px))}
+  #v-ciel .hero{margin-top:-2.5rem;padding-top:0;padding-bottom:.4rem}
+  #v-ciel h1{font-size:clamp(3.4rem,min(8.5vw,12.5vh),7.2rem);margin-bottom:.7rem}
+  #v-ciel .lede{margin-bottom:.5rem}
+  /* le logo garde la taille et la place du 56 du ciel, sur toutes les pages */
+  .mark{position:absolute;left:max(56px,env(safe-area-inset-left,0px));top:var(--logoTop,.9rem);display:block;font-size:clamp(3.4rem,min(8.5vw,12.5vh),7.2rem);line-height:.92;letter-spacing:-.015em}
+  #v-carnet{padding-top:4.2rem}
+}
+@media (max-width:640px){
+  .hero{padding-block:.8rem .6rem}
+  .dock a{padding:8px 12px 6px;letter-spacing:.1em}
+  .steps li{font-size:.54rem;letter-spacing:.04em}
+  .step-date{font-size:.6rem;letter-spacing:.08em}
+  .day-date{font-size:1.55rem}
+}
+@media (prefers-reduced-motion:reduce){
+  .view.enter,.step.enter,.reader p.enter{animation:none}
+  .lock,.sheet,.sheet-back,#app{transition:none}
+  .cd.tonight i{animation:none}
+}
+</style>
+
+<canvas id="galaxy" aria-hidden="true"></canvas>
+<canvas id="dust" class="off" aria-hidden="true"></canvas>
+
+<div class="lock" id="lock" role="dialog" aria-labelledby="lockTitle">
+  <div class="lock-inner">
+    <p class="lock-kicker"><b>56</b> notes</p>
+    <p class="lock-title" id="lockTitle" data-en="One moment…">Un instant…</p>
+    <p class="lock-sub" id="lockSub"></p>
+    <div class="lock-ring waiting" id="lockRing">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><polyline id="lockLine" points=""></polyline></svg>
+    </div>
+    <div class="lock-dots" id="lockDots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <button class="link lock-erase" id="lockErase" type="button" data-en="erase the last note">effacer la dernière note</button>
+  </div>
+</div>
+
+<div id="app" class="veiled" hidden>
+  <header class="bar gut col">
+    <a class="mark" id="mark" href="#ciel" aria-label="56 notes, retour au ciel" data-en-aria="56 notes, back to the sky"><span class="n">56</span></a>
+    <div class="bar-r">
+      <span class="beta-tag" title="Version d’essai">bêta</span>
+      <button class="sound lang" id="langBtn" type="button" aria-label="Langue : français. Passer en anglais">FR</button>
+      <button class="sound" id="prefsBtn" type="button" aria-label="Ton ciel : couleur et particules" data-en-aria="Your sky: colour and particles" aria-haspopup="dialog">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.4"/><path d="M10 2.6v2.6M10 14.8v2.6M2.6 10h2.6M14.8 10h2.6M4.8 4.8l1.7 1.7M13.5 13.5l1.7 1.7M4.8 15.2l1.7-1.7M13.5 6.5l1.7-1.7"/></svg>
+      </button>
+      <button class="sound" id="soundBtn" type="button" aria-pressed="false" aria-label="Fond sonore" data-en-aria="Background music">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="spk" d="M3 7.6h2.8L9.6 4.4v11.2L5.8 12.4H3z"/><path class="waves" d="M12.4 7.4a3.6 3.6 0 0 1 0 5.2M14.6 5.2a6.8 6.8 0 0 1 0 9.6"/><path class="mute" d="M12.8 8l4 4M16.8 8l-4 4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="view" id="v-ciel" hidden>
+    <div class="hero gut col intro nwait">
+      <h1><span class="n">56</span> notes</h1>
+      <p class="lede" data-en="Every evening, a star. Every week, a constellation. After eight, &lt;em&gt;music no one else could have written.&lt;/em&gt;">Chaque soir, une étoile. Chaque semaine, une constellation. Au bout de huit, <em>une musique que personne d’autre n’aurait pu écrire.</em></p>
+      <p class="principle" data-en="The sky doesn’t sort its stars. The dark evenings shine here too.">Le ciel ne trie pas ses étoiles. Les soirs sombres y brillent aussi.</p>
+      <p class="carte-line moonline"><svg id="carteMoon" viewBox="0 0 40 40" aria-hidden="true"></svg><span id="carteText"></span></p>
+    </div>
+    <div class="sky" id="sky">
+      <canvas id="stars" role="img" aria-label="Un ciel de 56 étoiles en huit constellations, une par semaine. Les soirs vécus brillent à la hauteur de leur note." data-en-aria="A sky of 56 stars in eight constellations, one per week. The evenings lived shine at the height of their note."></canvas>
+    </div>
+    <div class="gut col">
+      <div class="carte">
+        <div class="carte-dots" id="carteDots" aria-label="Les 56 soirs" data-en-aria="The 56 evenings"></div>
+        <p class="carte-hint" data-en="Touch a dot to read that evening again.">Touche un point pour relire ce soir-là.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="view gut" id="v-soir" hidden>
+    <div class="col">
+      <ol class="steps" id="steps" aria-label="Le rituel du soir" data-en-aria="The evening ritual">
+        <li data-s="presence"><i></i><span data-en="Be here">Être là</span></li>
+        <li data-s="raconter"><i></i><span data-en="Tell">Raconter</span></li>
+        <li data-s="traduire"><i></i><span data-en="Translate">Traduire</span></li>
+        <li data-s="contempler"><i></i><span data-en="Contemplate">Contempler</span></li>
+      </ol>
+
+      <div class="step" id="st-presence" hidden>
+        <p class="step-date" id="soirDate"></p>
+        <h2 data-en="Be here">Être là</h2>
+        <p class="step-sub" data-en="Rest your finger on the light and keep it there. One minute, just to be here.">Pose ton doigt sur la lumière et garde-le. Une minute, rien que pour être là.</p>
+        <div class="stage-box" id="presStage"><canvas id="presence" tabindex="0" aria-label="Maintiens appuyé pour respirer, ou garde la barre d’espace enfoncée" data-en-aria="Press and hold to breathe, or hold down the space bar"></canvas></div>
+        <p class="word" id="presWord" aria-live="polite">Garde ton doigt posé sur la lumière.</p>
+        <div class="row" style="justify-content:center">
+          <button class="glow" id="presNext" type="button" hidden data-en="Continue">Continuer</button>
+          <button class="link" id="presSkip" type="button" data-en="skip">passer</button>
+        </div>
+      </div>
+
+      <div class="step" id="st-raconter" hidden>
+        <h2 id="storyTitle" data-en="Tell your day">Raconte ta journée</h2>
+        <p class="step-sub" data-en="What happened, and how you felt. In your own words.">Ce qui s’est passé, et comment tu t’es senti. Avec tes mots.</p>
+        <textarea class="story" id="story" aria-labelledby="storyTitle" spellcheck="true"></textarea>
+        <p class="partial" id="partial" aria-live="polite"></p>
+        <div class="row" style="justify-content:center">
+          <button class="ghost" id="micBtn" type="button" aria-pressed="false" hidden data-en="Speak">Parler</button>
+          <button class="glow" id="storyNext" type="button" disabled data-en="Continue">Continuer</button>
+        </div>
+      </div>
+
+      <div class="step" id="st-traduire" hidden>
+        <h2 data-en="Translate">Traduire</h2>
+        <p class="step-sub" id="trSub">Plus haut, plus bas, ou à la même hauteur qu’hier ? Fais glisser l’étoile.</p>
+        <div class="tr-stage" id="trStage">
+          <canvas id="tr" tabindex="0" aria-label="Choisis la note avec les flèches haut et bas" data-en-aria="Choose the note with the up and down arrows"></canvas>
+          <div class="tr-side">
+            <button class="ghost" id="trUp" type="button" aria-label="Un degré plus haut" data-en-aria="One step higher">▲</button>
+            <button class="ghost" id="trDown" type="button" aria-label="Un degré plus bas" data-en-aria="One step lower">▼</button>
+          </div>
+        </div>
+        <p class="tr-label" aria-live="polite"><span class="tr-note" id="trNote"></span><span class="tr-rel" id="trRel"></span></p>
+        <button class="glow" id="trPose" type="button" data-en="Place this note">Poser cette note</button>
+      </div>
+
+      <div class="step" id="st-done" hidden>
+        <p class="step-date" id="doneDate"></p>
+        <h2 id="doneTitle">La note de ce soir est posée</h2>
+        <p class="posed" id="doneNote"></p>
+        <div class="row" style="justify-content:center">
+          <button class="glow" id="doneSee" type="button" data-en="See it in the sky">La voir dans le ciel</button>
+          <button class="ghost" id="doneBreathe" type="button" data-en="Breathe for a minute">Respirer une minute</button>
+        </div>
+        <button class="redo" id="doneRedo" type="button" hidden>Reprendre la note de ce soir</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="view gut" id="v-carnet" hidden>
+    <div class="col read">
+      <div id="carnetIndex">
+        <div class="carnet-head">
+          <h2 data-en="The notebook">Le carnet</h2>
+          <p class="step-sub" style="text-align:left;margin-top:.8rem" data-en="The thoughts that didn’t find a note.">Les pensées qui n’ont pas trouvé de note.</p>
+          <button class="glow c-new" id="penseeOpen" type="button" data-en="A new thought">Une nouvelle pensée</button>
+        </div>
+        <section class="composer" id="composer" hidden aria-labelledby="compTitle">
+          <p class="step-date" id="compDate"></p>
+          <h3 id="compTitle" data-en="A new thought">Une nouvelle pensée</h3>
+          <input class="c-title-in" id="penseeTitle" type="text" maxlength="90" autocomplete="off" placeholder="Un titre, si tu veux" data-en-ph="A title, if you like" aria-label="Titre" data-en-aria="Title">
+          <textarea class="story pensee" id="pensee" aria-label="Ta pensée" data-en-aria="Your thought"></textarea>
+          <p class="partial" id="partial2" aria-live="polite"></p>
+          <div class="row">
+            <button class="ghost" id="micBtn2" type="button" aria-pressed="false" hidden data-en="Speak">Parler</button>
+            <button class="glow" id="penseeSave" type="button" disabled data-en="Keep in the notebook">Garder dans le carnet</button>
+            <button class="link" id="penseeCancel" type="button" data-en="cancel">annuler</button>
+          </div>
+        </section>
+        <div class="timeline" id="fragments"></div>
+      </div>
+      <article class="reader" id="reader" hidden>
+        <button class="link" id="readerBack" type="button" data-en="← the notebook">← le carnet</button>
+        <svg class="r-glyph" id="rGlyph" viewBox="0 0 56 56" aria-hidden="true"></svg>
+        <p class="r-date" id="rDate"></p>
+        <h3 id="rTitle"></h3>
+        <div id="rBody"></div>
+        <button class="redo" id="readerDel" type="button" hidden>Effacer cette pensée</button>
+      </article>
+    </div>
+  </section>
+
+  <nav class="dock" aria-label="Navigation" data-en-aria="Navigation">
+    <a href="#ciel" data-v="ciel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16 9 8l6 5 5-7"/><circle class="fill" cx="4" cy="16" r="1.6"/><circle class="fill" cx="9" cy="8" r="1.3"/><circle class="fill" cx="15" cy="13" r="1.6"/><circle class="fill" cx="20" cy="6" r="1.2"/></svg><span data-en="The sky">Le ciel</span></a>
+    <a href="#soir" data-v="soir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 13.2A7 7 0 0 1 15.5 3.5Z"/><circle class="fill" cx="19" cy="6" r=".9"/></svg><span data-en="Tonight">Ce soir</span></a>
+    <a href="#carnet" data-v="carnet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C9.5 4.8 6.5 4.5 3.5 5v13c3-.5 6-.2 8.5 1.5 2.5-1.7 5.5-2 8.5-1.5V5c-3-.5-6-.2-8.5 1.5Z"/><path d="M12 6.5v13"/></svg><span data-en="Notebook">Le carnet</span></a>
+  </nav>
+
+  <div class="sheet-back" id="sheetBack" hidden></div>
+  <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="dayDate" hidden>
+    <button class="sheet-close" id="sheetClose" type="button" aria-label="Fermer" data-en-aria="Close">✕</button>
+    <div class="day-card" id="dayCard">
+      <div class="day-head">
+        <svg id="dayMoonSvg" viewBox="0 0 40 40" aria-hidden="true"></svg>
+        <div>
+          <p class="day-date" id="dayDate"></p>
+          <p class="day-meta"><span class="note" id="dayNote"></span><span id="dayWeek"></span><span id="dayMoon"></span></p>
+        </div>
+      </div>
+      <p class="day-why" id="dayWhy"></p>
+    </div>
+    <div class="row day-nav">
+      <button class="ghost" id="prevDay" type="button" data-en="← the day before">← la veille</button>
+      <button class="glow" id="playWeek" type="button" data-en="Listen to the week">Écouter la semaine</button>
+      <button class="ghost" id="nextDay" type="button" data-en="the next day →">le lendemain →</button>
+    </div>
+  </aside>
+
+  <canvas id="introCv" aria-hidden="true" hidden></canvas>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="prefs-back" id="prefsBack" hidden></div>
+  <section class="prefs" id="prefs" role="dialog" aria-modal="true" aria-labelledby="prefsTitle" hidden>
+    <div class="prefs-head"><h2 id="prefsTitle" data-en="Your sky">Ton ciel</h2><button class="sound" id="prefsClose" type="button" aria-label="Fermer" data-en-aria="Close"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg></button></div>
+    <p class="prefs-k" data-en="Accent colour">La couleur des accents</p>
+    <div class="swatches" id="swatches" role="radiogroup" aria-label="Couleur des accents" data-en-aria="Accent colour"></div>
+    <label class="custom" for="accPick"><input type="color" id="accPick" value="#e6b866"><span data-en="Pick your own colour">Choisir ta propre couleur</span></label>
+    <p class="prefs-k" data-en="Particles">Les particules</p>
+    <div class="range"><span data-en="Few">Peu</span><input type="range" id="partRange" min="0.15" max="1.6" step="0.05" value="1" aria-label="Quantité de particules" data-en-aria="Amount of particles"><span data-en="Many">Beaucoup</span></div>
+    <p class="prefs-note" id="prefsNote"></p>
+    <button class="redo" id="prefsReset" type="button" data-en="Back to the original settings">Revenir aux réglages d’origine</button>
+  </section>
+  <div class="coda" id="coda" hidden role="dialog" aria-modal="true" aria-labelledby="codaTitle">
+    <div class="coda-in">
+      <p class="step-date" id="codaDate"></p>
+      <h2 id="codaTitle" data-en="Your melody, so far">Ta mélodie, jusqu’ici</h2>
+      <p class="coda-seq" id="codaSeq"></p>
+      <p class="coda-poem" id="codaPoem"></p>
+      <p class="coda-where" id="codaWhere" hidden data-en="Kept on this device only.">Gardée sur cet appareil seulement.</p>
+      <div class="row" style="justify-content:center">
+        <button class="ghost" id="codaReplay" type="button" data-en="Listen again">Réécouter</button>
+        <button class="glow" id="codaClose" type="button" data-en="Good night">Bonne nuit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ===== Les soirs déjà écrits (le journal) =====
+var NOTES = {}; // bêta : aucun soir pré-rempli
+var WEEK_MODES = [ { root:"C", mode:"dorien", label:"do dorien" } ];
+var REFLEXIONS = []; // bêta : le carnet commence vide
+// ==============================================
+
+var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+// l'apparence choisie par la personne : la couleur des accents (r,g,b) et la quantité de particules (1 = d'origine)
+var ACC="230,184,102",ACCV=[230,184,102],PART=1;
+// la palette de lumière du ciel (galaxie, poussière, étoiles, sphère). Avec l'or d'origine : la palette d'origine, à plusieurs teintes.
+// Avec une autre couleur : tout le ciel se décline dans cette couleur, du plus profond au plus pâle.
+var SKY_ORIG={moon:[216,220,230],dust:[200,206,222],twinkle:"234,238,248",neb:[["194,106,61",.07],["110,90,170",.075],["79,163,184",.035],["150,80,120",.04]],gstar:["230,185,130","165,145,215","205,210,228"],gstar2:"220,224,236",presIn:[250,226,170],presOut:[194,106,61],fallback:[194,106,61]};
+var SKY=JSON.parse(JSON.stringify(SKY_ORIG)); SKY.moonS=SKY.moon.join(","); SKY.core="255,246,228";
+function mixc(a,b,t){ return [0,1,2].map(function(i){ return Math.round(a[i]+(b[i]-a[i])*t); }); }
+var SKY_W=[242,242,250],SKY_D=[16,11,16];
+// l'arc-en-ciel : des teintes nacrées (pastel, lumineuses), qui glissent doucement
+var RAINBOW=false,rbTimer=null,rbHue=0;
+function hsl(h,sa,l){ h=((h%360)+360)%360/360; function f(n){ var k=(n+h*12)%12,a=sa*Math.min(l,1-l); return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))); } return [f(0),f(8),f(4)]; }
+function rbAt(u){ return hsl(u*360,.62,.74); }
+function updateSkyPalette(){
+  if(RAINBOW){ SKY={moon:[226,224,238],dust:[214,212,230],twinkle:"242,240,250",
+      neb:[[hsl(330,.55,.5).join(","),.07],[hsl(200,.55,.5).join(","),.065],[hsl(45,.6,.55).join(","),.045],[hsl(270,.5,.5).join(","),.05]],
+      gstar:[hsl(30,.6,.75).join(","),hsl(260,.5,.75).join(","),hsl(180,.45,.8).join(",")],gstar2:"226,226,240",presIn:[250,240,250],presOut:[180,150,210],fallback:[214,170,220]}; }
+  else if(ACC==="230,184,102"){ SKY=JSON.parse(JSON.stringify(SKY_ORIG)); }
+  else { var A=ACCV,W=SKY_W,D=SKY_D;
+    SKY={moon:mixc(A,W,.7),dust:mixc(A,W,.5),twinkle:mixc(A,W,.8).join(","),
+      neb:[[mixc(A,D,.2).join(","),.075],[mixc(A,W,.25).join(","),.055],[mixc(A,D,.5).join(","),.05],[mixc(A,W,.5).join(","),.035]],
+      gstar:[mixc(A,W,.3).join(","),mixc(A,D,.12).join(","),mixc(A,W,.7).join(",")],gstar2:mixc(A,W,.78).join(","),
+      presIn:mixc(A,W,.55),presOut:mixc(A,D,.3),fallback:A.slice()}; }
+  SKY.moonS=SKY.moon.join(","); SKY.core=RAINBOW?"255,252,255":(ACC==="230,184,102")?"255,246,228":mixc(ACCV,SKY_W,.86).join(","); sprites={};
+  try{ document.documentElement.style.setProperty('--moonc',SKY.moonS); }catch(e){}
+}
+var SPD = REDUCED ? .15 : 1;
+var MODES = {ionien:[0,2,4,5,7,9,11],dorien:[0,2,3,5,7,9,10],phrygien:[0,1,3,5,7,8,10],lydien:[0,2,4,6,7,9,11],mixolydien:[0,2,4,5,7,9,10],eolien:[0,2,3,5,7,8,10],locrien:[0,1,3,5,6,8,10]};
+var FR = {C:"Do",D:"Ré",E:"Mi",F:"Fa",G:"Sol",A:"La",B:"Si"};
+var PC = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+var SPELL = {0:["C",""],1:["D","b"],2:["D",""],3:["E","b"],4:["E",""],5:["F",""],6:["G","b"],7:["G",""],8:["A","b"],9:["A",""],10:["B","b"],11:["B",""]};
+function $(id){return document.getElementById(id);}
+function accSym(a){return a==="#"?"♯":a==="b"?"♭":"";}
+function accVal(a){return a==="#"?1:a==="b"?-1:0;}
+function pad(n){return (n<10?"0":"")+n;}
+function isoOf(dt){return dt.getFullYear()+"-"+pad(dt.getMonth()+1)+"-"+pad(dt.getDate());}
+function rnd(s){var x=Math.sin(s*12.9898+78.233)*43758.5453;return x-Math.floor(x);}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,t){return a+(b-a)*t;}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+// ----- les langues : le français d'origine, et l'anglais -----
+// L("texte français","English text") choisit selon la langue. Les mots de la personne (récits, réflexions) restent tels qu'ils ont été écrits.
+var LANG=(function(){ try{ var p=JSON.parse(localStorage.getItem('56n-prefs')||'null'); if(p&&(p.langue==="fr"||p.langue==="en")) return p.langue; }catch(e){} return /^fr/i.test(navigator.language||"fr")?"fr":"en"; })();
+function L(fr,en){ return LANG==="en"?en:fr; }
+function locale(){ return LANG==="en"?"en-GB":"fr-FR"; }
+var UNITS_EN=["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+var TENS_EN={20:"twenty",30:"thirty",40:"forty",50:"fifty"};
+function numWord(n,fem){ if(LANG!=="en") return numFr(n,fem); if(n<20) return UNITS_EN[n]; var t=Math.floor(n/10)*10,u=n%10; return TENS_EN[t]+(u?"-"+UNITS_EN[u]:""); }
+var MODE_EN={ionien:"Ionian",dorien:"Dorian",phrygien:"Phrygian",lydien:"Lydian",mixolydien:"Mixolydian",eolien:"Aeolian",locrien:"Locrian"};
+function modeLabel(m){ if(!m) return ""; return LANG==="en"?m.root+" "+MODE_EN[m.mode]:m.label; }
+function dayName(dt){ return dt.toLocaleDateString(locale(),{weekday:'long'}); }
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
+function ssGet(k){try{return sessionStorage.getItem(k);}catch(e){return null;}}
+function ssSet(k,v){try{sessionStorage.setItem(k,v);}catch(e){}}
+var UNITS=["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize"];
+var TENS={20:"vingt",30:"trente",40:"quarante",50:"cinquante"};
+function numFr(n,fem){
+  if(n===1) return fem?"une":"un";
+  if(n<17) return UNITS[n];
+  if(n<20) return "dix-"+UNITS[n-10];
+  var t=Math.floor(n/10)*10,u=n%10;
+  if(u===0) return TENS[t];
+  if(u===1) return TENS[t]+" et "+(fem?"une":"un");
+  return TENS[t]+"-"+UNITS[u];
+}
+// une couleur par hauteur : rose profond dans le grave, braise, ambre, or, champagne, nacre lunaire dans l'aigu
+var PITCH_STOPS=[[55,[176,96,146]],[60,[206,112,78]],[65,[228,150,84]],[72,[236,190,106]],[79,[244,222,172]],[84,[226,230,246]]];
+function pitchCol(m){
+  if(RAINBOW) return rbAt(clamp((m-55)/29,0,1)*.83); // du rouge-rose (grave) au violet (aigu), en passant par l'or, le vert et le bleu
+  if(ACC!=="230,184,102"){ // ta couleur, déclinée selon la hauteur : profonde dans le grave, pâle et lumineuse dans l'aigu
+    var u=clamp((m-55)/29,0,1),lo=mixc(ACCV,SKY_D,.38),hi=mixc(ACCV,SKY_W,.72);
+    return u<.5?mixc(lo,ACCV,u*2):mixc(ACCV,hi,(u-.5)*2); }
+  if(m<=PITCH_STOPS[0][0]) return PITCH_STOPS[0][1].slice();
+  for(var i=1;i<PITCH_STOPS.length;i++){ var a=PITCH_STOPS[i-1],b=PITCH_STOPS[i];
+    if(m<=b[0]){ var t=(m-a[0])/(b[0]-a[0]); return [lerp(a[1][0],b[1][0],t),lerp(a[1][1],b[1][1],t),lerp(a[1][2],b[1][2],t)]; } }
+  return PITCH_STOPS[PITCH_STOPS.length-1][1].slice();
+}
+function midiToNote(m){ var sp=SPELL[((m%12)+12)%12]; return {note:sp[0],acc:sp[1],oct:Math.floor(m/12)-1}; }
+function noteName(n){ return (LANG==="en"?n.note:FR[n.note])+accSym(n.acc)+n.oct; }
+function noteLabel(n){ return LANG==="en"?noteName(n):noteName(n)+" · "+n.note+accSym(n.acc)+n.oct; }
+
+// ----- la lune -----
+function moonAge(dt){
+  var t=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate(),21,0,0);
+  var a=((t.getTime()/864e5+2440587.5-2451550.1)/29.530588853)%1; return a<0?a+1:a;
+}
+function moonName(a){
+  if(a<.033||a>=.967) return L("nouvelle lune","new moon");
+  if(a<.216) return L("premier croissant","waxing crescent");
+  if(a<.283) return L("premier quartier","first quarter");
+  if(a<.466) return L("lune gibbeuse croissante","waxing gibbous moon");
+  if(a<.533) return L("pleine lune","full moon");
+  if(a<.716) return L("lune gibbeuse décroissante","waning gibbous moon");
+  if(a<.783) return L("dernier quartier","last quarter");
+  return L("dernier croissant","waning crescent");
+}
+function moonSvg(svg,age){
+  var cx=20,cy=20,r=14,k=Math.cos(age*6.2832),sg=age<.5?1:-1,pts=[];
+  for(var a=-Math.PI/2;a<=Math.PI/2+1e-4;a+=Math.PI/36) pts.push((cx+sg*r*Math.cos(a)).toFixed(2)+","+(cy+r*Math.sin(a)).toFixed(2));
+  for(var b=Math.PI/2;b>=-Math.PI/2-1e-4;b-=Math.PI/36) pts.push((cx+sg*r*k*Math.cos(b)).toFixed(2)+","+(cy+r*Math.sin(b)).toFixed(2));
+  svg.innerHTML='<circle cx="20" cy="20" r="19" fill="rgba('+SKY.moonS+',.06)"/><circle cx="20" cy="20" r="14" fill="rgba('+SKY.moonS+',.09)"/><polygon points="'+pts.join(" ")+'" fill="rgba(232,228,218,.92)"/>';
+}
+
+// ===== Les 56 soirs =====
+var START=(function(){ var k='56n-debut',v=null; try{ v=localStorage.getItem(k); }catch(e){}
+  if(v&&/^\d{4}-\d\d-\d\d$/.test(v)){ var p=v.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+  var n=new Date(),d=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  try{ localStorage.setItem(k,d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); }catch(e){}
+  return d; })(); // bêta : le premier soir est le jour de la première ouverture
+var nowD=new Date(), todayMid=new Date(nowD.getFullYear(),nowD.getMonth(),nowD.getDate());
+var TODAY_I=Math.round((todayMid-START)/864e5);
+var DAYS=[], LIVED=[], dbEntries={}, localEntries={};
+try{ localEntries=JSON.parse(lsGet('56n-soirs')||'{}')||{}; }catch(e){ localEntries={}; }
+for(var i=0;i<56;i++){
+  var dt=new Date(START.getFullYear(),START.getMonth(),START.getDate()+i);
+  DAYS.push({i:i,w:Math.floor(i/7),d:i%7,date:dt,iso:isoOf(dt),moon:moonAge(dt),x:0,y:0,flash:-1e9,phase:rnd(i*5.31)*6.283});
+}
+function validEntry(e){
+  return e && typeof e==="object" && /^[A-G]$/.test(e.note) && (e.acc===""||e.acc==="b"||e.acc==="#") && typeof e.oct==="number" && e.oct>=2 && e.oct<=7 && typeof e.why==="string";
+}
+function entryFor(iso){ return NOTES[iso] || (validEntry(dbEntries[iso])&&dbEntries[iso]) || (validEntry(localEntries[iso])&&localEntries[iso]) || null; }
+function applyEntries(){
+  DAYS.forEach(function(day){
+    var e=entryFor(day.iso);
+    if(e){
+      day.status="lived"; day.note=e.note; day.acc=e.acc; day.oct=e.oct; day.why=e.why.slice(0,20000);
+      day.midi=12*(e.oct+1)+PC[e.note]+accVal(e.acc);
+      day.col=pitchCol(day.midi);
+    } else {
+      day.note=null; day.midi=null; day.why=null; day.col=null;
+      day.status = day.i===TODAY_I ? "tonight" : (day.i<TODAY_I ? "silence" : "future");
+    }
+  });
+  LIVED=DAYS.filter(function(d){return d.status==="lived";});
+  if(skyReady) placeStars();
+  renderCarte();
+  if(currentView==="soir") enterSoir(false);
+}
+function weekMode(w){ return WEEK_MODES[w]||null; }
+function weekLabel(w){ var m=weekMode(w); return L("semaine ","week ")+(w+1)+(m?", "+modeLabel(m):""); }
+
+// ===== Le son : verre, bourdon, réverbération =====
+var MOBILE=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Android|iPhone|iPad/i.test(navigator.userAgent);
+var AC=null,bus=null,dry=null,rev=null,master=null;
+function audio(){
+  if(AC) return AC;
+  // "playback" : des mémoires tampons plus grandes. Sur téléphone, c'est ce qui évite les grésillements quand le processeur est occupé.
+  var Ctor=window.AudioContext||window.webkitAudioContext;
+  try{ AC=new Ctor({latencyHint:"playback"}); }catch(e){ AC=new Ctor(); }
+  master=AC.createGain(); master.gain.value=.7;
+  var comp=AC.createDynamicsCompressor(); comp.threshold.value=-24; comp.knee.value=10; comp.ratio.value=12; comp.attack.value=.002; comp.release.value=.25;
+  var outG=AC.createGain(); outG.gain.value=.9;
+  master.connect(comp); comp.connect(outG); outG.connect(AC.destination);
+  // couper le son quand l'app passe en arrière-plan, le reprendre au retour
+  document.addEventListener('visibilitychange',function(){ if(!AC) return; if(document.hidden){ if(AC.state==="running") AC.suspend(); } else if(drone&&AC.state==="suspended") AC.resume(); });
+  bus=AC.createBiquadFilter(); bus.type="lowpass"; bus.frequency.value=5200; bus.Q.value=.3;
+  dry=AC.createGain(); dry.gain.value=.7; bus.connect(dry); dry.connect(master);
+  rev=AC.createConvolver();
+  // réverbération plus courte (2,6 s au lieu de 3,8) : bien moins de calcul, presque la même profondeur
+  var len=Math.floor(AC.sampleRate*(MOBILE?2.2:2.6)),buf=AC.createBuffer(2,len,AC.sampleRate);
+  for(var ch=0;ch<2;ch++){var dd=buf.getChannelData(ch);for(var k=0;k<len;k++){dd[k]=(Math.random()*2-1)*Math.pow(1-k/len,3)*(k<64?k/64:1);}}
+  rev.buffer=buf; var revWet=AC.createGain(); revWet.gain.value=.42; bus.connect(rev); rev.connect(revWet); revWet.connect(master);
+  var dly=AC.createDelay(2); dly.delayTime.value=.42; var fb=AC.createGain(); fb.gain.value=.3; var dw=AC.createGain(); dw.gain.value=.16;
+  bus.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(dw); dw.connect(master);
+  return AC;
+}
+function glass(midi,when,vel){
+  var c=audio(); if(c.state==="suspended") c.resume();
+  var t0=(when||c.currentTime)+.01, f=440*Math.pow(2,(midi-69)/12);
+  [[1,1,3.6],[2.756,.2,1.4],[5.404,.05,.6],[.5,.1,2.8]].forEach(function(p){
+    var o=c.createOscillator(),g=c.createGain(),peak=.13*(vel||1)*p[1];
+    o.type="sine"; o.frequency.value=f*p[0];
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(peak,t0+.008);
+    g.gain.exponentialRampToValueAtTime(Math.max(.00002,peak*.002),t0+p[2]); g.gain.linearRampToValueAtTime(0,t0+p[2]+.06);
+    o.connect(g); g.connect(bus); o.start(t0); o.stop(t0+p[2]+.1);
+    o.onended=function(){try{o.disconnect();g.disconnect();}catch(err){}};
+  });
+}
+var drone=null, soundChosen=false;
+function droneOn(){
+  if(drone) return;
+  var c=audio(); if(c.state==="suspended") c.resume();
+  var t=c.currentTime, w=clamp(Math.floor(TODAY_I/7),0,7), root=PC[(weekMode(w)||{root:"C"}).root];
+  // avec la clé, le bourdon suit le niveau choisi dans la base sonore (0 : il se tait, la chanson prend toute la place)
+  var out=c.createGain(); out.gain.setValueAtTime(0,t); out.gain.linearRampToValueAtTime(MOTIF?SOUND.vDrone*.08:.055,t+3.5);
+  var trem=c.createGain(); trem.gain.value=1;
+  var lfo=c.createOscillator(),lfoG=c.createGain(); lfo.frequency.value=.07; lfoG.gain.value=.22; lfo.connect(lfoG); lfoG.connect(trem.gain);
+  var lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=820;
+  var oscs=[[48+root,1,0],[55+root,.55,3],[36+root,.45,-2]].map(function(n){
+    var o=c.createOscillator(),g=c.createGain(); o.type="sine"; o.frequency.value=440*Math.pow(2,(n[0]-69)/12); o.detune.value=n[2]; g.gain.value=n[1];
+    o.connect(g); g.connect(trem); o.start(t); return o;
+  });
+  trem.connect(lp); lp.connect(out); out.connect(dry); out.connect(rev); lfo.start(t);
+  drone={out:out,oscs:oscs,lfo:lfo};
+  ambStart();
+}
+function droneOff(){
+  if(!drone) return;
+  var t=AC.currentTime,dr=drone; drone=null;
+  dr.out.gain.cancelScheduledValues(t); dr.out.gain.setValueAtTime(dr.out.gain.value,t); dr.out.gain.linearRampToValueAtTime(0,t+3);
+  dr.oscs.forEach(function(o){o.stop(t+3.1);}); dr.lfo.stop(t+3.1);
+  ambStop();
+}
+
+// ===== L'ambiance : un fond sonore qui naît de la mélodie-clé =====
+// La clé (6 notes) n'est connue qu'au moment où elle est jouée pour ouvrir le ciel. Elle reste en mémoire
+// le temps de la session (onglet), jamais dans la base ni dans le code. Sans elle : le bourdon seul.
+//
+// Le fond n'est pas fabriqué en direct : au démarrage, on calcule hors temps réel quatre boucles de 16 mesures
+// en 6/8 (≈ 40 s chacune), puis on se contente de les lire, dans un ordre qui varie. Lire un son prêt ne coûte
+// presque rien : c'est ce qui évite les grésillements sur téléphone. Seuls les sons des gestes restent en direct.
+//
+// Mesure à 6/8 : deux groupes de trois croches, comme les six notes de la clé (≈ 48 noires pointées par minute).
+// - Basse : les trois notes les plus graves de la clé, dans leur ordre d'apparition, chacune tenue deux mesures. Sans écho.
+//   Doublée par une sous-basse (sinus pur) une octave en dessous : surtout pour le casque, les haut-parleurs de téléphone ne la rendent pas.
+// - Arpège : les trois plus aiguës, dans leur ordre d'apparition, en croches feutrées, avec de longs échos
+//   (une noire pointée à gauche, une noire à droite) qui s'assombrissent en se répétant.
+// - La clé elle-même passe dans trois boucles sur quatre, phrasée selon sa forme ; l'arpège se tait pour elle.
+// Si la clé répète des notes (moins de six notes différentes), on complète avec la plus grave à l'octave.
+var MOTIF=null;
+// la clé n'est gardée qu'en mémoire, le temps que la page est ouverte : on la rejoue à chaque ouverture
+(function(){ try{ sessionStorage.removeItem('56n-motif'); sessionStorage.removeItem('56n-open'); }catch(e){} })();
+function setMotif(seq){ if(!/^[0-6]{6}$/.test(seq)) return; MOTIF=seq.split("").map(Number); if(drone&&!amb.running) ambStart(); }
+// La couleur sonore : la base que l’auteur a gardée dans l'atelier du son le 20 novembre 2026 à 22 h 36
+// (https://claude.ai/artifact/5NXe9SsBkWzodchqnW1KgC, document reglages/base). Mêmes noms et mêmes formules que l'atelier.
+var SOUND={
+  tempo:48, dens:.4, breath:.7, keyEvery:16,                                   // mouvement
+  arpOct:4, bassOct:3, leadOct:4,                                              // registres
+  felt:2810, attack:50, ring:1.15, bright:.3,                                  // timbre
+  echoL:3, echoR:4, echoFb:.53, echoDark:1020, echoMix:.51, echoKey:.3, echoCross:.17, echoWow:.25, // échos
+  revSize:6.5, revPre:45, revTone:5940, revMix:.75, revArp:.6, revBass:.35, revLead:.7,             // réverbération
+  revWidth:.66, echoWidth:.61, echoMove:.55, echoRate:.07, spread:.6, depth:.6, depthWaves:1.5, vary:.3, drift:.4, driftRate:.04, // espace
+  vArp:.8, vBass:.7, vSub:.6, vLead:.75, vDrone:0                              // niveaux
+};
+var EIGHTH=60/SOUND.tempo/3, BAR=EIGHTH*6, LOOP_BARS=16, LOOP_LEN=LOOP_BARS*BAR, LOOP_TAIL=Math.min(9,3+SOUND.revSize*.7), LOOP_SR=16000; // 16 kHz : le son est feutré, rien d'audible ne se perd, et c'est un tiers de calcul en moins
+var amb={running:false,out:null,timer:null,key:"",bufs:[],rendering:false,nextStart:0,lastLoop:-1,sources:[]};
+function ambWeek(){ var w=clamp(Math.floor(TODAY_I/7),0,7),m=weekMode(w)||weekMode(0)||{root:"C",mode:"dorien"}; return {root:PC[m.root]||0,set:MODES[m.mode]||MODES.dorien}; }
+// degré de la gamme de la semaine → hauteur (la clé est écrite en do dorien, degré par degré : elle suit la gamme de chaque semaine)
+function degMidi(d,oct){ var s=ambWeek(),k=((d%7)+7)%7,o=Math.floor(d/7); return (oct+1)*12+s.root+s.set[k]+12*o; }
+// le phrasé de la clé : une note respire plus longtemps avant un grand saut, la dernière se pose (en croches)
+function phrasing(deg){ return deg.map(function(d,i){ if(i===deg.length-1) return 6; var iv=Math.abs(deg[i+1]-d); return iv>=4?4:iv>=2?3:2; }); }
+function ambVoices(){
+  var pool=[]; MOTIF.forEach(function(d){ if(pool.indexOf(d)<0) pool.push(d); });
+  var uniq=pool.slice().sort(function(a,b){return a-b;}),i=0;
+  while(pool.length<6){ pool.push(uniq[i%uniq.length]+7*(1+Math.floor(i/uniq.length))); i++; }
+  var byPitch=pool.slice().sort(function(a,b){return a-b;}),lo=byPitch.slice(0,3),hi=byPitch.slice(3);
+  return {low:pool.filter(function(d){return lo.indexOf(d)>=0;}),high:pool.filter(function(d){return hi.indexOf(d)>=0;})};
+}
+// pour que les notes s'accordent : jamais deux notes de l'arpège à un demi-ton (ni à une neuvième mineure), car elles
+// sonnent ensemble dans les échos. La plus haute descend d'une octave (ou la plus basse monte) : le demi-ton devient
+// une septième majeure, un intervalle doux.
+function voiceHigh(high,oct){ // renvoie les trois hauteurs (MIDI) de l'arpège, sans frottement, au plus près du médium
+  var off=(oct-4)*12;
+  function fold(m){ while(m>80+off) m-=12; while(m<57+off) m+=12; return m; }
+  function search(base){ var best=null,bestCost=1e9,sh=[-12,0,12];
+    for(var a=0;a<3;a++) for(var b=0;b<3;b++) for(var c=0;c<3;c++){
+      var m=[base[0]+sh[a],base[1]+sh[b],base[2]+sh[c]],ok=true,cost=0;
+      for(var i=0;i<3&&ok;i++){ if(m[i]<55+off||m[i]>86+off) ok=false; for(var j=i+1;j<3;j++){ var d=Math.abs(m[i]-m[j]); if(d===0||d===1||d===13||d===25) ok=false; } cost+=Math.abs(m[i]-base[i])+Math.abs(m[i]-69-off)*.15; }
+      if(ok&&cost<bestCost){ bestCost=cost; best=m; } }
+    return best; }
+  var base=high.map(function(d){ return fold(degMidi(d,oct)); }),r=search(base);
+  // si rien ne s'accorde (trois notes serrées), une note laisse sa place à l'octave d'une autre
+  for(var k=2;!r&&k>=0;k--) for(var o=0;o<3&&!r;o++){ if(o===k) continue; var b2=base.slice(); b2[k]=fold(base[o]+12); r=search(b2); }
+  if(!r){ var x=base[0],y=x+12<=86+off?x+12:x-12,cand=[base[1],base[2]].filter(function(m){ return [x,y].every(function(q){ var d=Math.abs(m-q); return d!==1&&d!==13&&d!==25&&d!==0; }); }); r=[x,y,cand.length?cand[0]:x]; }
+  return r;
+}
+function clashes(m,others){ for(var i=0;i<others.length;i++){ var d=Math.abs(m-others[i]); if(d===1||d===13||d===25) return true; } return false; }
+// motifs d'arpège sur les trois notes aiguës (-1 = silence) ; les temps forts sont la 1re et la 4e croche
+var ARPS=[[0,1,2,0,1,2],[0,1,2,2,1,0],[0,2,1,0,2,1],[0,1,2,1,2,-1],[0,-1,2,1,-1,2]];
+// le caractère de chaque boucle : où passe la clé (mesure, ou rien), d'où part la basse, et la forme de sa respiration (0 à 1)
+var LOOPS=[
+  {stmt:4, bass:0, shape:function(p){ return p; }},                                  // s'ouvre peu à peu
+  {stmt:10,bass:1, shape:function(p){ return Math.sin(Math.PI*p); }},                // vague
+  {stmt:-1,bass:2, shape:function(p){ return .15+.12*Math.sin(Math.PI*2*p); }},      // clairsemée, sans la clé
+  {stmt:2, bass:0, shape:function(p){ return 1-p; }}                                 // se referme
+];
+function fq(m){ return 440*Math.pow(2,(m-69)/12); }
+// --- les voix, écrites pour un contexte hors temps réel (mêmes formules que l'atelier du son) ---
+function oPluck(c,dest,midi,t0,vel){ // l'arpège : un pincement feutré ; le triangle s'éteint plus vite que le sinus
+  var S=SOUND,att=S.attack/1000,pk=.11*vel;
+  [["sine",1,S.ring],["triangle",S.bright,Math.max(.25,S.ring*.3)]].forEach(function(v){ if(v[1]<=.001) return;
+    var o=c.createOscillator(),g=c.createGain(),a=pk*v[1]; o.type=v[0]; o.frequency.value=fq(midi);
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(a,t0+att); g.gain.exponentialRampToValueAtTime(a*.004,t0+att+v[2]); g.gain.linearRampToValueAtTime(0,t0+att+v[2]+.08);
+    o.connect(g); g.connect(dest); o.start(t0); o.stop(t0+att+v[2]+.12); });
+}
+function oSub(c,dest,midi,t0,len,peak){ // la sous-basse : un sinus pur, une octave sous la basse, sans écho ni réverbération (pour le casque)
+  var g=c.createGain(),o=c.createOscillator(),att=Math.min(1.4,len*.35),end=t0+len+2;
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(peak,t0+att); g.gain.linearRampToValueAtTime(peak*.75,t0+len); g.gain.linearRampToValueAtTime(0,end);
+  o.type="sine"; o.frequency.value=fq(midi); o.connect(g); g.connect(dest); o.start(t0); o.stop(end+.02);
+}
+function oHold(c,dest,midi,t0,len,peak){ // basse et clé : une note tenue, attaque lente, extinction jusqu'au vrai zéro (le filtre est sur le bus)
+  var g=c.createGain(),att=Math.min(1.1,len*.3),end=t0+len+2.4;
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(peak,t0+att); g.gain.linearRampToValueAtTime(peak*.7,t0+len); g.gain.linearRampToValueAtTime(0,end);
+  [["triangle",1,0],["sine",.28,1200]].forEach(function(v){ var o=c.createOscillator(),og=c.createGain(); o.type=v[0]; o.frequency.value=fq(midi); o.detune.value=v[2]; og.gain.value=v[1]; o.connect(og); og.connect(g); o.start(t0); o.stop(end+.02); });
+  g.connect(dest);
+}
+function renderLoop(idx){
+  var OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext; if(!OAC) return Promise.reject("no-offline");
+  var S=SOUND,sr=LOOP_SR,dur=LOOP_LEN+LOOP_TAIL,c;
+  try{ c=new OAC(2,Math.ceil(dur*sr),sr); }catch(e){ return Promise.reject(e); }
+  var v=ambVoices(),L=LOOPS[idx];
+  function G(val){ var g=c.createGain(); g.gain.value=val; return g; }
+  function LP(f){ var x=c.createBiquadFilter(); x.type="lowpass"; x.frequency.value=f; x.Q.value=.3; return x; }
+  // --- la table de mixage du rendu ---
+  var mix=G(1),felt=LP(S.felt); mix.connect(felt); felt.connect(c.destination); // le feutre : rien au-dessus de sa fréquence
+  // réverbération stéréo : pré-délai, pièce (taille, largeur), couleur, niveau
+  var rev=c.createConvolver(),rl=Math.floor(sr*S.revSize),rb=c.createBuffer(2,rl,sr),dL=rb.getChannelData(0),dR=rb.getChannelData(1);
+  for(var k=0;k<rl;k++){ var env=Math.pow(1-k/rl,3)*(k<64?k/64:1),na=Math.random()*2-1,nb=Math.random()*2-1; dL[k]=na*env; dR[k]=(S.revWidth*nb+(1-S.revWidth)*na)*env; }
+  rev.buffer=rb; var revIn=G(1),revPre=c.createDelay(1); revPre.delayTime.value=S.revPre/1000; var revLP=LP(S.revTone),revOut=G(S.revMix);
+  revIn.connect(revPre); revPre.connect(rev); rev.connect(revLP); revLP.connect(revOut); revOut.connect(mix);
+  // échos : deux lignes, chacune à sa place (écart), qui dérive (mouvement, vitesse) ; une part des retours passe
+  // de l'autre côté (croisement) ; le temps d'écho flotte un peu ; chaque retour s'assombrit
+  var echoIn=G(1),echoOut=G(S.echoMix),echoRev=G(.45); echoOut.connect(mix); echoOut.connect(echoRev); echoRev.connect(revIn);
+  var jit=.85+Math.random()*.3; // chaque boucle bouge un peu différemment
+  function echoLine(time,side,rate,wowRate){
+    var d=c.createDelay(5); d.delayTime.value=time; var f=LP(S.echoDark);
+    var pan=c.createStereoPanner(); pan.pan.value=side*S.echoWidth;
+    var lfo=c.createOscillator(); lfo.frequency.value=rate; var lg=G(S.echoMove*.42); lfo.connect(lg); lg.connect(pan.pan); lfo.start(0);
+    var wow=c.createOscillator(); wow.frequency.value=wowRate; var wg=G(S.echoWow*.004); wow.connect(wg); wg.connect(d.delayTime); wow.start(0);
+    echoIn.connect(d); d.connect(f); f.connect(pan); pan.connect(echoOut); return {d:d,f:f};
+  }
+  var eLn=echoLine(EIGHTH*S.echoL,-1,S.echoRate*jit,.13), eRn=echoLine(EIGHTH*S.echoR,1,S.echoRate*.77/jit,.17);
+  [[eLn,eRn,1],[eRn,eLn,.94]].forEach(function(q){ var self=G(S.echoFb*q[2]*(1-S.echoCross)); q[0].f.connect(self); self.connect(q[0].d);
+    var x=G(S.echoFb*q[2]*S.echoCross); q[0].f.connect(x); x.connect(q[1].d); });
+  // l'arpège, en deux plans : proche (clair, présent) et lointain (sombre, doux, noyé dans la pièce) ; le tout dérive lentement
+  var drift=c.createStereoPanner(); drift.connect(mix);
+  var dl=c.createOscillator(); dl.frequency.value=S.driftRate; var dlg=G(S.drift*.85); dl.connect(dlg); dlg.connect(drift.pan); dl.start(0);
+  var nearLP=LP(1700),near=G(S.vArp); nearLP.connect(near); near.connect(drift); near.connect(echoIn); var arpRev=G(S.revArp); near.connect(arpRev); arpRev.connect(revIn);
+  var farLP=LP(780),far=G(S.vArp),farDry=G(.55),farRev=G(.95); farLP.connect(far); far.connect(farDry); farDry.connect(drift); far.connect(farRev); farRev.connect(revIn); far.connect(echoIn);
+  function place(pan,z){ var p=c.createStereoPanner(); p.pan.value=pan; var nG=G(1-z),fG=G(z); p.connect(nG); nG.connect(nearLP); p.connect(fG); fG.connect(farLP); return p; }
+  var dPh=Math.random()*6.283;
+  // basse, sous-basse, clé
+  var bassLP=LP(620),bass=G(S.vBass),bassRev=G(S.revBass); bassLP.connect(bass); bass.connect(mix); bass.connect(bassRev); bassRev.connect(revIn);
+  var sub=G(S.vSub); sub.connect(mix);
+  var leadLP=LP(1300),lead=G(S.vLead),leadEcho=G(S.echoKey),leadRev=G(S.revLead); leadLP.connect(lead); lead.connect(mix); lead.connect(leadEcho); leadEcho.connect(echoIn); lead.connect(leadRev); leadRev.connect(revIn);
+  // --- la partition de la boucle ---
+  var pat=idx%ARPS.length,stmtLeft=0,bm=0,hm=voiceHigh(v.high,S.arpOct);
+  for(var b=0;b<LOOP_BARS;b++){
+    var t0=b*BAR+.05;
+    if(b%2===0){ bm=degMidi(v.low[(L.bass+b/2)%3],S.bassOct); oHold(c,bassLP,bm,t0,BAR*2+.5,.085); oSub(c,sub,bm-12,t0,BAR*2+.5,.075); }
+    if(stmtLeft>0){ stmtLeft--; continue; }
+    if(b===L.stmt&&S.keyEvery>0){
+      var dr=phrasing(MOTIF),tot=0; dr.forEach(function(x){ tot+=x; }); var bars=Math.ceil(tot/6); dr[dr.length-1]+=bars*6-tot;
+      var t=t0; MOTIF.forEach(function(d,i){ var len=dr[i]*EIGHTH; oHold(c,leadLP,degMidi(d,S.leadOct),t,len*.92,.09*(i===0?1:.85)); t+=len; });
+      // les échos de l'arpège s'effacent pendant que la clé chante, pour qu'aucune traîne ne frotte contre elle
+      echoOut.gain.setTargetAtTime(S.echoMix*.18,Math.max(0,t0-.4),.5); echoOut.gain.setTargetAtTime(S.echoMix,t0+bars*BAR,1.4);
+      stmtLeft=bars-1; continue;
+    }
+    if(b%2===0&&Math.random()<.45) pat=(pat+1+Math.floor(Math.random()*(ARPS.length-1)))%ARPS.length;
+    var dens=clamp(S.dens*((1-S.breath)+S.breath*L.shape(b/(LOOP_BARS-1))*1.35),.04,1),P=ARPS[pat];
+    for(var e=0;e<6;e++){
+      var n=P[e]; if(n<0) continue; var strong=(e===0||e===3);
+      if(!(Math.random()<(strong?Math.min(1,dens+.3):dens))) continue;
+      var m=hm[n];
+      // pas de demi-ton au-dessus de la basse : on prend une autre note de l'arpège qui s'accorde, sinon on se tait
+      if((((m-bm)%12)+12)%12===1){ var alt=hm.filter(function(x){ return (((x-bm)%12)+12)%12!==1; }); if(!alt.length) continue; m=alt[(Math.random()*alt.length)|0]; }
+      if(n===2&&Math.random()<.1&&!clashes(m+12,hm)) m+=12;
+      // distance : des vagues lentes (la musique s'approche puis s'éloigne) plus un peu de hasard ; les temps forts un peu plus près
+      var z=clamp((.45+.3*Math.sin(2*Math.PI*S.depthWaves*b/LOOP_BARS+dPh)+(Math.random()-.5)*.45)*S.depth*1.6,0,1)*(strong?.85:1);
+      var vel=(strong?1:.62)*(1-.45*z)*(1-S.vary*.5+S.vary*Math.random()), pan=(Math.random()*2-1)*S.spread;
+      oPluck(c,place(pan,z),m,t0+e*EIGHTH,vel);
+    }
+  }
+  return new Promise(function(res,rej){
+    c.oncomplete=function(ev){ res(ev.renderedBuffer); };
+    var p=c.startRendering(); if(p&&p.then) p.then(res,rej);
+  }).then(function(buf){ // même niveau quelle que soit la clé
+    var pk=0; for(var ch=0;ch<buf.numberOfChannels;ch++){ var d=buf.getChannelData(ch); for(var i=0;i<d.length;i+=2){ var a=d[i]<0?-d[i]:d[i]; if(a>pk) pk=a; } }
+    if(pk>0){ var s=.5/pk; for(var ch2=0;ch2<buf.numberOfChannels;ch2++){ var d2=buf.getChannelData(ch2); for(var j=0;j<d2.length;j++) d2[j]*=s; } }
+    return buf;
+  });
+}
+function ambPrepare(){ // calcule les quatre boucles une à une (une seule fois par clé et par gamme)
+  var key=MOTIF.join("")+"|"+JSON.stringify(ambWeek());
+  if(amb.key===key&&(amb.bufs.length===LOOPS.length||amb.rendering)) return;
+  amb.key=key; amb.bufs=[]; amb.rendering=true;
+  var i=0; (function next(){ if(amb.key!==key) return; if(i>=LOOPS.length){ amb.rendering=false; return; }
+    renderLoop(i).then(function(buf){ if(amb.key!==key) return; amb.bufs[i]=buf; i++; setTimeout(next,60); ambTick(); })
+      .catch(function(){ amb.rendering=false; }); })();
+}
+function ambNextLoop(){
+  var ready=[]; for(var i=0;i<amb.bufs.length;i++) if(amb.bufs[i]) ready.push(i);
+  if(!ready.length) return -1;
+  if(amb.lastLoop<0) return 0; // on commence toujours par la boucle où la clé passe tôt
+  var opts=ready.filter(function(i){ return i!==amb.lastLoop; }); if(!opts.length) opts=ready;
+  return opts[(Math.random()*opts.length)|0];
+}
+function ambTick(){
+  if(!amb.running||!AC||!MOTIF) return;
+  var t=AC.currentTime;
+  if(amb.nextStart<t) amb.nextStart=t+.15; // après une pause, on repart proprement
+  if(amb.nextStart<t+2){
+    var k=ambNextLoop(); if(k<0) return;
+    var src=AC.createBufferSource(); src.buffer=amb.bufs[k]; src.connect(amb.out); src.start(amb.nextStart);
+    if(amb.lastLoop<0){ // fondu d'ouverture de 2 s, en courbe douce, au moment exact où la chanson commence
+      var fc=new Float32Array(64); for(var q=0;q<64;q++){ var u=q/63; fc[q]=.62*Math.pow(Math.sin(u*Math.PI/2),2); }
+      amb.out.gain.cancelScheduledValues(amb.nextStart); amb.out.gain.setValueCurveAtTime(fc,amb.nextStart,2);
+    }
+    src.onended=function(){ try{ src.disconnect(); }catch(_){} var j=amb.sources.indexOf(src); if(j>=0) amb.sources.splice(j,1); };
+    amb.sources.push(src); amb.lastLoop=k; amb.nextStart+=LOOP_LEN; // la boucle suivante commence pendant la traîne de la précédente
+  }
+}
+function ambStart(){
+  if(amb.running||!MOTIF||!drone) return;
+  var c=audio(),t=c.currentTime; amb.running=true;
+  amb.out=c.createGain(); amb.out.gain.setValueAtTime(0,t); amb.out.connect(master); // le fondu d'ouverture part avec la première boucle
+  // le bourdon se fait très discret : la basse de la clé prend le relais
+  drone.out.gain.cancelScheduledValues(t); drone.out.gain.setValueAtTime(drone.out.gain.value,t); drone.out.gain.linearRampToValueAtTime(SOUND.vDrone*.08,t+6);
+  amb.lastLoop=-1; amb.nextStart=t+.4; ambPrepare();
+  clearInterval(amb.timer); amb.timer=setInterval(ambTick,500); ambTick();
+}
+function ambStop(){
+  if(!amb.running) return; amb.running=false; clearInterval(amb.timer);
+  var t=AC.currentTime,o=amb.out,srcs=amb.sources.slice(); amb.sources=[];
+  o.gain.cancelScheduledValues(t); o.gain.setValueAtTime(o.gain.value,t); o.gain.linearRampToValueAtTime(0,t+3);
+  srcs.forEach(function(s){ try{ s.stop(t+3.2); }catch(_){} });
+  setTimeout(function(){ try{ o.disconnect(); }catch(_){} },4000);
+}
+function ambDuck(sec){ // s'efface quand une mélodie du ciel joue
+  if(!amb.running) return; var t=AC.currentTime,g=amb.out.gain;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value,t); g.linearRampToValueAtTime(.12,t+.8); g.setValueAtTime(.12,t+sec); g.linearRampToValueAtTime(.62,t+sec+3);
+}
+var soundBtn=$('soundBtn');
+function setSound(on){ if(on) droneOn(); else droneOff(); soundBtn.setAttribute('aria-pressed',on?'true':'false'); }
+soundBtn.addEventListener('click',function(){ soundChosen=true; setSound(soundBtn.getAttribute('aria-pressed')!=='true'); });
+
+// ===== La galaxie, derrière tout =====
+var gal=$('galaxy'),gctx=gal.getContext('2d'),goff=null,VW=0,VH=0,OW=0,OH=0,cam={x:0,y:0},twinkles=[],par={x:0,y:0};
+var VIEW_CAM={ciel:[0,0],soir:[-.12,.05],carnet:[.12,-.04],lock:[0,.06]};
+function buildGalaxy(){
+  VW=window.innerWidth; VH=window.innerHeight; var dpr=Math.min(2,window.devicePixelRatio||1);
+  gal.width=Math.round(VW*dpr); gal.height=Math.round(VH*dpr); gctx.setTransform(dpr,0,0,dpr,0,0);
+  OW=Math.round(VW*1.5); OH=Math.round(VH*1.5);
+  goff=document.createElement('canvas'); goff.width=OW; goff.height=OH; var o=goff.getContext('2d');
+  [[.2,.28,.5,SKY.neb[0][0],SKY.neb[0][1]],[.8,.65,.55,SKY.neb[1][0],SKY.neb[1][1]],[.58,.18,.35,SKY.neb[2][0],SKY.neb[2][1]],[.32,.82,.42,SKY.neb[3][0],SKY.neb[3][1]]].forEach(function(n){
+    var R=n[2]*Math.max(OW,OH),g=o.createRadialGradient(n[0]*OW,n[1]*OH,0,n[0]*OW,n[1]*OH,R);
+    g.addColorStop(0,"rgba("+n[3]+","+n[4]+")"); g.addColorStop(1,"rgba("+n[3]+",0)"); o.fillStyle=g; o.fillRect(0,0,OW,OH);
+  });
+  var ax=0,ay=OH*.9,bx=OW,by=OH*.1,len=Math.hypot(bx-ax,by-ay),nx=-(by-ay)/len,ny=(bx-ax)/len,N=Math.round(OW*OH/380*PART);
+  for(var i=0;i<N;i++){
+    var t=rnd(i*1.37+.5),gs=(rnd(i*2.71+1.1)+rnd(i*3.17+2.3)+rnd(i*5.3)-1.5)/1.5,spread=OH*(.075+.05*Math.sin(t*9));
+    var x=lerp(ax,bx,t)+nx*gs*spread,y=lerp(ay,by,t)+ny*gs*spread,c=rnd(i*7.7);
+    var col=c<.1?SKY.gstar[0]:c<.3?SKY.gstar[1]:SKY.gstar[2],a=(.035+.2*rnd(i*9.1))*(1-Math.abs(gs)*.6),s=.5+rnd(i*4.4)*1.1;
+    o.fillStyle="rgba("+col+","+a.toFixed(3)+")"; o.fillRect(x,y,s,s);
+  }
+  var M=Math.round(OW*OH/3200*PART);
+  for(var j=0;j<M;j++){ var a2=.08+.45*Math.pow(rnd(j*6.1),2),s2=rnd(j*8.3)<.06?1.6:.8; o.fillStyle="rgba("+SKY.gstar2+","+a2.toFixed(3)+")"; o.fillRect(rnd(j*3.3)*OW,rnd(j*4.9)*OH,s2,s2); }
+  twinkles=[]; for(var k=0;k<90;k++) twinkles.push({x:rnd(k*11.1)*OW,y:rnd(k*13.7)*OH,ph:rnd(k*2.2)*6.28,sp:.3+rnd(k*3.9)*.8});
+}
+function frameGalaxy(now){
+  var tg=VIEW_CAM[unlocked?currentView:"lock"]||[0,0],mx=(OW-VW)/2,my=(OH-VH)/2;
+  var tx=tg[0]*VW+par.x*16, ty=tg[1]*VH-Math.min(my*.6,window.scrollY*.05)+par.y*12;
+  var k=REDUCED?1:.022; cam.x+=(tx-cam.x)*k; cam.y+=(ty-cam.y)*k;
+  var ox=-mx+clamp(cam.x,-mx,mx), oy=-my+clamp(cam.y,-my,my);
+  gctx.clearRect(0,0,VW,VH); gctx.globalAlpha=.92; gctx.drawImage(goff,ox,oy); gctx.globalAlpha=1;
+  var t=now*.001;
+  for(var i=0;i<twinkles.length;i++){
+    var w=twinkles[i],x=w.x+ox,y=w.y+oy; if(x<-4||y<-4||x>VW+4||y>VH+4) continue;
+    var a=.1+.6*Math.max(0,Math.sin(t*w.sp+w.ph)); gctx.fillStyle="rgba("+SKY.twinkle+","+a.toFixed(3)+")";
+    gctx.beginPath(); gctx.arc(x,y,.9,0,6.283); gctx.fill();
+  }
+}
+window.addEventListener('pointermove',function(e){ if(e.pointerType==="mouse"){ par.x=e.clientX/VW-.5; par.y=e.clientY/VH-.5; } });
+
+// ===== Le cadenas : une mélodie de six notes en do dorien =====
+var LOCK_MIDI=[72,74,75,77,79,81,82], LOCK_NAMES=LANG==="en"?["C","D","E♭","F","G","A","B♭"]:["Do","Ré","Mi♭","Fa","Sol","La","Si♭"];
+var lockEl=$('lock'),lockRing=$('lockRing'),lockLine=$('lockLine'),lockTitle=$('lockTitle'),lockSub=$('lockSub'),lockDots=$('lockDots'),lockErase=$('lockErase');
+var lockMode="loading",lockSeq=[],lockFirst=null,lockData=null,lockWhere="local",lockBusy=false,unlocked=false;
+var LK_POS=LOCK_MIDI.map(function(m,k){ var a=-Math.PI/2+k*2*Math.PI/7; return [50+40*Math.cos(a),50+40*Math.sin(a)]; });
+var lkBtns=LOCK_MIDI.map(function(m,k){
+  var b=document.createElement('button'); b.type="button"; b.className="lk"; b.style.left=LK_POS[k][0]+"%"; b.style.top=LK_POS[k][1]+"%";
+  b.setAttribute('aria-label',LOCK_NAMES[k]); b.innerHTML='<span class="pt"></span><span class="lb">'+LOCK_NAMES[k]+'</span>';
+  b.addEventListener('click',function(){ lockTap(k); });
+  lockRing.appendChild(b); return b;
+});
+function lockRender(){
+  var d=lockDots.children; for(var i=0;i<6;i++) d[i].classList.toggle('on',i<lockSeq.length);
+  lockLine.setAttribute('points',lockSeq.map(function(k){return LK_POS[k].join(",");}).join(" "));
+  lockErase.classList.toggle('show',lockSeq.length>0&&!lockBusy);
+}
+function lockSay(title,sub){ lockTitle.textContent=title; lockSub.textContent=sub||""; }
+function lockReset(delay){
+  lockBusy=true; lockRing.classList.add('fade'); lockDots.classList.add('fade');
+  setTimeout(function(){ lockSeq=[]; lockRing.classList.remove('fade'); lockDots.classList.remove('fade'); lkBtns.forEach(function(b){b.classList.remove('hit');}); lockBusy=false; lockRender(); },delay||900);
+}
+function lockTap(k){
+  if(lockBusy||lockMode==="loading"||lockSeq.length>=6) return;
+  lockSeq.push(k); glass(LOCK_MIDI[k],0,.9);
+  var b=lkBtns[k]; b.classList.remove('hit'); void b.offsetWidth; b.classList.add('hit');
+  setTimeout(function(){ if(lockSeq.indexOf(k)<0) b.classList.remove('hit'); },600);
+  lockRender();
+  if(lockSeq.length===6){ lockBusy=true; setTimeout(lockEvaluate,420); }
+}
+lockErase.addEventListener('click',function(){ if(lockBusy) return; var k=lockSeq.pop(); if(k!==undefined&&lockSeq.indexOf(k)<0) lkBtns[k].classList.remove('hit'); lockRender(); });
+document.addEventListener('keydown',function(e){
+  if(unlocked||lockMode==="loading") return;
+  if(e.key>="1"&&e.key<="7"){ lockTap(+e.key-1); e.preventDefault(); }
+  else if(e.key==="Backspace"){ lockErase.click(); e.preventDefault(); }
+});
+function sha(str){
+  var bytes=new TextEncoder().encode(str);
+  return crypto.subtle.digest('SHA-256',bytes).then(function(h){ return Array.prototype.map.call(new Uint8Array(h),function(x){return ("0"+x.toString(16)).slice(-2);}).join(""); });
+}
+function lockEvaluate(){
+  var seq=lockSeq.join("");
+  if(lockMode==="set1"){
+    lockFirst=seq; lockMode="set2"; lockReset(700);
+    lockSay(L("Rejoue-la","Play it again"),L("Les mêmes six notes, dans le même ordre, pour être sûr de la garder.","The same six notes, in the same order, to be sure you keep it."));
+  } else if(lockMode==="set2"){
+    if(seq!==lockFirst){ lockMode="set1"; lockFirst=null; lockReset(); lockSay(L("Ce n’était pas tout à fait la même","That wasn’t quite the same"),L("Compose-la à nouveau, sans te presser.","Compose it again, there’s no hurry.")); return; }
+    var salt=Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(12)),function(x){return ("0"+x.toString(16)).slice(-2);}).join("");
+    sha("56notes|"+salt+"|"+seq).then(function(hash){
+      lockData={salt:salt,hash:hash,created:new Date().toISOString()};
+      return saveLock(lockData);
+    }).then(function(){ lockOpen(seq); });
+  } else if(lockMode==="unlock"){
+    sha("56notes|"+lockData.salt+"|"+seq).then(function(hash){
+      if(hash===lockData.hash) lockOpen(seq);
+      else { lockReset(); lockSay(L("Pas tout à fait","Not quite"),L("Rejoue ta mélodie.","Play your melody again.")); }
+    });
+  }
+}
+function lockOpen(seq){
+  setMotif(seq);
+  var c=audio(); seq.split("").forEach(function(k,i){ glass(LOCK_MIDI[+k],c.currentTime+.15+i*.16,.7); });
+  lockSay(lockMode==="set2"?L("Ta mélodie est gardée","Your melody is kept"):L("Bonsoir","Good evening"), lockWhere==="local"?L("Elle n’est gardée que sur cet appareil.","It is kept on this device only."):"");
+  setTimeout(function(){ lockEl.classList.add('opening'); enterApp(); playIntro(); setTimeout(function(){ lockEl.hidden=true; },1500); },900);
+  // la musique s'allume d'elle-même : la mélodie jouée vaut « oui » (c'est aussi ce qui autorise le son dans le navigateur).
+  // On attend que la mélodie ait fini de résonner : le calcul des boucles du fond sonore est lourd, et lancé trop tôt
+  // il pouvait faire décrocher la sortie audio et couper la fin de la mélodie. La musique arrive ensuite en fondu.
+  var ring=(.15+(seq.length-1)*.16+3.2)*1000;
+  setTimeout(function(){ if(!soundChosen&&!drone) setSound(true); },ring);
+}
+var db=null, soirsCol=null;
+function getDb(){
+  if(!(window.claude&&typeof window.claude.use==="function")) return Promise.resolve(null);
+  return window.claude.use('db').catch(function(){return null;});
+}
+function saveLock(data){
+  if(db){ return db.doc('verrou/cle').set(data).then(function(){ lockWhere="db"; }).catch(function(){ lsSet('56n-lock',JSON.stringify(data)); lockWhere="local"; }); }
+  lsSet('56n-lock',JSON.stringify(data)); lockWhere="local"; return Promise.resolve();
+}
+function loadLock(){
+  var local=null; try{ local=JSON.parse(lsGet('56n-lock')||'null'); }catch(e){}
+  if(!db) return Promise.resolve(local?{d:local,w:"local"}:null);
+  return db.doc('verrou/cle').get().then(function(s){
+    var d=s.exists?s.data():null;
+    if(d&&typeof d.salt==="string"&&typeof d.hash==="string") return {d:d,w:"db"};
+    return local?{d:local,w:"local"}:null;
+  }).catch(function(){ return local?{d:local,w:"local"}:null; });
+}
+function bootLock(){
+  getDb().then(function(d){ db=d; return loadLock(); }).then(function(found){
+    lockRing.classList.remove('waiting');
+    if(found){
+      lockData=found.d; lockWhere=found.w;
+      lockMode="unlock"; lockSay(L("Joue ta mélodie","Play your melody"),L("Les six notes qui ouvrent ton ciel.","The six notes that open your sky."));
+    } else {
+      lockMode="set1"; lockSay(L("Compose ta clé","Compose your key"),L("Six notes de do dorien, dans l’ordre que tu veux. Une petite mélodie qui ouvrira ton ciel.","Six notes of C Dorian, in any order you like. A little melody that will open your sky."));
+    }
+    lockRender();
+  });
+}
+
+// ===== L'app =====
+var currentView="ciel", skyReady=false;
+function enterApp(){
+  if(unlocked) return; unlocked=true;
+  var app=$('app'); app.hidden=false;
+  requestAnimationFrame(function(){ app.classList.remove('veiled'); });
+  applyEntries(); renderCarnet(); route();
+  if(db){
+    syncPrefsFromDb();
+    reflCol=db.collection('reflexions');
+    reflCol.onSnapshot(function(snap){ var m={}; snap.docs.forEach(function(d){ m[d.id]=d.data(); }); dbRefl=m; renderCarnet(); },function(){});
+    soirsCol=db.collection('soirs');
+    soirsCol.onSnapshot(function(snap){
+      var m={}; snap.docs.forEach(function(d){ var x=d.data(); if(validEntry(x)) m[d.id]=x; });
+      dbEntries=m; applyEntries();
+    },function(){});
+  }
+  initVoice(); initSample();
+}
+
+// ----- routes -----
+var VIEWS={ciel:$('v-ciel'),soir:$('v-soir'),carnet:$('v-carnet')};
+function route(){
+  if(!unlocked) return;
+  var h=(location.hash||"").slice(1); if(!VIEWS[h]) h="ciel";
+  var changed=h!==currentView||VIEWS[h].hidden;
+  currentView=h;
+  Object.keys(VIEWS).forEach(function(k){ VIEWS[k].hidden=k!==h; });
+  document.querySelectorAll('.dock a').forEach(function(a){ if(a.getAttribute('data-v')===h) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  $('mark').classList.toggle('hide',h==="ciel");
+  dustCv.classList.toggle('off',h!=="ciel");
+  document.documentElement.classList.toggle('lockscroll',h==="soir");
+  if(changed){ var v=VIEWS[h]; v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); window.scrollTo(0,0); }
+  if(h==="ciel") ensureSky();
+  if(h==="soir") enterSoir(true);
+  if(h==="carnet") closeReader();
+  closeSheet();
+}
+window.addEventListener('hashchange',route);
+
+// ===== Le ciel =====
+var sky=$('sky'),dustCv=$('dust'),starCv=$('stars'),dctx=dustCv.getContext('2d'),sctx=starCv.getContext('2d');
+var W=0,H=0,WEEKS_META=[],particles=[],bursts=[],pointer=null,hover=null,skyVisible=true,sprites={},T0=performance.now(),linesFrom=0;
+function sprite(col){
+  var key=col.map(Math.round).join(",");
+  if(sprites[key]) return sprites[key];
+  var s=document.createElement('canvas'); s.width=s.height=128; var g=s.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba('+SKY.core+',.95)'); gr.addColorStop(.08,'rgba('+key+',.75)'); gr.addColorStop(.3,'rgba('+key+',.18)'); gr.addColorStop(1,'rgba('+key+',0)');
+  g.fillStyle=gr; g.fillRect(0,0,128,128); sprites[key]=s; return s;
+}
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ if(skyReady) layoutSky(); });
+function ensureSky(){ if(!skyReady||sky.clientWidth!==W||window.innerHeight!==DH){ layoutSky(); } }
+function layoutSky(){
+  W=sky.clientWidth; if(!W) return;
+  var dpr=Math.min(2,window.devicePixelRatio||1),cols=W<700?2:4,rows=8/cols,gut=Math.max(16,W*.04),cellH=cols===2?172:215;
+  // grand écran : les constellations s'alignent sur le titre, et leur hauteur se calcule pour que la rangée
+  // des semaines 5 à 8 se pose juste au-dessus du menu du bas (sur mobile, rien ne change)
+  if(cols===4&&window.innerWidth>=900&&window.innerHeight>=560){
+    var h1=document.querySelector('#v-ciel h1'),sr=sky.getBoundingClientRect();
+    // les noms des semaines (décalés de 10 % de colonne) tombent pile sous le début du titre
+    if(h1){ var hl=h1.getBoundingClientRect().left-sr.left,g2=(hl-.025*W)/.95; if(g2>16) gut=g2; }
+    var skyTop=sr.top+window.scrollY; cellH=clamp((window.innerHeight-skyTop-106)/2,150,300);
+    var nn=document.querySelector('#v-ciel h1 .n'),br=document.querySelector('.bar');
+    if(nn&&br&&window.scrollY===0){ var lt=nn.getBoundingClientRect().top-br.getBoundingClientRect().top; if(lt>-40&&lt<80) document.documentElement.style.setProperty('--logoTop',Math.round(lt)+'px'); }
+  }
+  var cellW=(W-2*gut)/cols;
+  sky.style.setProperty('--skyRight',Math.round(gut+cellW*.1)+'px');
+  H=rows*cellH+16;
+  starCv.width=Math.round(W*dpr); starCv.height=Math.round(H*dpr); starCv.style.height=H+"px"; sctx.setTransform(dpr,0,0,dpr,0,0);
+  WEEKS_META=[];
+  for(var w=0;w<8;w++){
+    var col=w%cols,row=Math.floor(w/cols),x0=gut+col*cellW,y0=8+row*cellH,padX=cellW*.1,top=22,bottom=46,ih=cellH-top-bottom;
+    WEEKS_META.push({x:x0+padX,y:y0+cellH-24,cx:x0+cellW/2,cy:y0+top+ih/2,r:cellW*.5,x0:x0,y0:y0,padX:padX,top:top,ih:ih,cellW:cellW});
+  }
+  skyReady=true; placeStars(); layoutDust(); linesFrom=performance.now();
+}
+// la poussière vit à l'échelle de toute la page ; le calque est fixe et suit le défilement
+var DW=0,DH=0,PH=0,lastSy=-1;
+function layoutDust(){
+  var dpr=Math.min(2,window.devicePixelRatio||1); DW=window.innerWidth; DH=window.innerHeight;
+  dustCv.width=Math.round(DW*dpr); dustCv.height=Math.round(DH*dpr); dctx.setTransform(dpr,0,0,dpr,0,0);
+  PH=Math.max(DH,document.documentElement.scrollHeight);
+  var n=Math.round(clamp(DW*PH/260,800,3200)*(REDUCED?.6:1)*(MOBILE?.65:1)*PART); particles=[];
+  for(var k=0;k<n;k++) particles.push({x:Math.random()*DW,y:Math.random()*PH,vx:0,vy:0,s:.5+Math.random()*1.2,seed:Math.random()*100,tw:.5+Math.random()*1.5,warm:0,col:ACCV});
+  dctx.clearRect(0,0,DW,DH); lastSy=-1;
+}
+function skyOrigin(){ var r=starCv.getBoundingClientRect(); return {x:r.left+window.scrollX,y:r.top+window.scrollY}; }
+function placeStars(){
+  DAYS.forEach(function(day){
+    var m=WEEKS_META[day.w]; if(!m) return;
+    day.x=m.x0+m.padX+day.d*((m.cellW-2*m.padX)/6)+(rnd(day.i*7.13)-.5)*m.cellW*.035;
+    if(day.status==="lived"){ var t=clamp((day.midi-55)/(84-55),0,1); day.y=m.y0+m.top+(1-t)*m.ih; }
+    else day.y=m.y0+m.top+m.ih*(.3+.4*rnd(day.i*3.71));
+  });
+}
+function burst(day,k){ var o=skyOrigin(); bursts.push({x:day.x+o.x,y:day.y+o.y,t:performance.now(),k:k||1,col:day.col||ACCV}); }
+function frameSky(now){
+  if(!skyReady||!W) return;
+  var t=now-T0,sx=window.scrollX,sy=window.scrollY,o=skyOrigin();
+  // au défilement, on fait glisser l'image d'autant : les sillages restent alignés et les particules gardent tout leur éclat
+  if(sy!==lastSy){ if(lastSy>=0){ dctx.globalCompositeOperation='copy'; dctx.drawImage(dustCv,0,0,dustCv.width,dustCv.height,0,lastSy-sy,DW,DH); } else dctx.clearRect(0,0,DW,DH); lastSy=sy; }
+  dctx.globalCompositeOperation='destination-out'; dctx.fillStyle='rgba(0,0,0,'+(REDUCED?1:.24)+')'; dctx.fillRect(0,0,DW,DH);
+  dctx.globalCompositeOperation='lighter';
+  for(var jj=0;jj<LIVED.length;jj++){ LIVED[jj].px=LIVED[jj].x+o.x; LIVED[jj].py=LIVED[jj].y+o.y; }
+  var PR=MOBILE?80:40; // le cercle que la souris (ou le doigt) creuse dans la poussière : deux fois plus petit sur ordinateur
+  var R=62,R2=R*R; bursts=bursts.filter(function(b){return now-b.t<1600;});
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    var ang=Math.sin(p.x*.0042+t*.00011)*1.6+Math.cos(p.y*.0051-t*.00008)*1.6+Math.sin((p.x-p.y)*.0017+p.seed)*.8;
+    p.vx+=Math.cos(ang)*.012*SPD; p.vy+=Math.sin(ang)*.012*SPD;
+    var warmT=0;
+    for(var j=0;j<LIVED.length;j++){
+      var s=LIVED[j],dx=s.px-p.x,dy=s.py-p.y,d2=dx*dx+dy*dy;
+      if(d2<R2&&d2>1){ var dd=Math.sqrt(d2),k=1-dd/R,inw=dd>13?.011:-.014;
+        p.vx+=(dx/dd*inw+(-dy/dd)*.017)*k*SPD; p.vy+=(dy/dd*inw+(dx/dd)*.017)*k*SPD; if(k>warmT){warmT=k;p.col=s.col;} }
+    }
+    for(var b=0;b<bursts.length;b++){
+      var bb=bursts[b],age=(now-bb.t)/1600,bx=p.x-bb.x,by=p.y-bb.y,bd=Math.sqrt(bx*bx+by*by)+.01,reach=22+age*70;
+      if(bd<reach&&bd>reach-34){ var f=(1-age)*.24*bb.k*SPD; p.vx+=bx/bd*f; p.vy+=by/bd*f; warmT=Math.max(warmT,(1-age)*.8); p.col=bb.col; }
+    }
+    if(pointer){ var px=p.x-pointer.x,py=p.y-pointer.y,pd2=px*px+py*py;
+      if(pd2<PR*PR&&pd2>1){ var pd=Math.sqrt(pd2),push=(1-pd/PR)*.28*SPD; p.vx+=px/pd*push; p.vy+=py/pd*push; } }
+    p.vx*=.955; p.vy*=.955; p.x+=p.vx; p.y+=p.vy;
+    if(p.x<-4)p.x=DW+4; else if(p.x>DW+4)p.x=-4; if(p.y<-4)p.y=PH+4; else if(p.y>PH+4)p.y=-4;
+    p.warm+=(warmT-p.warm)*.035;
+    var vy=p.y-sy; if(vy<-4||vy>DH+4) continue;
+    var tw=.6+.4*Math.sin(t*.002*p.tw+p.seed),wm=p.warm,a=(.13+.5*wm)*tw;
+    var bc=RAINBOW?(p.rb||(p.rb=rbAt((p.x/DW*.8+p.y/PH*.35+p.seed*.002)%1))):SKY.dust;
+    dctx.fillStyle='rgba('+(lerp(bc[0],p.col[0],wm)|0)+','+(lerp(bc[1],p.col[1],wm)|0)+','+(lerp(bc[2],p.col[2],wm)|0)+','+a.toFixed(3)+')';
+    var sz=p.s*(1+wm*.7); dctx.fillRect(p.x-sx,vy,sz,sz);
+  }
+  if(!skyVisible) return;
+  sctx.clearRect(0,0,W,H);
+  var curW=clamp(Math.floor(TODAY_I/7),0,7),tint=WEEKS_META[curW];
+  if(tint&&TODAY_I>=0&&TODAY_I<56){ var tg=sctx.createRadialGradient(tint.cx,tint.cy,0,tint.cx,tint.cy,tint.r); tg.addColorStop(0,'rgba(79,163,184,.07)'); tg.addColorStop(1,'rgba(79,163,184,0)'); sctx.fillStyle=tg; sctx.fillRect(tint.cx-tint.r,tint.cy-tint.r,tint.r*2,tint.r*2); }
+  var draw=Math.min(1,(now-linesFrom)/2800); sctx.lineWidth=.7;
+  for(var m=1;m<DAYS.length;m++){ var A=DAYS[m-1],B=DAYS[m]; if(A.status!=="lived"||B.status!=="lived"||A.w!==B.w) continue;
+    sctx.strokeStyle='rgba('+ACC+',.24)'; sctx.beginPath(); sctx.moveTo(A.x,A.y); sctx.lineTo(lerp(A.x,B.x,draw),lerp(A.y,B.y,draw)); sctx.stroke(); }
+  for(var q=0;q<DAYS.length;q++){
+    var dy2=DAYS[q],ph=dy2.phase,isSel=dy2===selected&&sheetOpen,isHov=dy2===hover;
+    if(dy2.status==="lived"){
+      var fage=(now-dy2.flash)/1900,fl=fage<1&&fage>=0?1-fage:0,ef=fl*fl*(3-2*fl);
+      var size=30+5*Math.sin(t*.0009+ph)+(isSel?14:0)+(isHov?6:0)+ef*14;
+      sctx.globalCompositeOperation='lighter'; sctx.drawImage(sprite(dy2.col),dy2.x-size,dy2.y-size,size*2,size*2);
+      if(fl>0){
+        // deux anneaux de lumière qui s'ouvrent comme une ronde dans l'eau, et quelques scintillements
+        var ck=dy2.col.map(function(v){return v|0;}).join(","),grow=1-fl;
+        sctx.shadowColor='rgba('+ck+',.9)'; sctx.shadowBlur=10;
+        for(var rr=0;rr<2;rr++){ var g2=clamp(grow*1.2-rr*.25,0,1); if(g2<=0||g2>=1) continue;
+          var rad=6+Math.sqrt(g2)*36,al=(1-g2)*(1-g2)*.38;
+          sctx.strokeStyle='rgba('+ck+','+al.toFixed(3)+')'; sctx.lineWidth=.4+(1-g2)*1.1; sctx.beginPath(); sctx.arc(dy2.x,dy2.y,rad,0,6.283); sctx.stroke(); }
+        sctx.shadowBlur=0;
+        for(var gk=0;gk<7;gk++){
+          var ga=gk*.8976+ph+grow*1.1,gr=9+Math.sqrt(grow)*20+rnd(gk+dy2.i*3)*7,gx=dy2.x+Math.cos(ga)*gr,gy=dy2.y+Math.sin(ga)*gr;
+          var gl=fl*(.45+.55*Math.sin(now*.018+gk*1.7)),gs=1+fl*2;
+          if(gl<=0) continue;
+          sctx.strokeStyle='rgba(255,248,232,'+(gl*.8).toFixed(3)+')'; sctx.lineWidth=.6;
+          sctx.beginPath(); sctx.moveTo(gx-gs,gy); sctx.lineTo(gx+gs,gy); sctx.moveTo(gx,gy-gs); sctx.lineTo(gx,gy+gs); sctx.stroke();
+        }
+      }
+      sctx.globalCompositeOperation='source-over';
+      sctx.fillStyle='rgba('+SKY.core+',.96)'; sctx.beginPath(); sctx.arc(dy2.x,dy2.y,1.7+ef*.9,0,6.283); sctx.fill();
+      if(isSel){ sctx.strokeStyle='rgba('+ACC+','+(.32+.12*Math.sin(t*.0016)).toFixed(3)+')'; sctx.beginPath(); sctx.arc(dy2.x,dy2.y,11+1.5*Math.sin(t*.0016),0,6.283); sctx.stroke(); }
+    } else if(dy2.status==="tonight"){
+      var pl=.5+.5*Math.sin(t*.0018);
+      sctx.strokeStyle='rgba('+ACC+','+(.3+.35*pl).toFixed(3)+')'; sctx.beginPath(); sctx.arc(dy2.x,dy2.y,4.5+2*pl,0,6.283); sctx.stroke();
+      sctx.fillStyle='rgba('+ACC+',.7)'; sctx.beginPath(); sctx.arc(dy2.x,dy2.y,1.1,0,6.283); sctx.fill();
+    } else if(dy2.status==="silence"){
+      sctx.strokeStyle='rgba('+SKY.moonS+',.3)'; sctx.beginPath(); sctx.arc(dy2.x,dy2.y,2.6,0,6.283); sctx.stroke();
+    } else {
+      var tw2=.42+.2*Math.sin(t*.0011*(1+rnd(q))+ph)+(isHov?.3:0)+(isSel?.35:0),hs=7+(isHov||isSel?5:0);
+      sctx.globalCompositeOperation='lighter'; sctx.globalAlpha=Math.min(1,tw2*.8); sctx.drawImage(sprite(SKY.dust),dy2.x-hs,dy2.y-hs,hs*2,hs*2); sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over';
+      sctx.fillStyle='rgba('+SKY.moonS+','+Math.min(1,tw2).toFixed(3)+')'; sctx.beginPath(); sctx.arc(dy2.x,dy2.y,isSel?1.7:1.2,0,6.283); sctx.fill();
+    }
+  }
+  sctx.font='500 '+(W>=900?12:11)+'px "IBM Plex Mono", ui-monospace, monospace'; if('letterSpacing' in sctx) sctx.letterSpacing='1.6px';
+  sctx.shadowColor='rgba(6,4,5,.9)'; sctx.shadowBlur=6; // un léger halo sombre : les noms se détachent de la poussière
+  for(var wk=0;wk<8;wk++){ var meta=WEEKS_META[wk],has=wk<=curW&&TODAY_I>=0;
+    sctx.fillStyle=has?'rgba(236,229,216,.9)':'rgba(206,198,186,.58)'; sctx.fillText((L("semaine ","week ")+(wk+1)).toUpperCase(),meta.x,meta.y);
+    if(weekMode(wk)){ sctx.fillStyle=has?'rgba('+ACC+',.95)':'rgba('+ACC+',.6)'; sctx.fillText(modeLabel(weekMode(wk)).toUpperCase(),meta.x,meta.y+16); } }
+  sctx.shadowBlur=0; sctx.shadowColor='transparent';
+}
+function nearest(x,y,maxD){ var best=null,bd=maxD*maxD; DAYS.forEach(function(d){ var dx=d.x-x,dy=d.y-y,dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=d;} }); return best; }
+function localPos(e){ var r=starCv.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+starCv.addEventListener('pointermove',function(e){ var lp=localPos(e); hover=nearest(lp.x,lp.y,24); starCv.style.cursor=hover&&hover.status==="lived"?'pointer':'default'; });
+starCv.addEventListener('pointerleave',function(){ hover=null; });
+window.addEventListener('pointermove',function(e){ pointer={x:e.clientX+window.scrollX,y:e.clientY+window.scrollY}; });
+document.documentElement.addEventListener('pointerleave',function(){ pointer=null; });
+window.addEventListener('pointerup',function(e){ if(e.pointerType!=="mouse") pointer=null; });
+starCv.addEventListener('click',function(e){
+  var p=localPos(e),d=nearest(p.x,p.y,26);
+  if(d&&d.status==="lived"){ glass(d.midi,0,1); d.flash=performance.now(); burst(d,1); }
+});
+
+// ----- la carte des 56 soirs -----
+function renderCarte(){
+  var box=$('carteDots'); box.innerHTML="";
+  for(var w=0;w<8;w++){
+    var g=document.createElement('div'); g.className='carte-week';
+    var hasLived=DAYS.some(function(x){ return x.w===w&&x.status==="lived"; }),pb=document.createElement('button');
+    pb.type="button"; pb.className="cw-play"; pb.disabled=!hasLived; pb.setAttribute('aria-label',L("Écouter la semaine ","Listen to week ")+(w+1)); pb.title=pb.getAttribute('aria-label');
+    pb.innerHTML='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 .8v8.4L9 5z"/></svg>';
+    (function(ww){ pb.addEventListener('click',function(){ playWeek(ww); }); })(w);
+    g.appendChild(pb); var days=document.createElement('div'); days.className='cw-days'; g.appendChild(days);
+    for(var d=0;d<7;d++){
+      var day=DAYS[w*7+d],b=document.createElement('button'); b.type="button"; b.className='cd '+day.status;
+      var lab=day.date.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'});
+      b.setAttribute('aria-label',lab+(day.status==="lived"?", "+noteName(day):day.status==="tonight"?L(", ce soir",", tonight"):""));
+      b.title=lab; var dot=document.createElement('i'); b.appendChild(dot);
+      if(day.status==="lived"){ var ck=day.col.map(function(v){return v|0;}).join(","); dot.style.background="rgb("+ck+")"; dot.style.boxShadow="0 0 8px 2px rgba("+ck+",.5)"; }
+      (function(dd){ b.addEventListener('click',function(){ openSheet(dd,true); }); })(day);
+      days.appendChild(b);
+    }
+    box.appendChild(g);
+  }
+  moonSvg($('carteMoon'),moonAge(todayMid));
+  var lit=LIVED.length,rest=56-lit,txt;
+  // seulement la lune du soir : une phrase, en haut du ciel
+  if(TODAY_I<0) txt=L("Le premier soir sera le lundi 16 novembre.","The first evening will be Monday 16 November.");
+  else if(TODAY_I>55) txt=L("Les 56 soirs sont passés.","The 56 evenings have passed.");
+  else txt=L("Ce soir, "+moonName(moonAge(todayMid))+".","Tonight, "+moonName(moonAge(todayMid))+".");
+  $('carteText').textContent=txt;
+}
+
+// ----- la fiche d'un soir -----
+var selected=null,sheetOpen=false,lastFocus=null,fadeTimer=null;
+var sheet=$('sheet'),sheetBack=$('sheetBack'),card=$('dayCard');
+function fillCard(d){
+  var label=d.date.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  $('dayDate').textContent=cap(label);
+  $('dayNote').textContent=d.status==="lived"?noteLabel(d):(d.status==="tonight"?L("ce soir","tonight"):"");
+  $('dayWeek').textContent=weekLabel(d.w);
+  $('dayMoon').textContent=moonName(d.moon);
+  var why=$('dayWhy');
+  if(d.status==="lived"){ why.textContent=d.why; why.className="day-why"; }
+  else if(d.status==="tonight"){ why.textContent=L("La note de ce soir n’est pas encore posée.","Tonight’s note hasn’t been placed yet."); why.className="day-why quiet"; }
+  else if(d.status==="silence"){ why.textContent=L("Un silence. Dans une mélodie, le silence compte aussi.","A silence. In a melody, silence counts too."); why.className="day-why quiet"; }
+  else { why.textContent=L("Ce soir-là n’est pas encore venu.","That evening hasn’t come yet."); why.className="day-why quiet"; }
+  moonSvg($('dayMoonSvg'),d.moon);
+  $('prevDay').disabled=d.i===0; $('nextDay').disabled=d.i===55;
+}
+function openSheet(d,sound){
+  if(sound&&d.status==="lived"){ glass(d.midi,0,1); d.flash=performance.now(); burst(d,1); }
+  var was=sheetOpen;
+  if(!was){ lastFocus=document.activeElement; fillCard(d); selected=d; sheet.hidden=false; sheetBack.hidden=false;
+    requestAnimationFrame(function(){ sheet.classList.add('open'); sheetBack.classList.add('open'); }); sheetOpen=true; setTimeout(function(){ $('sheetClose').focus({preventScroll:true}); },60); return; }
+  if(d===selected) return; selected=d;
+  if(REDUCED){ fillCard(d); return; }
+  card.classList.add('fading'); clearTimeout(fadeTimer); fadeTimer=setTimeout(function(){ fillCard(d); card.classList.remove('fading'); },320);
+}
+function closeSheet(){
+  if(!sheetOpen) return; sheetOpen=false;
+  sheet.classList.remove('open'); sheetBack.classList.remove('open');
+  setTimeout(function(){ if(!sheetOpen){ sheet.hidden=true; sheetBack.hidden=true; } },620);
+  if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true});
+}
+$('sheetClose').addEventListener('click',closeSheet);
+sheetBack.addEventListener('click',closeSheet);
+document.addEventListener('keydown',function(e){ if(e.key==="Escape"&&sheetOpen) closeSheet(); });
+$('prevDay').addEventListener('click',function(){ if(selected&&selected.i>0) openSheet(DAYS[selected.i-1],true); });
+$('nextDay').addEventListener('click',function(){ if(selected&&selected.i<55) openSheet(DAYS[selected.i+1],true); });
+$('playWeek').addEventListener('click',function(){ playWeek(selected?selected.w:0); });
+function playWeek(w){
+  var seq=DAYS.filter(function(d){return d.w===w&&d.status==="lived";}); if(!seq.length) return;
+  var c=audio(); if(c.state==="suspended") c.resume();
+  seq.forEach(function(d,k){ glass(d.midi,c.currentTime+k*.95,k===seq.length-1?1:.85); setTimeout(function(){ d.flash=performance.now(); burst(d,.8); },k*950); });
+  ambDuck((seq.length-1)*.95+3);
+  return (seq.length-1)*950+2400;
+}
+
+// ----- Coda : après la mélodie, une phrase -----
+// La réserve de phrases choisies par l’auteur (20 nov.). Une par soir, toujours la même pour un soir donné.
+// "soir" : seulement le soir et la nuit (18 h – 6 h). Les autres conviennent à toute heure.
+var CODA_PHRASES=[
+  {t:["Ici, c’est la nuit qui garde tes mots."],en:["Here, it is the night that keeps your words."],when:"soir"},
+  {t:["Un sentier n’existe que parce qu’on y repasse."],en:["A path only exists because we walk it again."]},
+  {t:["L’hiver, la forêt n’est pas moins vivante.","Elle attend, simplement."],en:["In winter, the forest is no less alive.","It is simply waiting."]},
+  {t:["Dans la forêt, ce qui tombe nourrit ce qui vient."],en:["In the forest, what falls feeds what is coming."]},
+  {t:["Ici, il n’y a que toi qui écoutes."],en:["Here, you are the only one listening."]},
+  {t:["Sous la neige, les racines continuent leur travail."],en:["Under the snow, the roots keep working."]},
+  {t:["Ici, il n’y a qu’une note, et c’est la tienne."],en:["Here, there is only one note, and it is yours."]},
+  {t:["On dit que les arbres grandissent surtout la nuit."],en:["They say trees grow mostly at night."],when:"soir"},
+  {t:["Ici, tu peux être honnête à voix basse."],en:["Here, you can be honest in a quiet voice."]},
+  {t:["Ce soir est posé.","Demain trouvera sa propre note."],en:["Tonight is set down.","Tomorrow will find its own note."],when:"soir"},
+  {t:["Ici, tes mots peuvent prendre leur temps."],en:["Here, your words can take their time."]},
+  {t:["La nuit garde tes mots.","Le temps s’occupe du reste."],en:["The night keeps your words.","Time takes care of the rest."],when:"soir"},
+  {t:["Ce que tu as posé ce soir t’attendra."],en:["What you set down tonight will wait for you."],when:"soir"}
+];
+function codaPhrase(d){
+  var h=new Date().getHours(),night=h>=18||h<6;
+  var ok=CODA_PHRASES.filter(function(p){ return p.when!=="soir"||night; });
+  var ph=ok[(d.i*5)%ok.length]; return LANG==="en"&&ph.en?ph.en:ph.t;
+}
+var codaDay=null,codaTimer=null;
+function openCoda(d,where){
+  codaDay=d; var c=$('coda');
+  $('codaDate').textContent=cap(d.date.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}))+" · "+weekLabel(d.w);
+  var seq=$('codaSeq'); seq.textContent="";
+  DAYS.filter(function(x){ return x.w===d.w&&x.status==="lived"; }).forEach(function(x){
+    var el=document.createElement(x===d?'b':'span'); el.textContent=noteName(midiToNote(x.midi)); seq.appendChild(el); });
+  var po=$('codaPoem'); po.textContent=""; codaPhrase(d).forEach(function(l){ var s=document.createElement('span'); s.textContent=l; po.appendChild(s); });
+  $('codaWhere').hidden=where!=="local";
+  clearTimeout(codaTimer); c.hidden=false; void c.offsetWidth; c.classList.add('show');
+  setTimeout(function(){ try{ $('codaClose').focus({preventScroll:true}); }catch(_){ } },3400);
+}
+function closeCoda(){ var c=$('coda'); if(c.hidden) return; c.classList.remove('show'); codaTimer=setTimeout(function(){ c.hidden=true; },1800); }
+$('codaClose').addEventListener('click',closeCoda);
+$('codaReplay').addEventListener('click',function(){ if(codaDay) playWeek(codaDay.w); });
+document.addEventListener('keydown',function(e){ if(e.key==="Escape") closeCoda(); });
+
+// ===== Ton ciel : la couleur des accents et la quantité de particules =====
+// Gardé dans la base de l'app (preferences/apparence) pour suivre la personne d'un appareil à l'autre, et dans cet appareil en secours.
+var ACCENTS=[["Or","230,184,102","Gold"],["Lune","196,206,230","Moon"],["Rose ancien","214,150,160","Old rose"],["Cuivre","214,128,84","Copper"],["Sauge","156,190,150","Sage"],["Lavande","168,152,214","Lavender"],["Glacier","130,196,210","Glacier"],["Arc-en-ciel","rainbow","Rainbow"]];
+var DEFAULT_PREFS={accent:"230,184,102",particules:1};
+function hexToRgb(h){ var m=/^#?([0-9a-f]{6})$/i.exec(h||""); if(!m) return null; var n=parseInt(m[1],16); return [n>>16&255,n>>8&255,n&255]; }
+function rgbToHex(a){ return "#"+a.map(function(x){ return ("0"+x.toString(16)).slice(-2); }).join(""); }
+function liftRgb(a){ // une couleur trop sombre disparaîtrait dans la nuit : on l'éclaircit juste assez pour qu'elle reste lisible
+  var l=(.2126*a[0]+.7152*a[1]+.0722*a[2])/255; if(l>=.5) return a; var k=(.5-l)/(1-l||1); return a.map(function(x){ return Math.round(x+(255-x)*k); }); }
+function rbTick(){ rbHue=(rbHue+2)%360; var c=hsl(rbHue,.62,.74); ACCV=c; ACC=c.join(","); document.documentElement.style.setProperty('--acc',ACC); }
+function applyAccent(str){
+  if(str==="rainbow"){ // l'arc-en-ciel : l'interface fait lentement le tour des couleurs (environ une minute), le ciel devient nacré
+    RAINBOW=true; rbTick(); clearInterval(rbTimer); rbTimer=setInterval(rbTick,350);
+    updateSkyPalette(); if(unlocked){ applyEntries(); buildGalaxy(); particles.forEach(function(p){ p.rb=null; }); }
+    markSwatches(); if(unlocked) renderCarnet(); return true;
+  }
+  RAINBOW=false; clearInterval(rbTimer); particles.forEach(function(p){ p.rb=null; });
+  var v=String(str||"").split(",").map(Number); if(v.length!==3||v.some(function(x){ return isNaN(x)||x<0||x>255; })) return false;
+  ACCV=v; ACC=v.join(","); document.documentElement.style.setProperty('--acc',ACC);
+  updateSkyPalette(); if(unlocked){ applyEntries(); buildGalaxy(); }
+  var pick=$('accPick'); if(pick) pick.value=rgbToHex(v);
+  markSwatches(); if(unlocked) renderCarnet(); return true;
+}
+function applyParticles(x,rebuild){
+  PART=clamp(+x||1,.15,1.6); var r=$('partRange'); if(r) r.value=PART;
+  if(!rebuild||!unlocked) return;
+  buildGalaxy(); layoutDust(); pres.W=0; tr.W=0;
+  if(currentView==="soir"&&soirStep==="presence") layoutPresence();
+  if(currentView==="soir"&&soirStep==="traduire") layoutTr();
+}
+function markSwatches(){ Array.prototype.forEach.call(($('swatches')||{children:[]}).children,function(b){ var on=RAINBOW?b.getAttribute('data-acc')==="rainbow":b.getAttribute('data-acc')===ACC; b.setAttribute('aria-checked',on?'true':'false'); }); }
+ACCENTS.forEach(function(a){
+  var b=document.createElement('button'); b.type="button"; b.className="sw"; b.setAttribute('role','radio'); b.setAttribute('data-acc',a[1]); b.setAttribute('aria-label',L(a[0],a[2])); b.title=L(a[0],a[2]); b.setAttribute('data-nfr',a[0]); b.setAttribute('data-nen',a[2]);
+  var i=document.createElement('i');
+  if(a[1]==="rainbow"){ i.style.background="conic-gradient(from 0deg,#f2a7b8,#f4cf95,#bfe3a8,#9fd6e0,#b6b2ec,#e4a9e0,#f2a7b8)"; i.style.boxShadow="0 0 12px rgba(220,200,240,.5)"; }
+  else { i.style.background="rgb("+a[1]+")"; i.style.boxShadow="0 0 10px rgba("+a[1]+",.45)"; }
+  b.appendChild(i);
+  b.addEventListener('click',function(){ applyAccent(a[1]); prefsSay(L(a[0],a[2])+"."); savePrefs(); });
+  $('swatches').appendChild(b);
+});
+$('accPick').addEventListener('input',function(e){ var v=hexToRgb(e.target.value); if(!v) return; var w=liftRgb(v); applyAccent(w.join(",")); prefsSay(w.join(",")!==v.join(",")?L("Ta couleur, un peu éclaircie pour rester lisible dans la nuit.","Your colour, lightened a little to stay visible in the night."):L("Ta couleur.","Your colour.")); });
+$('accPick').addEventListener('change',function(){ savePrefs(); });
+var partTimer=null;
+$('partRange').addEventListener('input',function(e){ var v=+e.target.value; clearTimeout(partTimer); partTimer=setTimeout(function(){ applyParticles(v,true); savePrefs(); },160);
+  prefsSay(v<.45?L("Un ciel presque vide, quelques points de lumière.","An almost empty sky, a few points of light."):v<.85?L("Moins de particules.","Fewer particles."):v<=1.1?L("Les particules d’origine.","The original particles."):L("Plus de particules : un ciel plus dense, et un peu plus de calcul pour l’appareil.","More particles: a denser sky, and a little more work for the device.")); });
+function prefsSay(t){ $('prefsNote').textContent=t; }
+var prefsTimer=null;
+function savePrefs(){
+  var p={accent:RAINBOW?"rainbow":ACC,particules:PART,langue:LANG,modifie:new Date().toISOString()};
+  lsSet('56n-prefs',JSON.stringify(p));
+  clearTimeout(prefsTimer); prefsTimer=setTimeout(function(){ if(db) db.doc('preferences/apparence').set(p).catch(function(){}); },500);
+}
+function loadPrefs(){ // d'abord cet appareil (tout de suite), puis la base (pour suivre la personne)
+  try{ var l=JSON.parse(lsGet('56n-prefs')||'null'); if(l){ if(l.accent) applyAccent(l.accent); if(l.particules) applyParticles(l.particules,false); } }catch(e){}
+}
+function syncPrefsFromDb(){
+  if(!db) return; db.doc('preferences/apparence').get().then(function(snap){
+    if(!snap||!snap.exists) return; var d=snap.data()||{}, changed=false;
+    if(d.accent&&d.accent!==(RAINBOW?"rainbow":ACC)){ applyAccent(d.accent); changed=true; }
+    if(d.particules&&Math.abs(d.particules-PART)>.001){ applyParticles(d.particules,true); changed=true; }
+    if((d.langue==="fr"||d.langue==="en")&&d.langue!==LANG){ setLang(d.langue,false); changed=true; }
+    if(changed) lsSet('56n-prefs',JSON.stringify({accent:RAINBOW?"rainbow":ACC,particules:PART,langue:LANG,modifie:d.modifie||""}));
+  }).catch(function(){});
+}
+$('prefsReset').addEventListener('click',function(){ applyAccent(DEFAULT_PREFS.accent); applyParticles(DEFAULT_PREFS.particules,true); prefsSay(L("Les réglages d’origine.","The original settings.")); savePrefs(); });
+var prefsOpen=false,prefsLast=null;
+function openPrefs(){ prefsLast=document.activeElement; var p=$('prefs'),b=$('prefsBack'); p.hidden=false; b.hidden=false; prefsSay(""); requestAnimationFrame(function(){ p.classList.add('open'); b.classList.add('open'); }); prefsOpen=true; setTimeout(function(){ $('prefsClose').focus({preventScroll:true}); },60); }
+function closePrefs(){ if(!prefsOpen) return; prefsOpen=false; var p=$('prefs'),b=$('prefsBack'); p.classList.remove('open'); b.classList.remove('open'); setTimeout(function(){ if(!prefsOpen){ p.hidden=true; b.hidden=true; } },560); if(prefsLast&&prefsLast.focus) prefsLast.focus({preventScroll:true}); }
+$('prefsBtn').addEventListener('click',openPrefs); $('prefsClose').addEventListener('click',closePrefs); $('prefsBack').addEventListener('click',closePrefs);
+document.addEventListener('keydown',function(e){ if(e.key==="Escape"&&prefsOpen) closePrefs(); });
+loadPrefs();
+
+// ----- la langue : bascule en direct, sans recharger -----
+function applyStatic(){
+  document.documentElement.lang=LANG;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-en]'),function(el){
+    if(el.getAttribute('data-fr')===null) el.setAttribute('data-fr',el.innerHTML);
+    el.innerHTML=LANG==="en"?el.getAttribute('data-en'):el.getAttribute('data-fr'); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-en-ph]'),function(el){
+    if(el.getAttribute('data-fr-ph')===null) el.setAttribute('data-fr-ph',el.getAttribute('placeholder')||"");
+    el.setAttribute('placeholder',LANG==="en"?el.getAttribute('data-en-ph'):el.getAttribute('data-fr-ph')); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-en-aria]'),function(el){
+    if(el.getAttribute('data-fr-aria')===null) el.setAttribute('data-fr-aria',el.getAttribute('aria-label')||"");
+    el.setAttribute('aria-label',LANG==="en"?el.getAttribute('data-en-aria'):el.getAttribute('data-fr-aria')); });
+  Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(b){ var n=LANG==="en"?b.getAttribute('data-nen'):b.getAttribute('data-nfr'); b.title=n; b.setAttribute('aria-label',n); });
+  var lb=$('langBtn'); lb.textContent=LANG==="en"?"EN":"FR"; lb.setAttribute('aria-label',LANG==="en"?"Language: English. Switch to French":"Langue : français. Passer en anglais");
+}
+function setLang(l,persist){
+  if(l!=="fr"&&l!=="en") return; LANG=l; applyStatic();
+  if(unlocked){
+    applyEntries(); renderCarnet();
+    if(currentView==="soir"){ enterSoir(false); if(soirStep==="traduire"){ setTrSub(); trLabel(); } if(soirStep==="presence"){ pres.word=""; } }
+    if(dictation&&$('micBtn')) $('micBtn').textContent=L("Parler","Speak");
+    if($('story').getAttribute('placeholder')) voiceHint();
+  }
+  if(persist!==false) savePrefs();
+}
+$('langBtn').addEventListener('click',function(){ setLang(LANG==="en"?"fr":"en"); toast(LANG==="en"?"The app is now in English. Your own words stay as you wrote them.":"L’app est en français."); });
+applyStatic();
+
+// ===== L'entrée du ciel : des notes de musique s'envolent et se lient pour former le 56, puis le texte se dépose =====
+var introDone=false;
+function splitWords(el,cls){ // enveloppe chaque mot (ou lettre) dans un span, sans toucher au sens du texte
+  var out=[];
+  (function walk(node){
+    Array.prototype.slice.call(node.childNodes).forEach(function(ch){
+      if(ch.nodeType===3){
+        var parts=ch.textContent.split(/(\s+)/),frag=document.createDocumentFragment();
+        parts.forEach(function(pt){ if(!pt) return; if(/^\s+$/.test(pt)){ frag.appendChild(document.createTextNode(pt)); return; }
+          var sp=document.createElement('span'); sp.className=cls; sp.textContent=pt; frag.appendChild(sp); out.push(sp); });
+        node.replaceChild(frag,ch);
+      } else if(ch.nodeType===1&&!ch.classList.contains('n')) walk(ch);
+    });
+  })(el);
+  return out;
+}
+function revealText(hero,delay){
+  if(hero.getAttribute('data-revealed')) return; hero.setAttribute('data-revealed','1');
+  var h1=hero.querySelector('h1'),lede=hero.querySelector('.lede'),pr=hero.querySelector('.principle');
+  var notesWord=splitWords(h1,'w'),words=splitWords(lede,'w'),t=delay||0;
+  var ml=hero.querySelector('.moonline'); if(pr) pr.style.opacity="0"; if(ml) ml.style.opacity="0";
+  hero.classList.remove('nwait'); hero.classList.remove('intro'); // le 56 sort de son flou ; les mots, déjà enveloppés, attendent leur tour
+  // « notes » : lettre par lettre
+  notesWord.forEach(function(w){ var txt=w.textContent; w.textContent=""; w.className=""; w.style.display="inline-block";
+    txt.split("").forEach(function(ch){ var l=document.createElement('span'); l.className='w'; l.textContent=ch; w.appendChild(l);
+      (function(l,tt){ setTimeout(function(){ l.classList.add('on'); },tt); })(l,t); t+=70; }); });
+  t+=250;
+  words.forEach(function(w){ (function(w,tt){ setTimeout(function(){ w.classList.add('on'); },tt); })(w,t); t+=55; });
+  var em=lede.querySelector('em'); if(em&&!REDUCED) setTimeout(function(){ Array.prototype.forEach.call(em.querySelectorAll('.w'),function(w,k){ setTimeout(function(){ w.classList.add('gleam'); },k*120); }); },t+900);
+  setTimeout(function(){ if(pr) pr.style.opacity=""; hero.classList.add('settled'); },t+900);
+  setTimeout(function(){ if(ml) ml.style.opacity=""; },t+1700);
+}
+function playIntro(){
+  if(introDone) return; introDone=true;
+  var hero=document.querySelector('#v-ciel .hero'); if(!hero) return;
+  setTimeout(function(){ revealText(hero,0); },9000); // filet de sécurité : le texte apparaît quoi qu'il arrive
+  var h=(location.hash||"#ciel").slice(1); if(h&&h!=="ciel"){ revealText(hero,0); return; } // ouverture ailleurs que sur le ciel : le texte est simplement là
+  // pour un écran qui préfère le calme : un simple fondu
+  if(REDUCED){ setTimeout(function(){ revealText(hero,0); },500); return; }
+  var cv=$('introCv'),ctx=cv.getContext('2d'),n=hero.querySelector('h1 .n'),VWi=window.innerWidth,VHi=window.innerHeight,dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.hidden=false; cv.width=Math.round(VWi*dpr); cv.height=Math.round(VHi*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+  // 1. la forme du 56 : on écrit le 56 dans la même police, là où il apparaîtra, et on y choisit des points
+  var r=n.getBoundingClientRect(),cs=getComputedStyle(n),font=cs.fontStyle+" "+cs.fontWeight+" "+cs.fontSize+" "+cs.fontFamily,fs=parseFloat(cs.fontSize);
+  var off=document.createElement('canvas'); off.width=VWi; off.height=VHi; var o=off.getContext('2d'); o.font=font; o.fillStyle="#fff";
+  var mt=o.measureText("56"),fa=mt.fontBoundingBoxAscent||fs*.8,fd=mt.fontBoundingBoxDescent||fs*.22,base=r.top+(r.height-(fa+fd))/2+fa;
+  o.fillText("56",r.left,base);
+  var data=o.getImageData(0,0,VWi,VHi).data,cand=[],step=Math.max(3,Math.round(fs/26));
+  for(var y=Math.max(0,Math.floor(r.top-fs*.2));y<Math.min(VHi,r.bottom+fs*.2);y+=step) for(var x=Math.max(0,Math.floor(r.left-fs*.2));x<Math.min(VWi,r.right+fs*.3);x+=step){ if(data[(y*VWi+x)*4+3]>140) cand.push([x,y]); }
+  for(var i=cand.length-1;i>0;i--){ var j2=(Math.random()*(i+1))|0,tmp=cand[i]; cand[i]=cand[j2]; cand[j2]=tmp; }
+  var minD=Math.max(7,fs/8.5),pts=[];
+  cand.forEach(function(c){ if(pts.length>=110) return; for(var k=0;k<pts.length;k++){ var dx=pts[k][0]-c[0],dy=pts[k][1]-c[1]; if(dx*dx+dy*dy<minD*minD) return; } pts.push(c); });
+  if(pts.length<8){ cv.hidden=true; revealText(hero,0); return; }
+  // les liens : chaque point vers ses deux plus proches voisins
+  var links=[],seen={};
+  pts.forEach(function(p,a){ var near=pts.map(function(q,b){ return [b,(q[0]-p[0])*(q[0]-p[0])+(q[1]-p[1])*(q[1]-p[1])]; }).filter(function(e){ return e[0]!==a; }).sort(function(u,v){ return u[1]-v[1]; }).slice(0,2);
+    near.forEach(function(e){ if(e[1]>minD*minD*3.6) return; var key=Math.min(a,e[0])+"-"+Math.max(a,e[0]); if(seen[key]) return; seen[key]=1; links.push([a,e[0]]); }); });
+  // 2. les notes : elles partent d'où la mélodie a été jouée (le centre), s'envolent en courbe, de gauche à droite
+  var GL=["♪","♫","♩","♬"],cx0=VWi/2,cy0=VHi*.48,minX=r.left,spanX=Math.max(1,r.width);
+  var notes=pts.map(function(p,i){ var a=Math.random()*6.283,rad=Math.min(VWi,VHi)*(.08+Math.random()*.3),sx=cx0+Math.cos(a)*rad,sy=cy0+Math.sin(a)*rad*.8;
+    var mx=(sx+p[0])/2,my=(sy+p[1])/2,dx=p[0]-sx,dy=p[1]-sy,len=Math.sqrt(dx*dx+dy*dy)||1,bend=(Math.random()*2-1)*len*.45;
+    return {sx:sx,sy:sy,tx:p[0],ty:p[1],cx:mx-dy/len*bend,cy:my+dx/len*bend,g:GL[(Math.random()*GL.length)|0],rot:(Math.random()*2-1)*.5,
+      delay:((p[0]-minX)/spanX)*900+Math.random()*260,dur:1250+Math.random()*500,size:fs*(.09+Math.random()*.05),arr:-1}; });
+  function ease(u){ return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2; }
+  var t0=performance.now(),lastArrive=0,formed=-1,fadeStart=-1,chimed=false,col=function(a){ return 'rgba('+ACC+','+a.toFixed(3)+')'; };
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  function frame(now){
+    var el=now-t0; ctx.clearRect(0,0,VWi,VHi);
+    // si la personne quitte le ciel pendant l'entrée, on la termine en douceur
+    if(currentView!=="ciel"&&fadeStart<0){ fadeStart=now; revealText(hero,0); }
+    var allIn=true,fade=fadeStart<0?1:Math.max(0,1-(now-fadeStart)/1300);
+    // les liens, qui se tracent une fois leurs deux notes arrivées
+    ctx.lineWidth=.7;
+    links.forEach(function(L){ var A=notes[L[0]],B=notes[L[1]]; if(A.arr<0||B.arr<0) return; var g=clamp((now-Math.max(A.arr,B.arr))/450,0,1); if(g<=0) return;
+      var sweep=formed>0?Math.max(0,1-Math.abs(((now-formed)/900)-((A.tx-minX)/spanX))*3):0;
+      ctx.strokeStyle=col((.38+.5*sweep)*fade); ctx.beginPath(); ctx.moveTo(A.tx,A.ty); ctx.lineTo(A.tx+(B.tx-A.tx)*g,A.ty+(B.ty-A.ty)*g); ctx.stroke(); });
+    notes.forEach(function(nt){
+      var u=clamp((el-nt.delay)/nt.dur,0,1); if(u<1) allIn=false;
+      if(u<=0) return;
+      if(u>=1&&nt.arr<0){ nt.arr=now; lastArrive=now; }
+      var e=ease(u),x=(1-e)*(1-e)*nt.sx+2*(1-e)*e*nt.cx+e*e*nt.tx,y=(1-e)*(1-e)*nt.sy+2*(1-e)*e*nt.cy+e*e*nt.ty;
+      // en vol : une note de musique ; à l'arrivée : elle devient un point de lumière
+      var land=nt.arr<0?0:clamp((now-nt.arr)/380,0,1),a=Math.min(1,u*3);
+      if(land<1){ ctx.save(); ctx.translate(x,y); ctx.rotate(nt.rot*(1-e)); ctx.font=Math.round(nt.size*(1-.4*land))+"px "+cs.fontFamily; ctx.fillStyle=col(a*(1-land)*fade*.95); ctx.fillText(nt.g,0,0); ctx.restore(); }
+      if(land>0){
+        var sweep=formed>0?Math.max(0,1-Math.abs(((now-formed)/900)-((nt.tx-minX)/spanX))*3):0,tw=.75+.25*Math.sin(now*.006+nt.tx);
+        ctx.globalCompositeOperation='lighter'; var sp=sprite(ACCV),sz=(5+7*sweep)*(1+(1-land)*1.2);
+        ctx.globalAlpha=Math.min(1,(.55+.45*sweep)*land*tw*fade); ctx.drawImage(sp,nt.tx-sz,nt.ty-sz,sz*2,sz*2); ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+        if(land<1){ ctx.strokeStyle=col((1-land)*.5*fade); ctx.beginPath(); ctx.arc(nt.tx,nt.ty,2+land*9,0,6.283); ctx.stroke(); }
+      }
+    });
+    // 3. le 56 est formé : une lumière le parcourt, un tintement, puis la constellation devient le texte
+    if(allIn&&formed<0&&now-lastArrive>450){ formed=now;
+      if(drone&&!chimed){ chimed=true; try{ var ac=audio(); glass(72,ac.currentTime+.05,.32); glass(79,ac.currentTime+.2,.22); }catch(e){} } }
+    if(formed>0&&now-formed>350) hero.classList.remove('nwait'); // le 56 naît sous la constellation, pendant qu'elle brille encore
+    if(formed>0&&fadeStart<0&&now-formed>1500){ fadeStart=now; revealText(hero,150); }
+    if(fadeStart>0&&now-fadeStart>1400){ ctx.clearRect(0,0,VWi,VHi); cv.hidden=true; return; }
+    requestAnimationFrame(frame);
+  }
+  setTimeout(function(){ t0=performance.now(); requestAnimationFrame(frame); },450);
+}
+
+// ===== Ce soir : le rituel, un écran à la fois =====
+var STEPS=["presence","raconter","traduire","contempler"],soirStep=null,breatheOnly=false;
+function today(){ return TODAY_I>=0&&TODAY_I<56?DAYS[TODAY_I]:null; }
+function showStep(s){
+  soirStep=s;
+  ["presence","raconter","traduire","done"].forEach(function(k){ $('st-'+k).hidden=k!==s; });
+  var el=$('st-'+s); el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+  var idx=STEPS.indexOf(s), all=$('steps').children;
+  $('steps').hidden=(s==="done"&&!breatheOnly)||breatheOnly;
+  for(var i=0;i<all.length;i++){ all[i].className = idx<0 ? "" : (i<idx?"past":i===idx?"now":""); if(idx>=0&&i<idx) all[i].className="past"; }
+  if(s==="presence") layoutPresence();
+  if(s==="traduire"){ layoutTr(); listenForHeight(); }
+  window.scrollTo(0,0);
+}
+function enterSoir(fresh){
+  var td=today();
+  var dateTxt=td?cap(td.date.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}))+" · "+weekLabel(td.w):"";
+  $('soirDate').textContent=dateTxt; $('doneDate').textContent=dateTxt;
+  if(!td){
+    $('doneTitle').textContent=TODAY_I<0?L("Le premier soir n’est pas encore venu","The first evening hasn’t come yet"):L("Les 56 soirs sont passés","The 56 evenings have passed");
+    $('doneNote').textContent=TODAY_I<0?L("Il commencera le lundi 16 novembre 2026.","It will begin on Monday 16 November 2026."):L("Le ciel est complet. Tu peux encore respirer ici quand tu veux.","The sky is complete. You can still come and breathe here whenever you like.");
+    $('doneSee').hidden=TODAY_I<0;
+    if(fresh||soirStep!=="presence") showStep("done"); return;
+  }
+  if(td.status==="lived"){
+    $('doneTitle').textContent=L("La note de ce soir est posée","Tonight’s note is placed"); $('doneNote').textContent=noteLabel(td); $('doneSee').hidden=false;
+    var rb=$('doneRedo'); rb.hidden=!!NOTES[td.iso]; rb.classList.remove('ask'); rb.textContent=L("Reprendre la note de ce soir","Redo tonight’s note");
+    if(soirStep==="presence"&&breatheOnly&&!fresh) return;
+    if(fresh||soirStep!=="contempler") { breatheOnly=false; showStep("done"); }
+    return;
+  }
+  if(fresh&&!soirStep) showStep("presence");
+  else if(fresh&&soirStep==="done"){ breatheOnly=false; showStep("presence"); }
+  else if(fresh&&soirStep==="presence") layoutPresence();
+  else if(fresh&&soirStep==="traduire") layoutTr();
+}
+$('doneSee').addEventListener('click',function(){ var td=today()||LIVED[LIVED.length-1]; location.hash="#ciel"; setTimeout(function(){ if(td) openSheet(td,true); },650); });
+$('doneBreathe').addEventListener('click',function(){ breatheOnly=true; pres.done=false; pres.progress=0; showStep("presence"); });
+// Reprendre ce soir : efface la note posée (pas les soirs passés) et rouvre le récit, en deux touchers.
+var redoTimer=null;
+$('doneRedo').addEventListener('click',function(){
+  var rb=$('doneRedo'),td=today(); if(!td||td.status!=="lived"||NOTES[td.iso]) return;
+  if(!rb.classList.contains('ask')){ rb.classList.add('ask'); rb.textContent=L("Effacer la note de ce soir et recommencer ?","Erase tonight’s note and start again?"); clearTimeout(redoTimer); redoTimer=setTimeout(function(){ rb.classList.remove('ask'); rb.textContent=L("Reprendre la note de ce soir","Redo tonight’s note"); },5000); return; }
+  clearTimeout(redoTimer);
+  var old=entryFor(td.iso); if(old&&old.why){ story.value=old.why; storyChanged(); }
+  delete localEntries[td.iso]; lsSet('56n-soirs',JSON.stringify(localEntries));
+  delete dbEntries[td.iso];
+  if(soirsCol){ soirsCol.doc(td.iso).delete().catch(function(){}); }
+  tr.set=false; tr.ghost=null; tr.heardFor=null; tr.hear=null;
+  breatheOnly=false; pres.done=false; pres.progress=0; $('presNext').hidden=true;
+  applyEntries(); showStep("raconter");
+});
+
+// ----- Être là -----
+var presCv=$('presence'),pctx=presCv.getContext('2d'),pres={W:0,parts:[],holding:false,progress:0,clock:0,last:0,done:false,spread:1.55,word:"",px:0,py:0,vx:0,vy:0,pAct:false};
+var CYCLE=11;
+function ease(p){return .5-.5*Math.cos(Math.PI*clamp(p,0,1));}
+function breathAt(sec){ var c=sec%CYCLE; if(c<4) return ease(c/4); if(c<5) return 1; return 1-ease((c-5)/6); }
+function layoutPresence(){
+  var st=$('presStage'),w=Math.floor(Math.min(st.clientWidth,st.clientHeight,360)); if(w<120) w=Math.min(120,st.clientWidth); if(!w||w===pres.W) return; pres.W=w;
+  presCv.style.width=w+"px"; presCv.style.height=w+"px";
+  var dpr=Math.min(2,window.devicePixelRatio||1); presCv.width=Math.round(w*dpr); presCv.height=Math.round(w*dpr); pctx.setTransform(dpr,0,0,dpr,0,0);
+  pres.parts=[]; var n=Math.round((REDUCED?380:760)*PART);
+  for(var k=0;k<n;k++) pres.parts.push({a:Math.random()*6.283,f:Math.sqrt(Math.random()),sp:.4+Math.random(),s:.5+Math.random()*1.3,ph:Math.random()*6.283,sat:-1,lo:1+Math.random()*.9});
+  [0,1].forEach(function(si){ for(var k2=0;k2<46;k2++) pres.parts.push({a:Math.random()*6.283,f:Math.sqrt(Math.random()),sp:1,s:.5+Math.random(),ph:Math.random()*6.283,sat:si,lo:1}); });
+  pctx.clearRect(0,0,w,w);
+}
+function presWord(txt){ if(pres.word!==txt){ pres.word=txt; $('presWord').textContent=txt; } }
+function framePresence(now){
+  var Wp=pres.W; if(!Wp) return;
+  var dt=Math.min(.05,(now-(pres.last||now))/1000); pres.last=now;
+  if(pres.holding&&!pres.done){ pres.clock+=dt; pres.progress=Math.min(60,pres.progress+dt); if(pres.progress>=60) completePresence(); }
+  if(pres.done) pres.clock+=dt;
+  var b=breathAt(pres.clock),gather=pres.holding||pres.done;
+  pres.spread+=((gather?1:1.55)-pres.spread)*(gather?.04:.012);
+  var t=now-T0,cx=Wp/2,cy=Wp/2,R=Wp*.25*(.55+.45*b),loose=(pres.spread-1)/.55;
+  pctx.globalCompositeOperation='destination-out'; pctx.fillStyle='rgba(0,0,0,'+(REDUCED?1:.3)+')'; pctx.fillRect(0,0,Wp,Wp);
+  pctx.globalCompositeOperation='lighter';
+  for(var i=0;i<pres.parts.length;i++){
+    var p=pres.parts[i],a=p.a+t*.00006*p.sp*SPD*(1+loose),x,y,rad,edge;
+    if(p.sat<0){ rad=p.f*R*(1+(p.lo-1)*loose*1.4)+Math.sin(t*.0012+p.ph)*1.6; x=cx+Math.cos(a)*rad; y=cy+Math.sin(a)*rad*.98; edge=p.f; }
+    else { var oa=t*.00018*SPD*(p.sat?-.7:1)+p.sat*2.4,orb=R*1.42+p.sat*R*.18,sr=R*.16*(1-p.sat*.35),sx=cx+Math.cos(oa)*orb,sy=cy+Math.sin(oa)*orb*.6;
+      rad=p.f*sr; x=sx+Math.cos(a*3)*rad; y=sy+Math.sin(a*3)*rad; edge=.6; }
+    // le doigt remue la lumière comme une main dans l'eau : sillage dans le sens du geste, puis retour lent
+    if(pres.pAct||p.ox||p.oy){
+      p.ox=p.ox||0; p.oy=p.oy||0;
+      if(pres.pAct){ var qx=x+p.ox-pres.px,qy=y+p.oy-pres.py,qd=Math.sqrt(qx*qx+qy*qy)+.001,qr=Wp*.2;
+        if(qd<qr){ var qf=(1-qd/qr); qf*=qf; p.ox+=pres.vx*qf*.55+qx/qd*qf*.35+(-qy/qd)*qf*.25; p.oy+=pres.vy*qf*.55+qy/qd*qf*.35+(qx/qd)*qf*.25; } }
+      p.ox*=.965; p.oy*=.965; var om=Math.sqrt(p.ox*p.ox+p.oy*p.oy),omax=Wp*.22; if(om>omax){ p.ox*=omax/om; p.oy*=omax/om; }
+      if(Math.abs(p.ox)<.02&&Math.abs(p.oy)<.02){ p.ox=0; p.oy=0; }
+      x+=p.ox; y+=p.oy;
+    }
+    var tw=.55+.45*Math.sin(t*.002*p.sp+p.ph),al=(.2+.26*(1-edge)+.2*b*(gather?1:.3))*tw*(1-.45*loose);
+    if(RAINBOW){ var rc=hsl(p.a*57.3+t*.012,.6,.78-.14*edge); pctx.fillStyle='rgba('+rc[0]+','+rc[1]+','+rc[2]+','+al.toFixed(3)+')'; }
+    else pctx.fillStyle='rgba('+(lerp(SKY.presIn[0],SKY.presOut[0],edge)|0)+','+(lerp(SKY.presIn[1],SKY.presOut[1],edge)|0)+','+(lerp(SKY.presIn[2],SKY.presOut[2],edge)|0)+','+al.toFixed(3)+')';
+    pctx.fillRect(x,y,p.s,p.s);
+  }
+  pres.vx*=.82; pres.vy*=.82;
+  pctx.globalCompositeOperation='source-over';
+  var lit=Math.floor(pres.progress),RR=Wp*.455;
+  for(var s=0;s<60;s++){
+    var an=-Math.PI/2+s*6.283/60,px=cx+Math.cos(an)*RR,py=cy+Math.sin(an)*RR;
+    if(s<lit){ pctx.fillStyle='rgba('+ACC+',.85)'; pctx.beginPath(); pctx.arc(px,py,1.5,0,6.283); pctx.fill(); }
+    else { pctx.fillStyle='rgba('+SKY.moonS+',.14)'; pctx.beginPath(); pctx.arc(px,py,1,0,6.283); pctx.fill(); }
+  }
+  if(pres.done) presWord(L("Tu es là.","You are here."));
+  else if(pres.holding) presWord(pres.clock%CYCLE<5?L("Inspire","Breathe in"):L("Expire","Breathe out"));
+  else presWord(pres.progress>0?L("Reviens quand tu veux.","Come back whenever you like."):L("Garde ton doigt posé sur la lumière.","Keep your finger on the light."));
+}
+function completePresence(){
+  if(pres.done) return; pres.done=true; pres.holding=false;
+  glass(72,0,.7);
+  $('presNext').hidden=false; $('presNext').textContent=breatheOnly?L("Revenir","Go back"):L("Continuer","Continue");
+}
+function holdStart(){ if(pres.done) return; pres.holding=true; if(!soundChosen&&!drone){ setSound(true); } }
+function holdEnd(){ pres.holding=false; }
+function presPoint(e,fresh){
+  var r=presCv.getBoundingClientRect(),x=(e.clientX-r.left)*pres.W/r.width,y=(e.clientY-r.top)*pres.W/r.height;
+  if(!fresh&&pres.pAct){ var mx=clamp(x-pres.px,-30,30),my=clamp(y-pres.py,-30,30); pres.vx=pres.vx*.5+mx*.5; pres.vy=pres.vy*.5+my*.5; }
+  pres.px=x; pres.py=y; pres.pAct=true;
+}
+presCv.addEventListener('pointerdown',function(e){ e.preventDefault(); try{presCv.setPointerCapture(e.pointerId);}catch(err){} presPoint(e,true); holdStart(); });
+presCv.addEventListener('pointermove',function(e){ if(e.pointerType==="mouse"||pres.holding) presPoint(e,!pres.pAct); });
+presCv.addEventListener('pointerleave',function(e){ if(!pres.holding) pres.pAct=false; });
+presCv.addEventListener('pointerup',function(e){ holdEnd(); if(e.pointerType!=="mouse") pres.pAct=false; });
+presCv.addEventListener('pointercancel',function(){ holdEnd(); pres.pAct=false; });
+presCv.addEventListener('lostpointercapture',holdEnd);
+presCv.addEventListener('contextmenu',function(e){ e.preventDefault(); });
+presCv.addEventListener('keydown',function(e){ if((e.key===" "||e.key==="Enter")&&!e.repeat){ e.preventDefault(); holdStart(); } });
+presCv.addEventListener('keyup',function(e){ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); holdEnd(); } });
+$('presNext').addEventListener('click',function(){ if(breatheOnly){ breatheOnly=false; showStep("done"); } else showStep("raconter"); });
+$('presSkip').addEventListener('click',function(){ if(breatheOnly){ breatheOnly=false; showStep("done"); } else showStep("raconter"); });
+
+// ----- Raconter -----
+var story=$('story');
+function draftKey(){ var td=today(); return td?'56n-draft-'+td.iso:null; }
+(function(){ var k=draftKey(); if(k){ var v=lsGet(k); if(v) story.value=v; } })();
+function storyChanged(){ $('storyNext').disabled=story.value.trim().length<3; var k=draftKey(); if(k) lsSet(k,story.value); }
+story.addEventListener('input',storyChanged); storyChanged();
+var micTargets=micTargets||[]; micTargets.push({btn:$('micBtn'),ta:story,partial:$('partial'),changed:storyChanged});
+$('storyNext').addEventListener('click',function(){ showStep("traduire"); });
+var dictation=null,voiceTried=false;
+// les champs qui peuvent recevoir la dictée (remplis plus bas, une fois les champs connus)
+// Dictée : celle de Claude d'abord (ordinateur), sinon la reconnaissance vocale du navigateur (Safari iPhone, Chrome Android).
+function initVoice(){
+  if(voiceTried) return; voiceTried=true;
+  var fallback=function(){ var b=browserSpeech(); if(b) setupDictation(b); else voiceHint(); };
+  if(window.claude&&window.claude.use) window.claude.use('dictation').then(function(dct){ if(dct) setupDictation(dct); else fallback(); }).catch(fallback);
+  else fallback();
+}
+function voiceHint(){ $('story').setAttribute('placeholder',L("Écris, ou dicte avec le micro de ton clavier.","Write, or dictate with your keyboard’s microphone.")); $('pensee').setAttribute('placeholder',L("Ce qui te traverse. Écris, ou dicte avec le micro de ton clavier.","What’s going through you. Write, or dictate with your keyboard’s microphone.")); }
+function browserSpeech(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return null;
+  var rec=null,on=false,want=false,P=[],F=[],S=[];
+  function emit(list,e){ list.forEach(function(f){ try{ f(e); }catch(_){} }); }
+  function make(){
+    var r=new SR(); r.lang=LANG==="en"?"en-GB":"fr-FR"; r.continuous=true; r.interimResults=true;
+    r.onresult=function(ev){ var interim=""; for(var i=ev.resultIndex;i<ev.results.length;i++){ var res=ev.results[i]; if(res.isFinal) emit(F,{text:res[0].transcript}); else interim+=res[0].transcript; } emit(P,{text:interim}); };
+    r.onerror=function(ev){ var c=ev&&ev.error; if(c==="not-allowed"||c==="service-not-allowed"||c==="audio-capture"){ want=false; on=false; emit(S,{state:"idle",reason:"not_granted"}); } };
+    r.onend=function(){ if(want){ try{ r.start(); return; }catch(_){ } } if(on){ on=false; emit(S,{state:"idle",reason:"stopped"}); } };
+    return r;
+  }
+  return {
+    onPartial:function(f){ P.push(f); }, onFinal:function(f){ F.push(f); }, onState:function(f){ S.push(f); },
+    active:function(){ return on; },
+    start:function(){ try{ rec=rec||make(); want=true; rec.start(); on=true; emit(S,{state:"listening"}); return Promise.resolve(); }catch(e){ want=false; on=false; return Promise.reject({code:"unavailable"}); } },
+    stop:function(){ want=false; try{ if(rec) rec.stop(); }catch(_){ } return Promise.resolve(); }
+  };
+}
+// la dictée est partagée : elle écrit dans le champ dont on a touché le bouton « Parler » (Raconter, ou une pensée du carnet)
+var dictTarget=null,micTargets=micTargets||[];
+function micOff(){ micTargets.forEach(function(t){ t.btn.hidden=true; }); voiceHint(); toast(L("Le micro n’est pas permis ici. Celui de ton clavier marche toujours.","The microphone isn’t allowed here. Your keyboard’s microphone still works.")); }
+function setupDictation(d){
+  dictation=d;
+  d.onPartial(function(e){ if(dictTarget) dictTarget.partial.textContent=e.text||""; });
+  d.onFinal(function(e){ var t=dictTarget; if(!t) return; var tx=(e.text||"").trim(); if(tx){ t.ta.value=(t.ta.value.replace(/\s+$/,"")+(t.ta.value.trim()?" ":"")+tx); t.changed(); } t.partial.textContent=""; });
+  d.onState(function(e){
+    var on=e.state==="listening"||e.state==="starting";
+    micTargets.forEach(function(t){ var mine=on&&dictTarget===t; t.btn.setAttribute('aria-pressed',mine?'true':'false'); t.btn.textContent=mine?L("Arrêter","Stop"):L("Parler","Speak"); });
+    if(e.reason==="not_granted"||e.reason==="unavailable") micOff();
+  });
+  micTargets.forEach(function(t){ t.btn.hidden=false;
+    t.btn.addEventListener('click',function(){
+      if(d.active()){ d.stop().catch(function(){}); return; }
+      dictTarget=t; d.start({language:LANG}).catch(function(err){ if(err&&(err.code==="not_granted"||err.code==="unavailable")) micOff(); });
+    }); });
+}
+
+// ----- Traduire -----
+var trCv=$('tr'),tctx=trCv.getContext('2d'),tr={W:0,H:0,scale:[],idx:0,yIdx:null,prev:null,parts:[]};
+function scaleFor(w){ var m=weekMode(w)||{root:"C",mode:"dorien"},set=MODES[m.mode]||MODES.dorien,root=PC[m.root]||0,out=[];
+  for(var x=55;x<=84;x++) if(set.indexOf(((x-root)%12+12)%12)>=0) out.push(x); return out; }
+function nearestIdx(list,m){ var bi=0,bd=1e9; list.forEach(function(x,i){ var d=Math.abs(x-m); if(d<bd){bd=d;bi=i;} }); return bi; }
+function layoutTr(){
+  var td=today(); if(!td) return;
+  var stg=$('trStage'),w=Math.floor(Math.min(360,stg.clientWidth-60)),hh=Math.floor(clamp(stg.clientHeight,180,440)); if(w<=0) return;
+  tr.scale=scaleFor(td.w);
+  var prev=null; for(var i=td.i-1;i>=0;i--){ if(DAYS[i].status==="lived"){ prev=DAYS[i]; break; } }
+  tr.prev=prev; tr.yIdx=prev?nearestIdx(tr.scale,prev.midi):null;
+  if(tr.W!==w||tr.H!==hh){
+    tr.W=w; tr.H=hh; var dpr=Math.min(2,window.devicePixelRatio||1);
+    trCv.width=Math.round(w*dpr); trCv.height=Math.round(tr.H*dpr); trCv.style.width=w+"px"; trCv.style.height=tr.H+"px"; tctx.setTransform(dpr,0,0,dpr,0,0);
+    tr.parts=[]; for(var k=0;k<Math.round(140*PART);k++) tr.parts.push({a:Math.random()*6.283,r:4+Math.pow(Math.random(),1.6)*26,sp:.5+Math.random(),s:.5+Math.random()*1.1,ph:Math.random()*6.283});
+  }
+  if(!tr.set){ tr.idx=tr.yIdx!==null?tr.yIdx:nearestIdx(tr.scale,72); tr.set=true; }
+  if(tr.ghost) tr.ghost.idx=ghostIdx(tr.ghost.h);
+  setTrSub(); trLabel();
+}
+function setTrSub(){
+  var td=today(),prev=tr.prev,el=$('trSub'); el.textContent=""; el.classList.toggle('listening',tr.hear==="listening");
+  if(tr.hear==="listening"){ el.textContent=L("J’écoute ce que tu as dit…","Listening to what you said…"); return; }
+  if(tr.ghost){
+    el.appendChild(document.createTextNode(L("Tu as dit ","You said ")));
+    var q=document.createElement('em'); q.textContent=L("« "+tr.ghost.h.quote+" »","“"+tr.ghost.h.quote+"”"); el.appendChild(q);
+    el.appendChild(document.createTextNode(L(". L’étoile pâle t’attend là ; pose la tienne où tu la sens.",". The pale star is waiting there; place yours where you feel it."))); return; }
+  el.textContent=LANG==="en"?(prev?"Higher, lower, or at the same height as "+(td&&prev.i===td.i-1?"yesterday":"the last evening")+"? Drag the star.":"The first evening. Drag the star to the height of your day."):(prev?"Plus haut, plus bas, ou à la même hauteur que "+(td&&prev.i===td.i-1?"hier":"le dernier soir")+" ? Fais glisser l’étoile.":"Le premier soir. Fais glisser l’étoile jusqu’à la hauteur de ta journée.");
+}
+
+// ----- Écouter : retrouver dans le récit la phrase où la note est située -----
+// Claude ne propose rien : il repère ce que tu as déjà dit (« deux hauteurs au-dessus », « plus aigu que lundi », « c'est un La »…).
+var sampleFn=null,sampleTried=false;
+function initSample(){
+  if(sampleTried) return; sampleTried=true;
+  if(window.claude&&window.claude.use) window.claude.use('sample').then(function(s){ sampleFn=s||null; if(sampleFn&&soirStep==="traduire") listenForHeight(); }).catch(function(){});
+}
+var WD_FR=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+function isoWeekday(iso){ var p=iso.split('-'); return WD_FR[new Date(+p[0],p[1]-1,+p[2],12).getDay()]; }
+function heightPrompt(td,text){
+  var lived=[]; for(var i=0;i<td.i;i++){ var d=DAYS[i]; if(d.status==="lived") lived.push(d); }
+  lived=lived.slice(-21);
+  var past=lived.map(function(d){ return "- "+d.iso+" ("+isoWeekday(d.iso)+(d.i===td.i-1?", hier":"")+") : "+noteName(midiToNote(d.midi)); }).join("\n")||"(aucun)";
+  var scale=tr.scale.map(function(m){ return noteName(midiToNote(m)); }).join(", ");
+  return [
+"Tu aides une application de journal musical. Chaque soir, la personne raconte sa journée puis la traduit en une note de musique, en général en la situant par rapport à la note d'un soir précédent (souvent la veille).",
+"Ta seule tâche : retrouver dans son récit la phrase où ELLE-MÊME dit où placer la note de ce soir, et la traduire en données. Tu ne proposes jamais de note toi-même, tu ne déduis rien de l'humeur, des émotions ou des événements. Si elle ne situe pas explicitement sa note, réponds found=false.",
+"",
+"Elle peut le dire de mille façons, dans n'importe quelle langue, à l'oral (le texte vient souvent d'une dictée, avec des fautes de transcription). Exemples d'équivalences :",
+"- unité « hauteur », « degré », « cran », « marche », « note », « step », « échelon », « position » = un pas dans la gamme → unit=\"steps\".",
+"- « demi-ton » = 1 → unit=\"semitones\" ; « ton » ou « ton entier » = 2 demi-tons → unit=\"semitones\", amount = 2 × le nombre.",
+"- noms d'intervalles, comptés en pas de gamme → unit=\"steps\" : seconde=1, tierce=2, quarte=3, quinte=4, sixte=5, septième=6, octave=7 (idem « third », « fifth »…).",
+"- vers le haut : plus haut, plus aigu, au-dessus, monter, ça monte, remonter, s'élever, higher, up. Vers le bas : plus bas, plus grave, en dessous, descendre, redescendre, lower, down. Pareil : même note, même hauteur, identique, pareil, on reste, la même chose → dir=0.",
+"- direction sans quantité (« un peu plus haut », « plus aigu que lundi ») → amount=null.",
+"- un nom de note (« c'est un La », « Ré », « un mi bémol », « A », « Bb », « sol 4 ») → kind=\"note\", avec letter en notation anglaise (C D E F G A B), accidental (\"#\", \"b\" ou \"\"), octave si dite (sinon null). Solfège : do=C, ré=D, mi=E, fa=F, sol=G, la=A, si=B.",
+"- la référence : « hier », « la veille » → ref=\"hier\" ; un jour nommé (« lundi », « le 16 ») → ref = la date ISO de ce soir-là dans la liste ci-dessous ; « le premier soir », « le début » → la plus ancienne. Sans référence explicite → ref=\"hier\".",
+"- si elle se corrige ou hésite, garde sa conclusion finale (la dernière formulation décidée).",
+"- les mots « haut », « bas », « monter » qui parlent de sa journée (« un jour sans », « j'étais au plus bas ») ne comptent PAS : seulement ce qui parle de la note, de la hauteur, de l'étoile ou de ce soir par rapport à un autre soir.",
+"",
+"Ce soir : "+td.iso+" ("+isoWeekday(td.iso)+").",
+"Soirs précédents et leur note :\n"+past,
+"Gamme de la semaine : "+scale+".",
+"",
+"Réponds uniquement avec un objet JSON, sans autre texte :",
+"{\"found\": true|false, \"quote\": \"les mots exacts du récit, 12 mots maximum\", \"kind\": \"relative\"|\"note\", \"ref\": \"hier\"|\"AAAA-MM-JJ\", \"dir\": 1|-1|0, \"amount\": nombre|null, \"unit\": \"steps\"|\"semitones\", \"letter\": \"A\", \"accidental\": \"\", \"octave\": nombre|null}",
+"Exemple : {\"found\":true,\"quote\":\"je mettrais deux hauteurs au-dessus\",\"kind\":\"relative\",\"ref\":\"hier\",\"dir\":1,\"amount\":2,\"unit\":\"steps\",\"letter\":null,\"accidental\":null,\"octave\":null}",
+"",
+"Le récit :",
+"<<<",
+text.slice(-6000),
+">>>"].join("\n");
+}
+function refDayFor(h,td){
+  if(h.ref&&h.ref!=="hier"){ for(var i=0;i<td.i;i++){ if(DAYS[i].iso===h.ref&&DAYS[i].status==="lived") return DAYS[i]; } }
+  return tr.prev;
+}
+function snapDown(m){ var lo=tr.scale[0],hi=tr.scale[tr.scale.length-1]; m=clamp(m,lo,hi); while(m>lo&&tr.scale.indexOf(m)<0) m--; return tr.scale.indexOf(m); }
+function ghostIdx(h){
+  var td=today(); if(!td||!tr.scale.length) return null;
+  var ref=refDayFor(h,td);
+  if(h.kind==="note"){
+    var pc=PC[String(h.letter||"").toUpperCase()]; if(pc===undefined) return null;
+    var acc=String(h.accidental||"").toLowerCase(), up=/^(#|♯|sharp|dièse|diese)$/.test(acc), dn=/^(b|♭|flat|bémol|bemol)$/.test(acc);
+    pc=(pc+(up?1:dn?-1:0)+12)%12;
+    var m; if(typeof h.octave==="number") m=(h.octave+1)*12+pc;
+    else { var c=ref?ref.midi:72,best=null; for(var x=48;x<=96;x++) if(x%12===pc&&(best===null||Math.abs(x-c)<Math.abs(best-c))) best=x; m=best; }
+    return snapDown(m);
+  }
+  if(!ref) return null;
+  var dir=h.dir>0?1:h.dir<0?-1:0, amt=(typeof h.amount==="number"&&h.amount>0)?Math.round(h.amount):1;
+  if(dir===0) return nearestIdx(tr.scale,ref.midi);
+  if(h.unit==="semitones") return snapDown(ref.midi+dir*amt);
+  return clamp(nearestIdx(tr.scale,ref.midi)+dir*amt,0,tr.scale.length-1);
+}
+function listenForHeight(){
+  var td=today(),text=story.value.trim(); if(!td||text.length<3) return;
+  if(tr.heardFor===text) return;
+  initSample(); if(!sampleFn) return;
+  if(tr.hearCtl) try{ tr.hearCtl.abort(); }catch(_){}
+  var ctl=new AbortController(); tr.hearCtl=ctl; tr.heardFor=text; tr.ghost=null; tr.hear="listening"; setTrSub();
+  sampleFn.json(heightPrompt(td,text),{modelTier:"quick",signal:ctl.signal}).then(function(h){
+    if(tr.hearCtl!==ctl) return;
+    tr.hear="done";
+    if(h&&h.found===true&&typeof h.quote==="string"){
+      h.quote=h.quote.trim().replace(/^[«"“\s]+|[»"”\s]+$/g,"").slice(0,120);
+      var gi=ghostIdx(h);
+      if(gi!==null&&gi>=0){ var rd=refDayFor(h,td); tr.ghost={h:h,idx:gi,ref:rd,t0:performance.now()}; }
+    }
+    setTrSub();
+  }).catch(function(e){
+    if(tr.hearCtl!==ctl) return;
+    tr.hear="done"; if(e&&e.code!=="cancelled"&&e.code!=="invalid_json") tr.heardFor=null;
+    if(e&&(e.code==="not_granted"||e.code==="sampling_disabled"||e.code==="not_declared"||e.code==="capability_disabled"||e.code==="capability_removed")){ sampleFn=null; tr.heardFor=text; }
+    setTrSub();
+  });
+}
+function trY(i){ var n=tr.scale.length; return tr.H-26-i*(tr.H-52)/(n-1); }
+function trLabel(){
+  var m=tr.scale[tr.idx],n=midiToNote(m); $('trNote').textContent=noteName(n);
+  var rel;
+  if(tr.yIdx===null) rel=L("La première étoile de ce ciel.","The first star in this sky.");
+  else if(LANG==="en"){ var de=tr.idx-tr.yIdx,refE=tr.prev&&tr.prev.i===TODAY_I-1?"yesterday":"the last evening";
+    rel=de===0?"At the same height as "+refE+".":cap(numWord(Math.abs(de)))+" step"+(Math.abs(de)>1?"s":"")+(de>0?" above ":" below ")+refE+"."; }
+  else { var d=tr.idx-tr.yIdx,ref=tr.prev&&tr.prev.i===TODAY_I-1?"hier":"le dernier soir",refA=ref==="hier"?"qu’hier":"que le dernier soir";
+    if(d===0) rel="À la même hauteur "+refA+".";
+    else rel=cap(numFr(Math.abs(d),false))+" degré"+(Math.abs(d)>1?"s":"")+(d>0?" au-dessus ":" en dessous ")+(ref==="hier"?"d’hier.":"du dernier soir."); }
+  $('trRel').textContent=rel;
+}
+function trSet(i,sound){ i=clamp(i,0,tr.scale.length-1); if(i===tr.idx&&!sound) return; var ch=i!==tr.idx; tr.idx=i; trLabel(); if(sound&&ch) glass(tr.scale[i],0,.9); }
+function trFromY(y){ var n=tr.scale.length; return Math.round((tr.H-26-y)/((tr.H-52)/(n-1))); }
+var trDrag=false;
+trCv.addEventListener('pointerdown',function(e){ e.preventDefault(); trDrag=true; try{trCv.setPointerCapture(e.pointerId);}catch(err){} var r=trCv.getBoundingClientRect(); trSet(trFromY(e.clientY-r.top),true); });
+trCv.addEventListener('pointermove',function(e){ if(!trDrag) return; var r=trCv.getBoundingClientRect(); trSet(trFromY(e.clientY-r.top),true); });
+['pointerup','pointercancel','lostpointercapture'].forEach(function(ev){ trCv.addEventListener(ev,function(){ trDrag=false; }); });
+trCv.addEventListener('keydown',function(e){ if(e.key==="ArrowUp"){ e.preventDefault(); trSet(tr.idx+1,true); } else if(e.key==="ArrowDown"){ e.preventDefault(); trSet(tr.idx-1,true); } });
+$('trUp').addEventListener('click',function(){ trSet(tr.idx+1,true); });
+$('trDown').addEventListener('click',function(){ trSet(tr.idx-1,true); });
+function frameTr(now){
+  if(!tr.W) return; var t=now-T0,Wt=tr.W,Ht=tr.H; tctx.clearRect(0,0,Wt,Ht);
+  tctx.font='400 9px "IBM Plex Mono", ui-monospace, monospace';
+  for(var i=0;i<tr.scale.length;i++){
+    var y=trY(i),isTon=tr.scale[i]%12===0;
+    tctx.strokeStyle=isTon?'rgba('+ACC+',.2)':'rgba('+SKY.moonS+',.07)'; tctx.lineWidth=isTon?.8:.6;
+    tctx.beginPath(); tctx.moveTo(Wt*.12,y); tctx.lineTo(Wt*.94,y); tctx.stroke();
+    if(isTon){ tctx.fillStyle='rgba('+ACC+',.5)'; tctx.fillText("do"+(Math.floor(tr.scale[i]/12)-1),2,y+3); }
+  }
+  var xn=Wt*.68,yn=trY(tr.idx);
+  if(tr.yIdx!==null){
+    var xp=Wt*.3,yp=trY(tr.yIdx),cp=tr.prev.col||SKY.fallback;
+    tctx.setLineDash([2,5]); tctx.strokeStyle='rgba('+ACC+',.3)'; tctx.beginPath(); tctx.moveTo(xp,yp); tctx.lineTo(xn,yn); tctx.stroke(); tctx.setLineDash([]);
+    tctx.globalCompositeOperation='lighter'; tctx.globalAlpha=.6; tctx.drawImage(sprite(cp),xp-22,yp-22,44,44); tctx.globalAlpha=1; tctx.globalCompositeOperation='source-over';
+    tctx.fillStyle='rgba('+SKY.core+',.8)'; tctx.beginPath(); tctx.arc(xp,yp,1.5,0,6.283); tctx.fill();
+    tctx.fillStyle='rgba(168,159,146,.8)'; tctx.fillText(tr.prev.i===TODAY_I-1?L("HIER","YESTERDAY"):L("DERNIER SOIR","LAST EVENING"),xp-18,yp+26);
+  }
+  var g=tr.ghost;
+  if(g){
+    // le soir de référence, s'il n'est pas hier (« plus haut que lundi »)
+    if(g.ref&&g.ref!==tr.prev){
+      var xr=Wt*.17,yr=trY(nearestIdx(tr.scale,g.ref.midi)),cr=g.ref.col||SKY.fallback;
+      tctx.globalCompositeOperation='lighter'; tctx.globalAlpha=.45; tctx.drawImage(sprite(cr),xr-18,yr-18,36,36); tctx.globalAlpha=1; tctx.globalCompositeOperation='source-over';
+      tctx.fillStyle='rgba('+SKY.core+',.7)'; tctx.beginPath(); tctx.arc(xr,yr,1.3,0,6.283); tctx.fill();
+      var lbl=dayName(g.ref.date).toUpperCase(); tctx.fillStyle='rgba(168,159,146,.75)'; tctx.fillText(lbl,xr-lbl.length*2.7,yr+24);
+    }
+    // l'étoile fantôme : là où tes mots la placent
+    var fa=Math.min(1,(now-g.t0)/1400), yg=trY(g.idx), cg=pitchCol(tr.scale[g.idx]), br=.5+.5*Math.sin(t*.0016);
+    if(g.idx!==tr.idx){
+      tctx.globalCompositeOperation='lighter'; tctx.globalAlpha=fa*(.34+.14*br); tctx.drawImage(sprite(cg),xn-28,yg-28,56,56); tctx.globalAlpha=1; tctx.globalCompositeOperation='source-over';
+      tctx.strokeStyle='rgba('+(cg[0]|0)+','+(cg[1]|0)+','+(cg[2]|0)+','+(fa*(.5+.25*br)).toFixed(3)+')'; tctx.lineWidth=.9;
+      tctx.setLineDash([1.5,3.5]); tctx.beginPath(); tctx.arc(xn,yg,9+1.5*br,0,6.283); tctx.stroke(); tctx.setLineDash([]);
+      tctx.fillStyle='rgba(216,210,196,'+(fa*.6).toFixed(3)+')'; tctx.fillText(L("tes mots","your words"),xn+20,yg+3);
+    } else {
+      tctx.strokeStyle='rgba('+(cg[0]|0)+','+(cg[1]|0)+','+(cg[2]|0)+','+(fa*(.25+.15*br)).toFixed(3)+')'; tctx.lineWidth=.8;
+      tctx.beginPath(); tctx.arc(xn,yn,15+2*br,0,6.283); tctx.stroke();
+    }
+  }
+  var col=pitchCol(tr.scale[tr.idx]);
+  tctx.globalCompositeOperation='lighter';
+  for(var k=0;k<tr.parts.length;k++){ var p=tr.parts[k],a=p.a+t*.0005*p.sp*SPD; tctx.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+((.25+.35*Math.sin(t*.002+p.ph))*(1-p.r/34)).toFixed(3)+')'; tctx.fillRect(xn+Math.cos(a)*p.r,yn+Math.sin(a)*p.r*.8,p.s,p.s); }
+  var sz=34+5*Math.sin(t*.002); tctx.drawImage(sprite(col),xn-sz,yn-sz,sz*2,sz*2);
+  tctx.globalCompositeOperation='source-over'; tctx.fillStyle='rgba('+SKY.core+',.98)'; tctx.beginPath(); tctx.arc(xn,yn,2,0,6.283); tctx.fill();
+  tctx.fillStyle='rgba('+ACC+',.85)'; tctx.fillText(L("CE SOIR","TONIGHT"),xn-17,yn+30);
+}
+$('trPose').addEventListener('click',function(){
+  var td=today(); if(!td) return;
+  var n=midiToNote(tr.scale[tr.idx]),entry={iso:td.iso,note:n.note,acc:n.acc,oct:n.oct,why:story.value.trim(),created:new Date().toISOString()};
+  var btn=$('trPose'); btn.disabled=true;
+  function done(where){
+    btn.disabled=false; var k=draftKey(); if(k) lsDel(k);
+    localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
+    showStepContempler(td,where);
+  }
+  if(soirsCol){ soirsCol.doc(td.iso).set(entry).then(function(){ done("db"); }).catch(function(){ done("local"); }); }
+  else done("local");
+});
+function showStepContempler(td,where){
+  var all=$('steps').children; for(var i=0;i<all.length;i++) all[i].className=i<3?"past":"now";
+  applyEntries();
+  setTimeout(function(){
+    location.hash="#ciel";
+    setTimeout(function(){
+      var d=DAYS[td.i]; d.flash=performance.now(); burst(d,1.4); linesFrom=performance.now();
+      setTimeout(function(){ var dur=playWeek(d.w)||2400; setTimeout(function(){ openCoda(d,where); },dur); },500);
+    },700);
+  },500);
+}
+var toastTimer=null;
+function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('show'); },4200); }
+
+// ===== Le carnet =====
+function hashStr(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0)/4294967295; }
+function glyph(svg,title){
+  var seed=hashStr(title)*1000,pts=[];
+  for(var i=0;i<5;i++) pts.push([10+rnd(seed+i*3.1)*36,10+rnd(seed+i*7.7)*36]);
+  var h='<circle cx="28" cy="28" r="27" fill="rgba('+ACC+',.035)" stroke="rgba('+ACC+',.14)" stroke-width=".6"/>';
+  h+='<polyline points="'+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" ")+'" fill="none" stroke="rgba('+ACC+',.4)" stroke-width=".6"/>';
+  pts.forEach(function(p,i){ h+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(i===0?2:1.2)+'" fill="'+(i===0?'rgb('+ACC+')':'rgba(236,229,216,.85)')+'"/>'; });
+  svg.innerHTML=h;
+}
+function dateOf(iso){ var p=iso.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+// ----- les pensées : celles écrites dans le code (avant l'app), plus celles écrites ou dites dans le carnet (base de l'app, ou cet appareil) -----
+var dbRefl={},localRefl={},reflCol=null,openDay=null,readerItem=null;
+try{ localRefl=JSON.parse(lsGet('56n-reflexions')||'{}')||{}; }catch(e){ localRefl={}; }
+function validRefl(r){ return !!r&&typeof r.d==="string"&&/^\d{4}-\d\d-\d\d$/.test(r.d)&&typeof r.title==="string"&&Array.isArray(r.paras)&&r.paras.length>0&&r.paras.every(function(x){ return typeof x==="string"; }); }
+function allRefl(){
+  var out=REFLEXIONS.map(function(r,i){ return {id:"src-"+i,d:r.d,title:r.title,paras:r.paras,created:r.d+"T21:0"+i,mine:false}; }),seen={};
+  Object.keys(dbRefl).forEach(function(k){ var r=dbRefl[k]; if(validRefl(r)){ seen[k]=1; out.push({id:k,d:r.d,title:r.title,paras:r.paras,created:r.created||"",mine:true,where:"db"}); } });
+  Object.keys(localRefl).forEach(function(k){ var r=localRefl[k]; if(!seen[k]&&validRefl(r)) out.push({id:k,d:r.d,title:r.title,paras:r.paras,created:r.created||"",mine:true,where:"local"}); });
+  return out.sort(function(a,b){ return a.d<b.d?1:a.d>b.d?-1:(a.created<b.created?1:a.created>b.created?-1:0); });
+}
+function svgEl(vb){ var e=document.createElementNS("http://www.w3.org/2000/svg","svg"); e.setAttribute('viewBox',vb); e.setAttribute('aria-hidden','true'); return e; }
+function weekGroupOf(iso){ var wi=Math.floor((dateOf(iso)-START)/(7*864e5));
+  if(wi>=0&&wi<8){ var m=weekMode(wi); return {key:"w"+wi,label:L("Semaine ","Week ")+(wi+1),mode:m?modeLabel(m):""}; }
+  return {key:"m"+iso.slice(0,7),label:cap(dateOf(iso).toLocaleDateString(locale(),{month:'long',year:'numeric'})),mode:""}; }
+function renderCarnet(){
+  var box=$('fragments'); box.innerHTML=""; var list=allRefl();
+  if(!list.length){ var em=document.createElement('p'); em.className="c-empty"; em.textContent=L("Le carnet est encore vide. Une première pensée ?","The notebook is still empty. A first thought?"); box.appendChild(em); return; }
+  if(openDay===null) openDay=list[0].d;
+  var lastWeek=null,days=[],byDay={};
+  list.forEach(function(r){ if(!byDay[r.d]){ byDay[r.d]=[]; days.push(r.d); } byDay[r.d].push(r); });
+  days.forEach(function(iso){
+    var g=weekGroupOf(iso);
+    if(g.key!==lastWeek){ lastWeek=g.key; var h=document.createElement('h3'); h.className="c-week"; h.appendChild(document.createTextNode(g.label)); if(g.mode){ var bm=document.createElement('b'); bm.textContent=g.mode; h.appendChild(document.createTextNode(" · ")); h.appendChild(bm); } box.appendChild(h); }
+    var items=byDay[iso],dt=dateOf(iso),isOpen=openDay===iso,day=null;
+    for(var k=0;k<DAYS.length;k++) if(DAYS[k].iso===iso){ day=DAYS[k]; break; }
+    var wrap=document.createElement('div'); wrap.className="c-day"+(isOpen?" open":"");
+    var head=document.createElement('button'); head.type="button"; head.className="c-dayhead"; head.setAttribute('aria-expanded',isOpen?'true':'false');
+    // l'étoile de ce soir-là : sa couleur de note s'il a été vécu
+    var st=document.createElement('span'); st.className="c-star"+(day&&day.status==="lived"?" lived":""); var si=document.createElement('i');
+    if(day&&day.status==="lived"){ var ck=day.col.map(function(v){return v|0;}).join(","); si.style.background="rgb("+ck+")"; si.style.boxShadow="0 0 12px 3px rgba("+ck+",.55)"; }
+    st.appendChild(si);
+    var mid=document.createElement('span'); var dn=document.createElement('span'); dn.className="c-dname"; dn.textContent=cap(dt.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}));
+    var meta=document.createElement('span'); meta.className="c-dmeta"; var ms=svgEl('0 0 40 40'); moonSvg(ms,moonAge(dt)); meta.appendChild(ms);
+    meta.appendChild(document.createTextNode(moonName(moonAge(dt))+(day&&day.status==="lived"?" · "+noteName(day):"")));
+    mid.appendChild(dn); mid.appendChild(meta);
+    var cnt=document.createElement('span'); cnt.className="c-count"; var n=items.length;
+    cnt.appendChild(document.createTextNode(LANG==="en"?(n+" thought"+(n>1?"s":"")):(n+" pensée"+(n>1?"s":""))));
+    var dots=document.createElement('span'); for(var q=0;q<Math.min(n,5);q++) dots.appendChild(document.createElement('i')); cnt.appendChild(dots);
+    head.appendChild(st); head.appendChild(mid); head.appendChild(cnt);
+    var panel=document.createElement('div'); panel.className="c-items"; panel.hidden=!isOpen;
+    items.forEach(function(r,j){
+      var b=document.createElement('button'); b.type="button"; b.className="c-item"; b.style.animationDelay=(j*.07)+"s";
+      var gl=svgEl('0 0 56 56'); glyph(gl,r.title); var body=document.createElement('span');
+      var ti=document.createElement('span'); ti.className="f-title"; ti.textContent=r.title;
+      var ex=document.createElement('span'); ex.className="f-ex"; ex.textContent=r.paras[0];
+      body.appendChild(ti); body.appendChild(ex); b.appendChild(gl); b.appendChild(body);
+      b.addEventListener('click',function(){ openReader(r); }); panel.appendChild(b);
+    });
+    head.addEventListener('click',function(){ var now=!wrap.classList.contains('open');
+      Array.prototype.forEach.call(box.querySelectorAll('.c-day.open'),function(o){ if(o!==wrap){ o.classList.remove('open'); o.querySelector('.c-items').hidden=true; o.querySelector('.c-dayhead').setAttribute('aria-expanded','false'); } });
+      wrap.classList.toggle('open',now); panel.hidden=!now; head.setAttribute('aria-expanded',now?'true':'false'); openDay=now?iso:""; });
+    wrap.appendChild(head); wrap.appendChild(panel); box.appendChild(wrap);
+  });
+}
+function openReader(r){
+  readerItem=r; glyph($('rGlyph'),r.title);
+  var rd=$('rDate'); rd.innerHTML=""; var ms=svgEl('0 0 40 40'); moonSvg(ms,moonAge(dateOf(r.d)));
+  rd.appendChild(ms); rd.appendChild(document.createTextNode(dateOf(r.d).toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long',year:'numeric'})+" · "+moonName(moonAge(dateOf(r.d)))));
+  $('rTitle').textContent=r.title;
+  var body=$('rBody'); body.innerHTML="";
+  r.paras.forEach(function(t,k){ var p=document.createElement('p'); p.textContent=t; p.className="enter"; p.style.animationDelay=(k*.14)+"s"; body.appendChild(p); });
+  var del=$('readerDel'); del.hidden=!r.mine; del.classList.remove('ask'); del.textContent=L("Effacer cette pensée","Erase this thought");
+  $('carnetIndex').hidden=true; $('reader').hidden=false; window.scrollTo(0,0); $('readerBack').focus({preventScroll:true});
+}
+function closeReader(){ $('reader').hidden=true; $('carnetIndex').hidden=false; }
+$('readerBack').addEventListener('click',function(){ closeReader(); window.scrollTo(0,0); });
+// effacer une pensée écrite dans l'app (celles d'avant l'app restent) : en deux touchers
+var delTimer=null;
+$('readerDel').addEventListener('click',function(){
+  var del=$('readerDel'),r=readerItem; if(!r||!r.mine) return;
+  if(!del.classList.contains('ask')){ del.classList.add('ask'); del.textContent=L("L’effacer pour de bon ?","Erase it for good?"); clearTimeout(delTimer); delTimer=setTimeout(function(){ del.classList.remove('ask'); del.textContent=L("Effacer cette pensée","Erase this thought"); },5000); return; }
+  clearTimeout(delTimer);
+  delete localRefl[r.id]; lsSet('56n-reflexions',JSON.stringify(localRefl)); delete dbRefl[r.id];
+  if(reflCol) reflCol.doc(r.id).delete().catch(function(){});
+  closeReader(); renderCarnet(); window.scrollTo(0,0);
+});
+// ----- une nouvelle pensée : écrite, ou dite à voix haute -----
+var penseeTA=$('pensee'),penseeTI=$('penseeTitle');
+function penseeChanged(){ $('penseeSave').disabled=penseeTA.value.trim().length<3; lsSet('56n-pensee-draft',JSON.stringify({t:penseeTI.value,x:penseeTA.value})); }
+penseeTA.addEventListener('input',penseeChanged); penseeTI.addEventListener('input',penseeChanged);
+micTargets.push({btn:$('micBtn2'),ta:penseeTA,partial:$('partial2'),changed:penseeChanged});
+function openComposer(){
+  try{ var dr=JSON.parse(lsGet('56n-pensee-draft')||'null'); if(dr){ penseeTI.value=dr.t||""; penseeTA.value=dr.x||""; } }catch(e){}
+  $('compDate').textContent=cap(todayMid.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}))+" · "+moonName(moonAge(todayMid));
+  if(!penseeTA.getAttribute('placeholder')) penseeTA.setAttribute('placeholder',L("Ce qui te traverse. Écris, ou touche « Parler ».","What’s going through you. Write, or touch “Speak”."));
+  $('composer').hidden=false; $('penseeOpen').hidden=true; penseeChanged();
+  setTimeout(function(){ penseeTA.focus({preventScroll:true}); $('composer').scrollIntoView({block:'start',behavior:REDUCED?'auto':'smooth'}); },60);
+}
+function closeComposer(){ if(dictation&&dictation.active()&&dictTarget&&dictTarget.ta===penseeTA) dictation.stop().catch(function(){}); $('composer').hidden=true; $('penseeOpen').hidden=false; }
+function autoTitle(txt){ var t=txt.replace(/\s+/g," ").trim(),m=t.match(/^(.{8,70}?[.!?…])(\s|$)/); if(m) return m[1].replace(/[.…]$/,""); if(t.length<=60) return t; var c=t.slice(0,60); return c.slice(0,c.lastIndexOf(" ")>20?c.lastIndexOf(" "):60)+"…"; }
+$('penseeOpen').addEventListener('click',openComposer);
+$('penseeCancel').addEventListener('click',closeComposer);
+$('penseeSave').addEventListener('click',function(){
+  var txt=penseeTA.value.trim(); if(txt.length<3) return;
+  var paras=txt.split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean);
+  var doc={d:isoOf(todayMid),title:(penseeTI.value.trim()||autoTitle(paras[0])),paras:paras,created:new Date().toISOString(),source:"app"};
+  var id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),btn=$('penseeSave'); btn.disabled=true;
+  function done(where){
+    if(where==="local"){ localRefl[id]=doc; lsSet('56n-reflexions',JSON.stringify(localRefl)); } else dbRefl[id]=doc;
+    lsDel('56n-pensee-draft'); penseeTA.value=""; penseeTI.value=""; closeComposer(); openDay=doc.d; renderCarnet();
+    try{ var ac=audio(); glass(79,ac.currentTime+.02,.35); glass(84,ac.currentTime+.18,.25); }catch(e){}
+    toast(where==="db"?L("Ta pensée a rejoint le carnet.","Your thought has joined the notebook."):L("Ta pensée a rejoint le carnet, sur cet appareil seulement.","Your thought has joined the notebook, on this device only."));
+  }
+  if(reflCol){ reflCol.doc(id).set(doc).then(function(){ done("db"); }).catch(function(){ done("local"); }); } else done("local");
+});
+
+// ===== Boucle et redimensionnement =====
+if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ es.forEach(function(e){ skyVisible=e.isIntersecting; }); },{rootMargin:'80px'}).observe(sky); }
+function loop(now){
+  frameGalaxy(now);
+  if(unlocked){
+    if(currentView==="ciel") frameSky(now);
+    if(currentView==="soir"&&soirStep==="presence") framePresence(now);
+    if(currentView==="soir"&&soirStep==="traduire") frameTr(now);
+  }
+  requestAnimationFrame(loop);
+}
+var rsz=null;
+window.addEventListener('resize',function(){ clearTimeout(rsz); rsz=setTimeout(function(){ buildGalaxy(); if(unlocked){ if(currentView==="ciel") layoutSky(); pres.W=0; if(soirStep==="presence") layoutPresence(); tr.W=0; if(soirStep==="traduire") layoutTr(); } },180); });
+
+buildGalaxy();
+requestAnimationFrame(loop);
+bootLock();
+})();
+</script>
+
+</body>
+</html>
