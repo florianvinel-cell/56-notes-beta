@@ -146,6 +146,8 @@ h1 .n{font-style:italic;color:var(--gold)}
 .day-meta .note{color:var(--gold)}
 .day-why{font-size:1.12rem;line-height:1.8;margin:0;white-space:pre-line}
 .day-why.quiet{color:var(--muted);font-style:italic}
+.day-rawbtn{margin-top:.9rem;font-size:.9rem}
+.day-raw{margin:.6rem 0 0;font-size:.95rem;line-height:1.7;color:var(--muted);white-space:pre-line;border-left:1px solid var(--hair);padding-left:.9rem}
 .row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
 .day-nav{margin-top:1.8rem}
 .ghost{background:transparent;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:.45rem 1.05rem;font-size:.92rem;transition:color .5s,border-color .5s}
@@ -515,6 +517,8 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
         </div>
       </div>
       <p class="day-why" id="dayWhy"></p>
+      <button class="link day-rawbtn" id="dayRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button>
+      <p class="day-raw" id="dayRaw" hidden></p>
     </div>
     <div class="row day-nav">
       <button class="ghost" id="prevDay" type="button" data-en="← the day before">← la veille</button>
@@ -683,12 +687,15 @@ for(var i=0;i<56;i++){
 function validEntry(e){
   return e && typeof e==="object" && /^[A-G]$/.test(e.note) && (e.acc===""||e.acc==="b"||e.acc==="#") && typeof e.oct==="number" && e.oct>=2 && e.oct<=7 && typeof e.why==="string";
 }
-function entryFor(iso){ return NOTES[iso] || (validEntry(dbEntries[iso])&&dbEntries[iso]) || (validEntry(localEntries[iso])&&localEntries[iso]) || null; }
+// quand la base de l'app répond, c'est elle qui a le dernier mot : la copie gardée sur l'appareil ne compte plus,
+// sauf pour un soir qui n'a pu être gardé que sur l'appareil (saved:"local"). Sinon, un soir effacé ou déplacé dans la base reviendrait.
+var dbReady=false;
+function entryFor(iso){ var le=localEntries[iso]; return NOTES[iso] || (validEntry(dbEntries[iso])&&dbEntries[iso]) || (validEntry(le)&&(!dbReady||le.saved==="local")&&le) || null; }
 function applyEntries(){
   DAYS.forEach(function(day){
     var e=entryFor(day.iso);
     if(e){
-      day.status="lived"; day.note=e.note; day.acc=e.acc; day.oct=e.oct; day.why=e.why.slice(0,20000);
+      day.status="lived"; day.note=e.note; day.acc=e.acc; day.oct=e.oct; day.why=e.why.slice(0,20000); day.recit=typeof e.recit==="string"&&e.recit!==e.why?e.recit.slice(0,30000):null;
       day.midi=12*(e.oct+1)+PC[e.note]+accVal(e.acc);
       day.col=pitchCol(day.midi);
     } else {
@@ -701,8 +708,10 @@ function applyEntries(){
   renderCarte();
   if(currentView==="soir") enterSoir(false);
 }
-function weekMode(w){ return WEEK_MODES[w]||null; }
-function weekLabel(w){ var m=weekMode(w); return L("semaine ","week ")+(w+1)+(m?", "+modeLabel(m):""); }
+// une seule gamme pour tout le monde et toutes les semaines : do dorien (décision du 21 nov. : rester simple ;
+// une version avancée, plus tard, pourra rendre la gamme réglable)
+function weekMode(w){ return WEEK_MODES[0]; }
+function weekLabel(w){ return L("semaine ","week ")+(w+1); }
 
 // ===== Le son : verre, bourdon, réverbération =====
 var MOBILE=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -1121,7 +1130,7 @@ function bootLock(){
       lockData=found.d; lockWhere=found.w;
       lockMode="unlock"; lockSay(L("Joue ta mélodie","Play your melody"),L("Les six notes qui ouvrent ton ciel.","The six notes that open your sky."));
     } else {
-      lockMode="set1"; lockSay(L("Compose ta clé","Compose your key"),L("Six notes de do dorien, dans l’ordre que tu veux. Une petite mélodie qui ouvrira ton ciel.","Six notes of C Dorian, in any order you like. A little melody that will open your sky."));
+      lockMode="set1"; lockSay(L("Compose ta clé","Compose your key"),L("Six notes, dans l’ordre que tu veux. Une petite mélodie qui ouvrira ton ciel.","Six notes, in any order you like. A little melody that will open your sky."));
     }
     lockRender();
   });
@@ -1141,7 +1150,7 @@ function enterApp(){
     soirsCol=db.collection('soirs');
     soirsCol.onSnapshot(function(snap){
       var m={}; snap.docs.forEach(function(d){ var x=d.data(); if(validEntry(x)) m[d.id]=x; });
-      dbEntries=m; applyEntries();
+      dbEntries=m; dbReady=true; applyEntries();
     },function(){});
   }
   initVoice(); initSample();
@@ -1306,7 +1315,7 @@ function frameSky(now){
   sctx.shadowColor='rgba(6,4,5,.9)'; sctx.shadowBlur=6; // un léger halo sombre : les noms se détachent de la poussière
   for(var wk=0;wk<8;wk++){ var meta=WEEKS_META[wk],has=wk<=curW&&TODAY_I>=0;
     sctx.fillStyle=has?'rgba(236,229,216,.9)':'rgba(206,198,186,.58)'; sctx.fillText((L("semaine ","week ")+(wk+1)).toUpperCase(),meta.x,meta.y);
-    if(weekMode(wk)){ sctx.fillStyle=has?'rgba('+ACC+',.95)':'rgba('+ACC+',.6)'; sctx.fillText(modeLabel(weekMode(wk)).toUpperCase(),meta.x,meta.y+16); } }
+    }
   sctx.shadowBlur=0; sctx.shadowColor='transparent';
 }
 function nearest(x,y,maxD){ var best=null,bd=maxD*maxD; DAYS.forEach(function(d){ var dx=d.x-x,dy=d.y-y,dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=d;} }); return best; }
@@ -1366,6 +1375,7 @@ function fillCard(d){
   else if(d.status==="silence"){ why.textContent=L("Un silence. Dans une mélodie, le silence compte aussi.","A silence. In a melody, silence counts too."); why.className="day-why quiet"; }
   else { why.textContent=L("Ce soir-là n’est pas encore venu.","That evening hasn’t come yet."); why.className="day-why quiet"; }
   moonSvg($('dayMoonSvg'),d.moon);
+  var rb=$('dayRawBtn'),rr=$('dayRaw'); rr.hidden=true; rb.hidden=!(d.status==="lived"&&d.recit); rr.textContent=d.recit||""; rb.textContent=L("Ce que j’ai dit, tel quel","What I said, word for word");
   $('prevDay').disabled=d.i===0; $('nextDay').disabled=d.i===55;
 }
 function openSheet(d,sound){
@@ -2007,14 +2017,65 @@ function frameTr(now){
   tctx.globalCompositeOperation='source-over'; tctx.fillStyle='rgba('+SKY.core+',.98)'; tctx.beginPath(); tctx.arc(xn,yn,2,0,6.283); tctx.fill();
   tctx.fillStyle='rgba('+ACC+',.85)'; tctx.fillText(L("CE SOIR","TONIGHT"),xn-17,yn+30);
 }
+// ----- mettre le récit en mots : ce que faisait Claude à la main au début du projet -----
+// 1. tout de suite, sur l'appareil : on retire les hésitations et les mots répétés de la dictée ;
+// 2. puis, si Claude est disponible : une vraie mise en mots, à la première personne, avec les mots de la personne,
+//    sans rien inventer ni interpréter. Le récit brut est toujours gardé (« Ce que j'ai dit, tel quel »).
+function cleanSpeech(t){
+  var W="[\\p{L}\\p{N}'’]+",NB="(?<![\\p{L}\\p{N}'’])",NA="(?![\\p{L}\\p{N}'’])",x=String(t||"");
+  x=x.replace(new RegExp("(^|[\\s,.;!?])(euh+|heu+|hum+|bah|ben)"+NA+"[,.]?","giu"),"$1");       // hésitations
+  x=x.replace(new RegExp(NB+W+"-\\s+(?=\\p{L})","gu"),"");                                        // syllabes coupées : « ça m- ça », « stress- très »
+  for(var k=0;k<2;k++) x=x.replace(new RegExp(NB+"((?:"+W+"[\\s,]+){0,6}"+W+")[\\s,]+\\1"+NA,"giu"),"$1"); // « dans un petit avion dans un petit avion », « vraiment, vraiment », « de de »
+  return x.trim().replace(/\s+([,.;:!?])/g,"$1").replace(/([,;])\1+/g,"$1").replace(/,\s*\./g,".").replace(/\.\s*\./g,".")
+    .replace(/(^|[.!?]\s+)(\p{Ll})/gu,function(m,p,c){ return p+c.toUpperCase(); })
+    .replace(/[ \t]{2,}/g," ").trim();
+}
+function writeUpPrompt(td,raw,rel,noteTxt){
+  var ex=Object.keys(NOTES).sort().slice(-2).map(function(k){ return "« "+NOTES[k].why+" »"; }).join("\n\n");
+  return [
+"Tu aides une personne qui tient un journal musical : chaque soir, elle raconte sa journée à voix haute (le texte vient d'une dictée), puis la traduit en une note de musique.",
+"Écris le « pourquoi » de ce soir à partir de son récit. Règles :",
+"- à la première personne, avec SES mots et ses tournures ; c'est elle qui parle, pas toi ;",
+"- retire les hésitations, les reprises, les faux départs, les erreurs de dictée, les « voilà », « du coup » en trop ; corrige la ponctuation ;",
+"- garde tous les faits, les prénoms, les lieux, les émotions et les détails qui comptent pour elle, dans l'ordre où elle les raconte ; tu peux condenser une phrase qui se répète, jamais retirer un fait ;",
+"- n'invente rien, n'interprète rien, ne donne aucun conseil, ne juge pas, n'ajoute pas d'émotion qu'elle n'a pas dite ;",
+"- ignore ce qui parle seulement de l'app ou du choix de la note (par exemple « je vais appuyer sur continuer »), sauf si c'est un vrai moment de sa journée ;",
+"- commence par une courte phrase qui situe la note, à partir de cette indication : « "+rel+" » (note de ce soir : "+noteTxt+") ;",
+"- des paragraphes courts, séparés par une ligne vide ; écris dans la langue du récit.",
+ex?"Voici des « pourquoi » des soirs précédents, pour le ton :\n"+ex:"",
+"Réponds uniquement avec le texte du « pourquoi », sans titre ni guillemets.",
+"",
+"Le récit :","<<<",raw.slice(-12000),">>>"].join("\n");
+}
+function writeUp(td,entry,rel){
+  var raw=entry.recit; if(!raw||raw.length<40) return;
+  initSample();
+  var go=function(){
+    if(!sampleFn) return;
+    sampleFn(writeUpPrompt(td,raw,rel,noteName(entry)),{modelTier:"default"}).then(function(r){
+      var t=(r&&r.text||"").trim().replace(/^[«"“]\s*|\s*[»"”]$/g,"");
+      if(t.length<Math.min(80,raw.length*.25)) return; // une réponse trop courte : on garde le texte nettoyé
+      entry.why=t; entry.mise_en_mots=new Date().toISOString();
+      localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
+      if(soirsCol) soirsCol.doc(td.iso).set(entry).catch(function(){});
+      if(dbEntries[td.iso]) dbEntries[td.iso]=entry;
+      applyEntries(); if(sheetOpen&&selected&&selected.iso===td.iso) fillCard(selected);
+    }).catch(function(){});
+  };
+  if(sampleFn) go(); else setTimeout(go,1500);
+}
+$('dayRawBtn').addEventListener('click',function(){ var rr=$('dayRaw'); rr.hidden=!rr.hidden; });
 $('trPose').addEventListener('click',function(){
   var td=today(); if(!td) return;
-  var n=midiToNote(tr.scale[tr.idx]),entry={iso:td.iso,note:n.note,acc:n.acc,oct:n.oct,why:story.value.trim(),created:new Date().toISOString()};
+  var n=midiToNote(tr.scale[tr.idx]),raw=story.value.trim(),rel=$('trRel').textContent||"";
+  // le « pourquoi » d'abord nettoyé sur place (hésitations, mots répétés), puis mis en mots par Claude en arrière-plan ; le récit brut reste à côté
+  var entry={iso:td.iso,note:n.note,acc:n.acc,oct:n.oct,why:cleanSpeech(raw),recit:raw,created:new Date().toISOString()};
   var btn=$('trPose'); btn.disabled=true;
   function done(where){
     btn.disabled=false; var k=draftKey(); if(k) lsDel(k);
-    localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
+    entry.saved=where; localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
     showStepContempler(td,where);
+    writeUp(td,entry,rel);
   }
   if(soirsCol){ soirsCol.doc(td.iso).set(entry).then(function(){ done("db"); }).catch(function(){ done("local"); }); }
   else done("local");
@@ -2056,7 +2117,7 @@ function allRefl(){
 }
 function svgEl(vb){ var e=document.createElementNS("http://www.w3.org/2000/svg","svg"); e.setAttribute('viewBox',vb); e.setAttribute('aria-hidden','true'); return e; }
 function weekGroupOf(iso){ var wi=Math.floor((dateOf(iso)-START)/(7*864e5));
-  if(wi>=0&&wi<8){ var m=weekMode(wi); return {key:"w"+wi,label:L("Semaine ","Week ")+(wi+1),mode:m?modeLabel(m):""}; }
+  if(wi>=0&&wi<8){ return {key:"w"+wi,label:L("Semaine ","Week ")+(wi+1),mode:""}; }
   return {key:"m"+iso.slice(0,7),label:cap(dateOf(iso).toLocaleDateString(locale(),{month:'long',year:'numeric'})),mode:""}; }
 function renderCarnet(){
   var box=$('fragments'); box.innerHTML=""; var list=allRefl();
