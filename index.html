@@ -62,10 +62,11 @@ button{font:inherit;cursor:pointer}
 .lock-ring polyline{fill:none;stroke:rgba(var(--acc),.55);stroke-width:.5;stroke-linejoin:round;stroke-linecap:round;transition:opacity .9s}
 .lock-ring.fade polyline{opacity:0}
 .lk{position:absolute;width:64px;height:64px;transform:translate(-50%,-50%);border:0;background:transparent;display:grid;place-items:center;align-content:center;gap:.35rem;color:var(--muted);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.lk .pt{width:10px;height:10px;border-radius:50%;background:var(--moon);opacity:.7;box-shadow:0 0 10px 2px rgba(var(--moonc),.25);transition:background .5s,box-shadow .5s,transform .5s,opacity .5s}
-.lk .lb{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em}
-.lk:hover .pt{opacity:1}
-.lk.hit .pt{background:var(--gold);opacity:1;transform:scale(1.5);box-shadow:0 0 18px 6px rgba(var(--acc),.45)}
+/* les notes de la mélodie : dans la couleur des accents (or par défaut), bien visibles */
+.lk .pt{width:13px;height:13px;border-radius:50%;background:var(--gold);opacity:.92;box-shadow:0 0 12px 3px rgba(var(--acc),.45),0 0 0 1px rgba(var(--acc),.25);transition:background .5s,box-shadow .5s,transform .5s,opacity .5s}
+.lk .lb{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.12em;color:var(--soft)}
+.lk:hover .pt{opacity:1;transform:scale(1.2)}
+.lk.hit .pt{background:#fff6e4;opacity:1;transform:scale(1.6);box-shadow:0 0 22px 8px rgba(var(--acc),.7),0 0 0 2px rgba(var(--acc),.8)}
 .lock-ring.waiting .lk{opacity:.3;pointer-events:none}
 .lock-dots{display:flex;gap:.7rem;min-height:10px}
 .lock-dots i{width:8px;height:8px;border-radius:50%;border:1px solid rgba(var(--acc),.5);transition:background .4s,box-shadow .4s,opacity .9s}
