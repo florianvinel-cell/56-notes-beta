@@ -1106,6 +1106,8 @@ function buildGalaxy(){
   twinkles=[]; for(var k=0;k<90;k++) twinkles.push({x:rnd(k*11.1)*OW,y:rnd(k*13.7)*OH,ph:rnd(k*2.2)*6.28,sp:.3+rnd(k*3.9)*.8});
 }
 function frameGalaxy(now){
+  // une fenêtre encore sans taille (un cadre caché au moment de l'ouverture) : on attend qu'elle en ait une, puis on construit la galaxie
+  if(!OW||!OH||!VW||!VH){ if(window.innerWidth>0&&window.innerHeight>0) buildGalaxy(); if(!OW||!OH) return; }
   var tg=VIEW_CAM[unlocked?currentView:"lock"]||[0,0],mx=(OW-VW)/2,my=(OH-VH)/2;
   var tx=tg[0]*VW+par.x*16, ty=tg[1]*VH-Math.min(my*.6,window.scrollY*.05)+par.y*12;
   var k=REDUCED?1:.022; cam.x+=(tx-cam.x)*k; cam.y+=(ty-cam.y)*k;
@@ -2503,7 +2505,7 @@ function loop(now){
   safe('galaxie',frameGalaxy,now);
   if(!lockEl.hidden) safe('mélodie',frameLock,now);
   if(unlocked){
-    if(currentView==="ciel") safe('ciel',frameSky,now);
+    if(currentView==="ciel"){ if(!skyReady&&sky.clientWidth) safe('mise en page du ciel',layoutSky,now); safe('ciel',frameSky,now); }
     if(currentView==="soir"&&soirStep==="presence") safe('présence',framePresence,now);
     if(currentView==="soir"&&soirStep==="traduire") safe('traduire',frameTr,now);
   }
