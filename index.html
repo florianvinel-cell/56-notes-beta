@@ -51,7 +51,8 @@ button{font:inherit;cursor:pointer}
 .lock{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
   background:radial-gradient(70% 60% at 50% 45%, rgba(10,8,9,.35), rgba(10,8,9,.82));transition:opacity 1.4s ease,transform 1.4s ease}
 .lock.opening{opacity:0;transform:scale(1.04);pointer-events:none}
-.lock-inner{display:grid;justify-items:center;gap:.9rem;text-align:center;max-width:26rem}
+#lockCv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.lock-inner{position:relative;z-index:1;display:grid;justify-items:center;gap:.9rem;text-align:center;max-width:26rem}
 .lock-kicker{font-family:var(--f-display);font-style:italic;font-size:1.25rem;color:var(--gold);margin:0}
 .lock-kicker b{font-weight:300}
 .lock-title{font-family:var(--f-display);font-weight:300;font-size:clamp(2rem,8vw,2.8rem);line-height:1.08;margin:0;text-wrap:balance}
@@ -72,6 +73,12 @@ button{font:inherit;cursor:pointer}
 .lock-dots.fade i{opacity:.25}
 .lock-erase{visibility:hidden}
 .lock-erase.show{visibility:visible}
+/* jouer librement : on touche ou on glisse sur les notes, rien à retenir */
+.lock-free{font-family:var(--f-display);font-style:italic;font-size:1.05rem;color:var(--soft);border:1px solid var(--hair);border-radius:999px;padding:.45rem 1.1rem;margin-top:.2rem;background:rgba(10,8,9,.35)}
+.lock-free:hover,.lock-free:focus-visible{color:var(--gold);border-color:rgba(var(--acc),.5);outline:none}
+.lock.free .lock-dots,.lock.free .lock-erase{visibility:hidden}
+.lock.free .lock-ring{touch-action:none}
+.lock.free .lk .lb{color:var(--soft)}
 
 /* ---------- l'app ---------- */
 #app{position:relative;z-index:1;transition:opacity 1.4s ease}
@@ -362,6 +369,7 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
 <canvas id="dust" class="off" aria-hidden="true"></canvas>
 
 <div class="lock" id="lock" role="dialog" aria-labelledby="lockTitle">
+  <canvas id="lockCv" aria-hidden="true"></canvas>
   <div class="lock-inner">
     <p class="lock-kicker"><b>56</b> notes</p>
     <p class="lock-title" id="lockTitle" data-en="One moment…">Un instant…</p>
@@ -371,6 +379,7 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
     </div>
     <div class="lock-dots" id="lockDots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <button class="link lock-erase" id="lockErase" type="button" data-en="erase the last note">effacer la dernière note</button>
+    <button class="link lock-free" id="lockFree" type="button" hidden>Jouer librement</button>
   </div>
 </div>
 
@@ -1056,12 +1065,13 @@ function lockRender(){
 }
 function lockSay(title,sub){ lockTitle.textContent=title; lockSub.textContent=sub||""; }
 function lockReset(delay){
-  lockBusy=true; lockRing.classList.add('fade'); lockDots.classList.add('fade');
+  LP.shake=performance.now(); lockBusy=true; lockRing.classList.add('fade'); lockDots.classList.add('fade');
   setTimeout(function(){ lockSeq=[]; lockRing.classList.remove('fade'); lockDots.classList.remove('fade'); lkBtns.forEach(function(b){b.classList.remove('hit');}); lockBusy=false; lockRender(); },delay||900);
 }
 function lockTap(k){
+  if(freeMode){ freeTap(k); return; }
   if(lockBusy||lockMode==="loading"||lockSeq.length>=6) return;
-  lockSeq.push(k); glass(LOCK_MIDI[k],0,.9);
+  lockSeq.push(k); glass(LOCK_MIDI[k],0,.9); lockBurst(k,1);
   var b=lkBtns[k]; b.classList.remove('hit'); void b.offsetWidth; b.classList.add('hit');
   setTimeout(function(){ if(lockSeq.indexOf(k)<0) b.classList.remove('hit'); },600);
   lockRender();
@@ -1071,8 +1081,92 @@ lockErase.addEventListener('click',function(){ if(lockBusy) return; var k=lockSe
 document.addEventListener('keydown',function(e){
   if(unlocked||lockMode==="loading") return;
   if(e.key>="1"&&e.key<="7"){ lockTap(+e.key-1); e.preventDefault(); }
-  else if(e.key==="Backspace"){ lockErase.click(); e.preventDefault(); }
+  else if(e.key==="Backspace"&&!freeMode){ lockErase.click(); e.preventDefault(); }
 });
+// ===== L'écran de la mélodie, vivant : une poussière de lumière autour des notes =====
+var lockCv=$('lockCv'),lctx=lockCv.getContext('2d'),LP={W:0,H:0,parts:[],sparks:[],waves:[],comets:[],trail:[],gather:0,open:-1,shake:-1,ptr:null,lastComet:0};
+function lockLayout(){
+  var d=Math.min(2,window.devicePixelRatio||1); LP.W=window.innerWidth; LP.H=window.innerHeight;
+  lockCv.width=Math.round(LP.W*d); lockCv.height=Math.round(LP.H*d); lctx.setTransform(d,0,0,d,0,0);
+  var n=Math.round((MOBILE?320:560)*PART*(REDUCED?.5:1)),M=Math.max(LP.W,LP.H)*.62; LP.parts=[];
+  for(var i=0;i<n;i++){ var u=Math.pow(Math.random(),.7); LP.parts.push({r:40+u*M,a:Math.random()*6.283,sp:.4+Math.random()*.9,s:.6+Math.random()*1.3,ph:Math.random()*6.283,ox:0,oy:0,vx:0,vy:0,h:Math.random()}); }
+  LP.halos=[]; for(var k=0;k<7;k++) for(var j=0;j<11;j++) LP.halos.push({k:k,a:Math.random()*6.283,r:9+Math.random()*12,sp:(Math.random()<.5?-1:1)*(.6+Math.random()),s:.5+Math.random()});
+}
+function lockGeom(){ var r=lockRing.getBoundingClientRect(); return {cx:r.left+r.width/2,cy:r.top+r.height/2,R:r.width*.4,pts:LK_POS.map(function(p){ return [r.left+p[0]/100*r.width,r.top+p[1]/100*r.height]; })}; }
+function lockBurst(k,strength){
+  var g=lockGeom(),p=g.pts[k],col=pitchCol(LOCK_MIDI[k]),n=Math.round(26*(strength||1)),now=performance.now();
+  LP.waves.push({x:p[0],y:p[1],t:now,col:col});
+  for(var i=0;i<n;i++){ var a=Math.random()*6.283,v=1+Math.random()*3.2; LP.sparks.push({x:p[0],y:p[1],vx:Math.cos(a)*v,vy:Math.sin(a)*v,t:now,life:900+Math.random()*700,col:col,s:.8+Math.random()*1.4}); }
+  LP.parts.forEach(function(q){ q.kick=1; }); LP.kick={x:p[0],y:p[1],t:now};
+}
+window.addEventListener('pointermove',function(e){ if(!lockEl.hidden) LP.ptr={x:e.clientX,y:e.clientY}; });
+window.addEventListener('pointerleave',function(){ LP.ptr=null; });
+function frameLock(now){
+  if(!LP.W||LP.W!==window.innerWidth||LP.H!==window.innerHeight) lockLayout();
+  var W=LP.W,H=LP.H,g=lockGeom(),t=now*.001;
+  lctx.globalCompositeOperation='destination-out'; lctx.fillStyle='rgba(0,0,0,'+(REDUCED?1:.2)+')'; lctx.fillRect(0,0,W,H);
+  lctx.globalCompositeOperation='lighter';
+  // la poussière se resserre à mesure que la mélodie avance (ou que l'on joue)
+  var want=freeMode?Math.min(1,LP.trail.filter(function(x){ return now-x.t<4000; }).length/8):lockSeq.length/6;
+  LP.gather+=(want-LP.gather)*.03;
+  var op=LP.open>0?(now-LP.open)/1700:-1, sh=LP.shake>0&&now-LP.shake<600?(1-(now-LP.shake)/600):0, kk=LP.kick&&now-LP.kick.t<500?LP.kick:null;
+  var PRr=MOBILE?70:45;
+  for(var i=0;i<LP.parts.length;i++){
+    var q=LP.parts[i],sc=1-.38*LP.gather,al=1;
+    if(op>=0){ sc=op<.35?(1-.38*LP.gather)*(1-op/.35*.85):.15+(op-.35)*4.2; al=op<.35?1:Math.max(0,1-(op-.35)/.65); }
+    q.a+=.0016*q.sp*(1+LP.gather*1.6+(op>=0&&op<.35?6:0))*(REDUCED?.2:1)*(60/(q.r*.02+60))*2;
+    var x=g.cx+Math.cos(q.a)*q.r*sc,y=g.cy+Math.sin(q.a)*q.r*sc*.92;
+    if(kk){ var dx=x+q.ox-kk.x,dy=y+q.oy-kk.y,d2=dx*dx+dy*dy; if(d2<26000&&d2>1){ var dd=Math.sqrt(d2),f=(1-dd/161)*3.5*(1-(now-kk.t)/500); q.vx+=dx/dd*f; q.vy+=dy/dd*f; } }
+    if(LP.ptr){ var px=x+q.ox-LP.ptr.x,py=y+q.oy-LP.ptr.y,p2=px*px+py*py; if(p2<PRr*PRr&&p2>1){ var pd=Math.sqrt(p2),pf=(1-pd/PRr)*.9; q.vx+=px/pd*pf; q.vy+=py/pd*pf; } }
+    if(sh){ q.vx+=(Math.random()-.5)*2.2*sh; q.vy+=(Math.random()-.5)*2.2*sh; }
+    q.vx*=.9; q.vy*=.9; q.ox=(q.ox+q.vx)*.97; q.oy=(q.oy+q.vy)*.97; x+=q.ox; y+=q.oy;
+    if(x<-10||y<-10||x>W+10||y>H+10) continue;
+    var tw=.55+.45*Math.sin(t*1.7*q.sp+q.ph),a=(.22+.45*(1-Math.min(1,q.r/(Math.max(W,H)*.6))))*tw*al;
+    var c=RAINBOW?rbAt((q.a/6.283+q.h*.2)%1):(q.h<.25?ACCV:SKY.dust);
+    lctx.fillStyle='rgba('+c[0]+','+c[1]+','+c[2]+','+a.toFixed(3)+')'; lctx.fillRect(x,y,q.s,q.s);
+  }
+  // un petit essaim autour de chaque note, plus vif pour les notes jouées
+  LP.halos.forEach(function(h){ var p=g.pts[h.k],hit=lkBtns[h.k].classList.contains('hit'),col=pitchCol(LOCK_MIDI[h.k]),aa=h.a+t*h.sp*(hit?1.8:.7),rr=h.r*(hit?1.5:1);
+    lctx.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+((hit?.55:.22)*(.6+.4*Math.sin(t*3+h.a))*(op>=0?Math.max(0,1-op*1.5):1)).toFixed(3)+')'; lctx.fillRect(p[0]+Math.cos(aa)*rr,p[1]+Math.sin(aa)*rr,h.s,h.s); });
+  // des comètes filent le long du tracé de la mélodie (ou des notes jouées librement)
+  var path=freeMode?LP.trail.filter(function(x){ return now-x.t<4000; }).map(function(x){ return x.k; }):lockSeq;
+  if(path.length>1&&now-LP.lastComet>(freeMode?260:420)){ LP.lastComet=now; var si=Math.floor(Math.random()*(path.length-1)); LP.comets.push({a:path[si],b:path[si+1],t:now}); }
+  LP.comets=LP.comets.filter(function(cm){ return now-cm.t<1100; });
+  LP.comets.forEach(function(cm){ var u=(now-cm.t)/1100,A=g.pts[cm.a],B=g.pts[cm.b],col=pitchCol(LOCK_MIDI[cm.b]);
+    for(var k=0;k<6;k++){ var uu=Math.max(0,u-k*.03),x=A[0]+(B[0]-A[0])*uu,y=A[1]+(B[1]-A[1])*uu; lctx.globalAlpha=(1-k/6)*(1-u)*.9; lctx.drawImage(sprite(col),x-6,y-6,12,12); } lctx.globalAlpha=1; });
+  if(freeMode){ var tr=LP.trail.filter(function(x){ return now-x.t<4000; }); lctx.lineWidth=.8;
+    for(var m=1;m<tr.length;m++){ var A2=g.pts[tr[m-1].k],B2=g.pts[tr[m].k],fa=1-(now-tr[m].t)/4000; lctx.strokeStyle='rgba('+ACC+','+(.45*fa).toFixed(3)+')'; lctx.beginPath(); lctx.moveTo(A2[0],A2[1]); lctx.lineTo(B2[0],B2[1]); lctx.stroke(); } }
+  // les étincelles et les ondes des notes touchées
+  LP.sparks=LP.sparks.filter(function(sp){ return now-sp.t<sp.life; });
+  LP.sparks.forEach(function(sp){ sp.vx*=.95; sp.vy*=.95; sp.x+=sp.vx; sp.y+=sp.vy; var u=(now-sp.t)/sp.life; lctx.fillStyle='rgba('+(sp.col[0]|0)+','+(sp.col[1]|0)+','+(sp.col[2]|0)+','+(.85*(1-u)).toFixed(3)+')'; lctx.fillRect(sp.x,sp.y,sp.s,sp.s); });
+  LP.waves=LP.waves.filter(function(w){ return now-w.t<1000; });
+  LP.waves.forEach(function(w){ var u=(now-w.t)/1000; lctx.strokeStyle='rgba('+(w.col[0]|0)+','+(w.col[1]|0)+','+(w.col[2]|0)+','+(.5*(1-u)*(1-u)).toFixed(3)+')'; lctx.lineWidth=1; lctx.beginPath(); lctx.arc(w.x,w.y,8+u*52,0,6.283); lctx.stroke(); });
+  lctx.globalCompositeOperation='source-over';
+}
+// ----- jouer librement : un petit instrument, sans rien à retenir (et sans ouvrir le journal) -----
+var freeMode=false,freeLast=-1,freeSlide=false,freeDrone=null,freePrev=null;
+function freeDroneOn(){
+  try{ var c=audio(); if(c.state==="suspended") c.resume(); var t=c.currentTime,out=c.createGain(),lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=700;
+    out.gain.setValueAtTime(0,t); out.gain.linearRampToValueAtTime(.035,t+2.5); lp.connect(out); out.connect(dry); out.connect(rev);
+    var os=[[48,1],[55,.55],[36,.5]].map(function(n){ var o=c.createOscillator(),g=c.createGain(); o.frequency.value=440*Math.pow(2,(n[0]-69)/12); g.gain.value=n[1]; o.connect(g); g.connect(lp); o.start(t); return o; });
+    freeDrone={out:out,os:os}; }catch(e){}
+}
+function freeDroneOff(){ if(!freeDrone) return; var c=audio(),t=c.currentTime,d=freeDrone; freeDrone=null; d.out.gain.cancelScheduledValues(t); d.out.gain.setValueAtTime(d.out.gain.value,t); d.out.gain.linearRampToValueAtTime(0,t+1.6); d.os.forEach(function(o){ o.stop(t+1.7); }); }
+function freeTap(k){
+  glass(LOCK_MIDI[k],0,.85); lockBurst(k,.8); LP.trail.push({k:k,t:performance.now()}); if(LP.trail.length>24) LP.trail.shift();
+  var b=lkBtns[k]; b.classList.remove('hit'); void b.offsetWidth; b.classList.add('hit'); setTimeout(function(){ b.classList.remove('hit'); },500);
+}
+function setFree(on){
+  if(on===freeMode) return; freeMode=on; lockEl.classList.toggle('free',on); var fb=$('lockFree');
+  if(on){ freePrev=[lockTitle.textContent,lockSub.textContent]; lockSeq=[]; lkBtns.forEach(function(b){ b.classList.remove('hit'); }); lockRender();
+    lockSay(L("Joue librement","Play freely"),L("Touche les notes, glisse dessus. Il n’y a rien à retenir.","Touch the notes, slide across them. There is nothing to remember."));
+    fb.textContent=L("Revenir à la mélodie","Back to the melody"); freeDroneOn(); }
+  else { freeDroneOff(); LP.trail=[]; if(freePrev) lockSay(freePrev[0],freePrev[1]); fb.textContent=L("Jouer librement","Play freely"); lkBtns.forEach(function(b){ b.classList.remove('hit'); }); }
+}
+$('lockFree').addEventListener('click',function(){ setFree(!freeMode); });
+lockRing.addEventListener('pointerdown',function(e){ if(!freeMode) return; freeSlide=true; var el=document.elementFromPoint(e.clientX,e.clientY),b=el&&el.closest&&el.closest('.lk'); freeLast=b?lkBtns.indexOf(b):-1; });
+lockRing.addEventListener('pointermove',function(e){ if(!freeMode||!freeSlide) return; var el=document.elementFromPoint(e.clientX,e.clientY),b=el&&el.closest&&el.closest('.lk'),k=b?lkBtns.indexOf(b):-1; if(k>=0&&k!==freeLast){ freeLast=k; freeTap(k); } else if(k<0) freeLast=-1; });
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){ lockRing.addEventListener(ev,function(){ freeSlide=false; freeLast=-1; }); });
 function sha(str){
   var bytes=new TextEncoder().encode(str);
   return crypto.subtle.digest('SHA-256',bytes).then(function(h){ return Array.prototype.map.call(new Uint8Array(h),function(x){return ("0"+x.toString(16)).slice(-2);}).join(""); });
@@ -1097,7 +1191,7 @@ function lockEvaluate(){
   }
 }
 function lockOpen(seq){
-  setMotif(seq);
+  setMotif(seq); LP.open=performance.now(); LP.sparks=[]; lkBtns.forEach(function(b){ b.classList.add('hit'); });
   var c=audio(); seq.split("").forEach(function(k,i){ glass(LOCK_MIDI[+k],c.currentTime+.15+i*.16,.7); });
   lockSay(lockMode==="set2"?L("Ta mélodie est gardée","Your melody is kept"):L("Bonsoir","Good evening"), lockWhere==="local"?L("Elle n’est gardée que sur cet appareil.","It is kept on this device only."):"");
   setTimeout(function(){ lockEl.classList.add('opening'); enterApp(); playIntro(); setTimeout(function(){ lockEl.hidden=true; },1500); },900);
@@ -1134,7 +1228,7 @@ function bootLock(){
     } else {
       lockMode="set1"; lockSay(L("Compose ta clé","Compose your key"),L("Six notes, dans l’ordre que tu veux. Une petite mélodie qui ouvrira ton ciel.","Six notes, in any order you like. A little melody that will open your sky."));
     }
-    lockRender();
+    lockRender(); $('lockFree').hidden=false; $('lockFree').textContent=L("Jouer librement","Play freely");
   });
 }
 
@@ -2217,6 +2311,7 @@ $('penseeSave').addEventListener('click',function(){
 if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ es.forEach(function(e){ skyVisible=e.isIntersecting; }); },{rootMargin:'80px'}).observe(sky); }
 function loop(now){
   frameGalaxy(now);
+  if(!lockEl.hidden) frameLock(now);
   if(unlocked){
     if(currentView==="ciel") frameSky(now);
     if(currentView==="soir"&&soirStep==="presence") framePresence(now);
