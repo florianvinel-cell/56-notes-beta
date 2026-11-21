@@ -190,6 +190,9 @@ h1 .n{font-style:italic;color:var(--gold)}
 .day-why{font-size:1.12rem;line-height:1.8;margin:0;white-space:pre-line}
 .day-why.quiet{color:var(--muted);font-style:italic}
 .day-rawbtn{margin-top:.9rem;font-size:.9rem}
+/* copier un soir ou une pensée, et relire la dictée brute : une ligne de petits liens sous le texte */
+.day-acts{display:flex;flex-wrap:wrap;align-items:center;gap:.2rem 1.1rem;margin-top:.9rem}
+.day-acts .link{margin:0;padding-left:0}
 .day-raw{margin:.6rem 0 0;font-size:.95rem;line-height:1.7;color:var(--muted);white-space:pre-line;border-left:1px solid var(--hair);padding-left:.9rem}
 .row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
 .day-nav{margin-top:1.8rem}
@@ -552,7 +555,7 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
         <p class="r-date" id="rDate"></p>
         <h3 id="rTitle"></h3>
         <div id="rBody"></div>
-        <button class="link day-rawbtn" id="rRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button>
+        <div class="day-acts"><button class="link" id="rCopy" type="button">Copier la pensée</button><button class="link day-rawbtn" id="rRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button></div>
         <p class="day-raw" id="rRaw" hidden></p>
         <button class="redo" id="readerDel" type="button" hidden>Effacer cette pensée</button>
       </article>
@@ -577,7 +580,7 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
         </div>
       </div>
       <p class="day-why" id="dayWhy"></p>
-      <button class="link day-rawbtn" id="dayRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button>
+      <div class="day-acts"><button class="link" id="dayCopy" type="button" hidden>Copier</button><button class="link day-rawbtn" id="dayRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button></div>
       <p class="day-raw" id="dayRaw" hidden></p>
     </div>
     <div class="row day-nav">
@@ -1553,6 +1556,7 @@ function fillCard(d){
   else { why.textContent=L("Ce soir-là n’est pas encore venu.","That evening hasn’t come yet."); why.className="day-why quiet"; }
   moonSvg($('dayMoonSvg'),d.moon);
   var rb=$('dayRawBtn'),rr=$('dayRaw'); rr.hidden=true; rb.hidden=!(d.status==="lived"&&d.recit); rr.textContent=d.recit||""; rb.textContent=L("Ce que j’ai dit, tel quel","What I said, word for word");
+  var cb=$('dayCopy'); cb.hidden=d.status!=="lived"; cb.textContent=L("Copier","Copy");
   $('prevDay').disabled=d.i===0; $('nextDay').disabled=d.i===55;
 }
 function openSheet(d,sound){
@@ -2412,11 +2416,35 @@ function openReader(r){
   var body=$('rBody'); body.innerHTML="";
   r.paras.forEach(function(t,k){ var p=document.createElement('p'); p.textContent=t; p.className="enter"; p.style.animationDelay=(k*.14)+"s"; body.appendChild(p); });
   var rb=$('rRawBtn'),rr=$('rRaw'); rr.hidden=true; rr.textContent=r.brut||""; rb.hidden=!r.brut; rb.textContent=L("Ce que j’ai dit, tel quel","What I said, word for word");
+  $('rCopy').textContent=L("Copier la pensée","Copy this thought");
   var del=$('readerDel'); del.hidden=!r.mine; del.classList.remove('ask'); del.textContent=L("Effacer cette pensée","Erase this thought");
   $('carnetIndex').hidden=true; $('reader').hidden=false; window.scrollTo(0,0); $('readerBack').focus({preventScroll:true});
 }
 function closeReader(){ $('reader').hidden=true; $('carnetIndex').hidden=false; }
 $('rRawBtn').addEventListener('click',function(){ var rr=$('rRaw'); rr.hidden=!rr.hidden; });
+// ----- copier : une pensée du carnet, ou le « pourquoi » d'un soir, pour le garder ou le partager ailleurs -----
+function copyText(txt,btn,label){
+  function done(ok){
+    if(ok&&btn){ btn.textContent=L("Copié ✓","Copied ✓"); setTimeout(function(){ btn.textContent=label; },2200); }
+    if(!ok) toast(L("La copie n’a pas marché. Tu peux sélectionner le texte et le copier.","Copying didn’t work. You can select the text and copy it."));
+  }
+  function fallback(){
+    try{ var ta=document.createElement('textarea'); ta.value=txt; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.top='0'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select(); var ok=document.execCommand('copy'); document.body.removeChild(ta); done(!!ok); }catch(e){ done(false); }
+  }
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){ done(true); },fallback); return; } }catch(e){}
+  fallback();
+}
+$('rCopy').addEventListener('click',function(){
+  var r=readerItem; if(!r) return;
+  var when=cap(dateOf(r.d).toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+  copyText(r.title+"\n\n"+r.paras.join("\n\n")+"\n\n— "+when,$('rCopy'),L("Copier la pensée","Copy this thought"));
+});
+$('dayCopy').addEventListener('click',function(){
+  var d=selected; if(!d||d.status!=="lived") return;
+  var when=cap(d.date.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+  copyText(when+" · "+noteLabel(d)+"\n\n"+d.why,$('dayCopy'),L("Copier","Copy"));
+});
 $('readerBack').addEventListener('click',function(){ closeReader(); window.scrollTo(0,0); });
 // effacer une pensée écrite dans l'app (celles d'avant l'app restent) : en deux touchers
 var delTimer=null;
