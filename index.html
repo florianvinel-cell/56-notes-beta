@@ -1318,6 +1318,7 @@ function enterApp(){
     syncPrefsFromDb();
     reflCol=db.collection('reflexions');
     reflCol.onSnapshot(function(snap){ var m={}; snap.docs.forEach(function(d){ m[d.id]=d.data(); }); dbRefl=m; renderCarnet(); },function(){});
+    loadBrouillon();
     soirsCol=db.collection('soirs');
     soirsCol.onSnapshot(function(snap){
       var m={}; snap.docs.forEach(function(d){ var x=d.data(); if(validEntry(x)) m[d.id]=x; });
@@ -2266,6 +2267,7 @@ function sampleText(r){ return (r&&r.text||"").trim().replace(/^[«"“]\s*|\s*[
 // sans parler de la note (pas encore choisie). Quand la note est posée, une courte phrase d'ouverture la situe.
 var earlyUp={raw:null,p:null};
 function startEarlyWriteUp(){
+  if(usePreWritten(today())) return; // déjà mis en mots par Claude
   var raw=story.value.trim(); if(raw.length<40||earlyUp.raw===raw) return;
   var mine={raw:raw,p:null}; earlyUp=mine; initSample();
   var go=function(){
@@ -2314,14 +2316,33 @@ function writeUp(td,entry,rel){
   if(sampleFn) go(); else setTimeout(go,1500);
 }
 $('dayRawBtn').addEventListener('click',function(){ var rr=$('dayRaw'); rr.hidden=!rr.hidden; });
+// ----- un récit déjà mis en mots par Claude, ailleurs (l’auteur raconte parfois sa journée dans une conversation) -----
+// Claude le dépose dans la base (brouillons/<date>) : il apparaît dans « Raconter », on choisit la note ici,
+// et seule la phrase d'ouverture qui situe la note reste à écrire. Le récit brut est gardé comme d'habitude.
+var preWritten=null;
+function loadBrouillon(){
+  var td=today(); if(!td||!db) return;
+  db.doc('brouillons/'+td.iso).get().then(function(snap){
+    if(!snap||!snap.exists) return; var b=snap.data()||{};
+    if(typeof b.texte!=="string"||!b.texte.trim()||entryFor(td.iso)) return;
+    preWritten={iso:td.iso,texte:b.texte.trim(),recit:typeof b.recit==="string"&&b.recit.trim()?b.recit.trim():b.texte.trim()};
+    if(!story.value.trim()||story.value.trim()===preWritten.texte){ story.value=preWritten.texte; storyChanged(); }
+  }).catch(function(){});
+}
+function usePreWritten(td){ return !!(preWritten&&td&&preWritten.iso===td.iso&&story.value.trim()===preWritten.texte); }
 $('trPose').addEventListener('click',function(){
   var td=today(); if(!td) return;
   var n=midiToNote(tr.scale[tr.idx]),raw=story.value.trim(),rel=$('trRel').textContent||"";
   // le « pourquoi » d'abord nettoyé sur place (hésitations, mots répétés), puis mis en mots par Claude en arrière-plan ; le récit brut reste à côté
   var entry={iso:td.iso,note:n.note,acc:n.acc,oct:n.oct,why:cleanSpeech(raw),recit:raw,created:new Date().toISOString()};
+  if(usePreWritten(td)){ // déjà mis en mots : on garde ce texte, le brut vient de la conversation
+    entry.why=preWritten.texte; entry.recit=preWritten.recit;
+    earlyUp={raw:preWritten.recit,p:Promise.resolve(preWritten.texte)};
+  }
   var btn=$('trPose'); btn.disabled=true;
   function done(where){
     btn.disabled=false; var k=draftKey(); if(k) lsDel(k);
+    if(preWritten&&preWritten.iso===td.iso){ if(db) db.doc('brouillons/'+td.iso).delete().catch(function(){}); preWritten=null; }
     entry.saved=where; localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
     showStepContempler(td,where);
     writeUp(td,entry,rel);
