@@ -96,6 +96,20 @@ button{font:inherit;cursor:pointer}
 #soundBtn[aria-pressed="true"] .waves{opacity:1}
 #soundBtn[aria-pressed="true"] .mute{opacity:0}
 .sound[aria-pressed="true"]{color:var(--gold);border-color:rgba(var(--acc),.45);box-shadow:0 0 16px rgba(var(--acc),.18)}
+/* le volume de la musique : une petite bulle sous le haut-parleur */
+.vol-wrap{position:relative}
+.vol-pop{position:absolute;top:calc(100% + 10px);right:0;z-index:12;display:flex;align-items:center;gap:.75rem;width:min(15.5rem,calc(100vw - 32px));padding:.65rem .95rem;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--hair);border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transform:translateY(-6px);transition:opacity .3s,transform .3s}
+.vol-pop.open{opacity:1;transform:none}
+.vol-pop input{flex:1;min-width:0;height:22px;margin:0;-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer}
+.vol-pop input::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold) 0 var(--p,100%),rgba(236,229,216,.16) var(--p,100%))}
+.vol-pop input::-moz-range-track{height:3px;border-radius:2px;background:rgba(236,229,216,.16)}
+.vol-pop input::-moz-range-progress{height:3px;border-radius:2px;background:var(--gold)}
+.vol-pop input::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6.5px;border-radius:50%;background:#fff3dc;box-shadow:0 0 0 1px rgba(var(--acc),.6),0 0 12px rgba(var(--acc),.55)}
+.vol-pop input::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:#fff3dc;box-shadow:0 0 0 1px rgba(var(--acc),.6),0 0 12px rgba(var(--acc),.55)}
+.vol-pop input:focus-visible{outline:none}
+.vol-pop input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px rgba(var(--acc),.9),0 0 14px rgba(var(--acc),.7)}
+.vol-v{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.06em;color:var(--soft);min-width:3.6em;text-align:right;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){ .vol-pop{transition:none} }
 
 .view{padding-bottom:calc(var(--dock-h) + 40px + env(safe-area-inset-bottom,0px))}
 .view.enter{animation:enter .9s ease both}
@@ -393,9 +407,15 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
       <button class="sound" id="prefsBtn" type="button" aria-label="Ton ciel : couleur et particules" data-en-aria="Your sky: colour and particles" aria-haspopup="dialog">
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.4"/><path d="M10 2.6v2.6M10 14.8v2.6M2.6 10h2.6M14.8 10h2.6M4.8 4.8l1.7 1.7M13.5 13.5l1.7 1.7M4.8 15.2l1.7-1.7M13.5 6.5l1.7-1.7"/></svg>
       </button>
-      <button class="sound" id="soundBtn" type="button" aria-pressed="false" aria-label="Fond sonore" data-en-aria="Background music">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="spk" d="M3 7.6h2.8L9.6 4.4v11.2L5.8 12.4H3z"/><path class="waves" d="M12.4 7.4a3.6 3.6 0 0 1 0 5.2M14.6 5.2a6.8 6.8 0 0 1 0 9.6"/><path class="mute" d="M12.8 8l4 4M16.8 8l-4 4"/></svg>
-      </button>
+      <div class="vol-wrap" id="volWrap">
+        <button class="sound" id="soundBtn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="volPop" aria-label="Fond sonore et volume" data-en-aria="Background music and volume">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path class="spk" d="M3 7.6h2.8L9.6 4.4v11.2L5.8 12.4H3z"/><path class="waves" d="M12.4 7.4a3.6 3.6 0 0 1 0 5.2M14.6 5.2a6.8 6.8 0 0 1 0 9.6"/><path class="mute" d="M12.8 8l4 4M16.8 8l-4 4"/></svg>
+        </button>
+        <div class="vol-pop" id="volPop" hidden>
+          <input type="range" id="volRange" min="0" max="100" step="1" value="100" aria-label="Volume de la musique" data-en-aria="Music volume">
+          <span class="vol-v" id="volVal" aria-hidden="true">100 %</span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -727,7 +747,9 @@ function weekLabel(w){ return L("semaine ","week ")+(w+1); }
 
 // ===== Le son : verre, bourdon, réverbération =====
 var MOBILE=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Android|iPhone|iPad/i.test(navigator.userAgent);
-var AC=null,bus=null,dry=null,rev=null,master=null;
+var AC=null,bus=null,dry=null,rev=null,master=null,volAmb=null,volDrone=null;
+var VOL=100, volKeep=100; // le volume de la musique, de 0 à 100 ; volKeep = le dernier volume non nul, celui qu'on garde
+function volGain(v){ var x=v/100; return x*x; } // une courbe qui suit l'oreille : la moitié du curseur sonne vraiment à mi-chemin
 function audio(){
   if(AC) return AC;
   // "playback" : des mémoires tampons plus grandes. Sur téléphone, c'est ce qui évite les grésillements quand le processeur est occupé.
@@ -748,6 +770,9 @@ function audio(){
   rev.buffer=buf; var revWet=AC.createGain(); revWet.gain.value=.42; bus.connect(rev); rev.connect(revWet); revWet.connect(master);
   var dly=AC.createDelay(2); dly.delayTime.value=.42; var fb=AC.createGain(); fb.gain.value=.3; var dw=AC.createGain(); dw.gain.value=.16;
   bus.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(dw); dw.connect(master);
+  // le volume de la musique (la chanson et le bourdon) : 100 % = le niveau d'origine
+  volAmb=AC.createGain(); volAmb.gain.value=volGain(VOL); volAmb.connect(master);
+  volDrone=AC.createGain(); volDrone.gain.value=volGain(VOL); volDrone.connect(dry); volDrone.connect(rev);
   return AC;
 }
 function glass(midi,when,vel){
@@ -776,7 +801,7 @@ function droneOn(){
     var o=c.createOscillator(),g=c.createGain(); o.type="sine"; o.frequency.value=440*Math.pow(2,(n[0]-69)/12); o.detune.value=n[2]; g.gain.value=n[1];
     o.connect(g); g.connect(trem); o.start(t); return o;
   });
-  trem.connect(lp); lp.connect(out); out.connect(dry); out.connect(rev); lfo.start(t);
+  trem.connect(lp); lp.connect(out); out.connect(volDrone); lfo.start(t);
   drone={out:out,oscs:oscs,lfo:lfo};
   ambStart();
 }
@@ -989,7 +1014,7 @@ function ambTick(){
 function ambStart(){
   if(amb.running||!MOTIF||!drone) return;
   var c=audio(),t=c.currentTime; amb.running=true;
-  amb.out=c.createGain(); amb.out.gain.setValueAtTime(0,t); amb.out.connect(master); // le fondu d'ouverture part avec la première boucle
+  amb.out=c.createGain(); amb.out.gain.setValueAtTime(0,t); amb.out.connect(volAmb); // le fondu d'ouverture part avec la première boucle
   // le bourdon se fait très discret : la basse de la clé prend le relais
   drone.out.gain.cancelScheduledValues(t); drone.out.gain.setValueAtTime(drone.out.gain.value,t); drone.out.gain.linearRampToValueAtTime(SOUND.vDrone*.08,t+6);
   amb.lastLoop=-1; amb.nextStart=t+.4; ambPrepare();
@@ -1008,7 +1033,27 @@ function ambDuck(sec){ // s'efface quand une mélodie du ciel joue
 }
 var soundBtn=$('soundBtn');
 function setSound(on){ if(on) droneOn(); else droneOff(); soundBtn.setAttribute('aria-pressed',on?'true':'false'); }
-soundBtn.addEventListener('click',function(){ soundChosen=true; setSound(soundBtn.getAttribute('aria-pressed')!=='true'); });
+// Le volume : un appui sur le haut-parleur ouvre le curseur (et lance la musique si elle dort). Tout à gauche, 0 : la musique s'arrête.
+function setVolume(v){
+  VOL=clamp(Math.round(+v||0),0,100); var r=$('volRange'); r.value=VOL; r.style.setProperty('--p',VOL+'%'); $('volVal').textContent=VOL+' %';
+  if(AC&&volAmb){ var t=AC.currentTime,g=volGain(VOL); [volAmb,volDrone].forEach(function(n){ n.gain.cancelScheduledValues(t); n.gain.setTargetAtTime(g,t,.05); }); }
+}
+var volOpen=false;
+function openVol(){ var p=$('volPop'); p.hidden=false; volOpen=true; soundBtn.setAttribute('aria-expanded','true'); requestAnimationFrame(function(){ p.classList.add('open'); }); }
+function closeVol(){ if(!volOpen) return; volOpen=false; var p=$('volPop'); p.classList.remove('open'); soundBtn.setAttribute('aria-expanded','false'); setTimeout(function(){ if(!volOpen) p.hidden=true; },300); }
+soundBtn.addEventListener('click',function(){
+  if(volOpen){ closeVol(); return; }
+  soundChosen=true; if(!drone){ if(VOL===0) setVolume(volKeep); setSound(true); }
+  openVol();
+});
+$('volRange').addEventListener('input',function(e){
+  soundChosen=true; var v=+e.target.value; setVolume(v);
+  if(v>0){ volKeep=v; if(!drone) setSound(true); }
+});
+$('volRange').addEventListener('change',function(e){ if(+e.target.value===0&&drone) setSound(false); savePrefs(); });
+document.addEventListener('pointerdown',function(e){ if(volOpen&&!$('volWrap').contains(e.target)) closeVol(); });
+document.addEventListener('keydown',function(e){ if(e.key==="Escape"&&volOpen){ closeVol(); soundBtn.focus({preventScroll:true}); } });
+window.addEventListener('hashchange',closeVol);
 
 // ===== La galaxie, derrière tout =====
 var gal=$('galaxy'),gctx=gal.getContext('2d'),goff=null,VW=0,VH=0,OW=0,OH=0,cam={x:0,y:0},twinkles=[],par={x:0,y:0};
@@ -1591,12 +1636,12 @@ $('partRange').addEventListener('input',function(e){ var v=+e.target.value; clea
 function prefsSay(t){ $('prefsNote').textContent=t; }
 var prefsTimer=null;
 function savePrefs(){
-  var p={accent:RAINBOW?"rainbow":ACC,particules:PART,langue:LANG,modifie:new Date().toISOString()};
+  var p={accent:RAINBOW?"rainbow":ACC,particules:PART,langue:LANG,volume:volKeep,modifie:new Date().toISOString()};
   lsSet('56n-prefs',JSON.stringify(p));
   clearTimeout(prefsTimer); prefsTimer=setTimeout(function(){ if(db) db.doc('preferences/apparence').set(p).catch(function(){}); },500);
 }
 function loadPrefs(){ // d'abord cet appareil (tout de suite), puis la base (pour suivre la personne)
-  try{ var l=JSON.parse(lsGet('56n-prefs')||'null'); if(l){ if(l.accent) applyAccent(l.accent); if(l.particules) applyParticles(l.particules,false); } }catch(e){}
+  try{ var l=JSON.parse(lsGet('56n-prefs')||'null'); if(l){ if(l.accent) applyAccent(l.accent); if(l.particules) applyParticles(l.particules,false); if(l.volume>0){ volKeep=clamp(+l.volume,1,100); setVolume(volKeep); } } }catch(e){}
 }
 function syncPrefsFromDb(){
   if(!db) return; db.doc('preferences/apparence').get().then(function(snap){
@@ -1604,7 +1649,8 @@ function syncPrefsFromDb(){
     if(d.accent&&d.accent!==(RAINBOW?"rainbow":ACC)){ applyAccent(d.accent); changed=true; }
     if(d.particules&&Math.abs(d.particules-PART)>.001){ applyParticles(d.particules,true); changed=true; }
     if((d.langue==="fr"||d.langue==="en")&&d.langue!==LANG){ setLang(d.langue,false); changed=true; }
-    if(changed) lsSet('56n-prefs',JSON.stringify({accent:RAINBOW?"rainbow":ACC,particules:PART,langue:LANG,modifie:d.modifie||""}));
+    if(d.volume>0&&Math.round(d.volume)!==volKeep){ volKeep=clamp(Math.round(d.volume),1,100); if(VOL>0) setVolume(volKeep); changed=true; }
+    if(changed) lsSet('56n-prefs',JSON.stringify({accent:RAINBOW?"rainbow":ACC,particules:PART,langue:LANG,volume:volKeep,modifie:d.modifie||""}));
   }).catch(function(){});
 }
 $('prefsReset').addEventListener('click',function(){ applyAccent(DEFAULT_PREFS.accent); applyParticles(DEFAULT_PREFS.particules,true); prefsSay(L("Les réglages d’origine.","The original settings.")); savePrefs(); });
