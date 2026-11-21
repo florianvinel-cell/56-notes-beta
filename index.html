@@ -524,6 +524,8 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
         <p class="r-date" id="rDate"></p>
         <h3 id="rTitle"></h3>
         <div id="rBody"></div>
+        <button class="link day-rawbtn" id="rRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button>
+        <p class="day-raw" id="rRaw" hidden></p>
         <button class="redo" id="readerDel" type="button" hidden>Effacer cette pensée</button>
       </article>
     </div>
@@ -1930,7 +1932,7 @@ function draftKey(){ var td=today(); return td?'56n-draft-'+td.iso:null; }
 function storyChanged(){ $('storyNext').disabled=story.value.trim().length<3; var k=draftKey(); if(k) lsSet(k,story.value); }
 story.addEventListener('input',storyChanged); storyChanged();
 var micTargets=micTargets||[]; micTargets.push({btn:$('micBtn'),ta:story,partial:$('partial'),changed:storyChanged});
-$('storyNext').addEventListener('click',function(){ showStep("traduire"); });
+$('storyNext').addEventListener('click',function(){ startEarlyWriteUp(); showStep("traduire"); }); // la mise en mots commence ici, en arrière-plan
 var dictation=null,voiceTried=false;
 // les champs qui peuvent recevoir la dictée (remplis plus bas, une fois les champs connus)
 // Dictée : celle de Claude d'abord (ordinateur), sinon la reconnaissance vocale du navigateur (Safari iPhone, Chrome Android).
@@ -1965,7 +1967,7 @@ function micOff(){ micTargets.forEach(function(t){ t.btn.hidden=true; }); voiceH
 function setupDictation(d){
   dictation=d;
   d.onPartial(function(e){ if(dictTarget) dictTarget.partial.textContent=e.text||""; });
-  d.onFinal(function(e){ var t=dictTarget; if(!t) return; var tx=(e.text||"").trim(); if(tx){ t.ta.value=(t.ta.value.replace(/\s+$/,"")+(t.ta.value.trim()?" ":"")+tx); t.changed(); } t.partial.textContent=""; });
+  d.onFinal(function(e){ var t=dictTarget; if(!t) return; var tx=(e.text||"").trim(); if(tx){ t.dictated=true; t.ta.value=(t.ta.value.replace(/\s+$/,"")+(t.ta.value.trim()?" ":"")+tx); t.changed(); } t.partial.textContent=""; });
   d.onState(function(e){
     var on=e.state==="listening"||e.state==="starting";
     micTargets.forEach(function(t){ var mine=on&&dictTarget===t; t.btn.setAttribute('aria-pressed',mine?'true':'false'); t.btn.textContent=mine?L("Arrêter","Stop"):L("Parler","Speak"); });
@@ -2183,27 +2185,62 @@ function writeUpPrompt(td,raw,rel,noteTxt){
 "- garde tous les faits, les prénoms, les lieux, les émotions et les détails qui comptent pour elle, dans l'ordre où elle les raconte ; tu peux condenser une phrase qui se répète, jamais retirer un fait ;",
 "- n'invente rien, n'interprète rien, ne donne aucun conseil, ne juge pas, n'ajoute pas d'émotion qu'elle n'a pas dite ;",
 "- ignore ce qui parle seulement de l'app ou du choix de la note (par exemple « je vais appuyer sur continuer »), sauf si c'est un vrai moment de sa journée ;",
-"- commence par une courte phrase qui situe la note, à partir de cette indication : « "+rel+" » (note de ce soir : "+noteTxt+") ;",
+rel===null?"- la note n'est pas encore choisie : ne parle pas de la note, commence directement par sa journée ;":"- commence par une courte phrase qui situe la note, à partir de cette indication : « "+rel+" » (note de ce soir : "+noteTxt+") ;",
 "- des paragraphes courts, séparés par une ligne vide ; écris dans la langue du récit.",
 ex?"Voici des « pourquoi » des soirs précédents, pour le ton :\n"+ex:"",
 "Réponds uniquement avec le texte du « pourquoi », sans titre ni guillemets.",
 "",
 "Le récit :","<<<",raw.slice(-12000),">>>"].join("\n");
 }
+function sampleText(r){ return (r&&r.text||"").trim().replace(/^[«"“]\s*|\s*[»"”]$/g,""); }
+// La mise en mots commence dès « Continuer », pendant qu'on cherche la hauteur de la note : le récit est réécrit
+// sans parler de la note (pas encore choisie). Quand la note est posée, une courte phrase d'ouverture la situe.
+var earlyUp={raw:null,p:null};
+function startEarlyWriteUp(){
+  var raw=story.value.trim(); if(raw.length<40||earlyUp.raw===raw) return;
+  var mine={raw:raw,p:null}; earlyUp=mine; initSample();
+  var go=function(){
+    if(!sampleFn||earlyUp!==mine) return;
+    mine.p=sampleFn(writeUpPrompt(today(),raw,null,""),{modelTier:"default"}).then(function(r){
+      var t=sampleText(r); return t.length<Math.min(80,raw.length*.25)?null:t;
+    }).catch(function(){ return null; });
+  };
+  if(sampleFn) go(); else setTimeout(go,1500);
+}
+function situatePrompt(rel,noteTxt,body){
+  var ex=Object.keys(NOTES).sort().slice(-2).map(function(k){ var m=NOTES[k].why.match(/^[^.!?…]+[.!?…]/); return m?"« "+m[0]+" »":""; }).filter(Boolean).join("\n");
+  return ["Voici le « pourquoi » d'un soir, écrit à la première personne, dans un journal musical (une note de musique par soir) :","<<<",body.slice(0,900),">>>",
+    "Écris UNE seule courte phrase d'ouverture, à la première personne, dans le même ton, qui situe la note de ce soir à partir de cette indication : « "+rel+" » (note de ce soir : "+noteTxt+").",
+    ex?"Des phrases d'ouverture des soirs précédents, pour le ton :\n"+ex:"",
+    "N'invente rien sur sa journée. Réponds uniquement avec la phrase, sans guillemets."].join("\n");
+}
 function writeUp(td,entry,rel){
   var raw=entry.recit; if(!raw||raw.length<40) return;
   initSample();
+  function apply(t){
+    entry.why=t; entry.mise_en_mots=new Date().toISOString();
+    localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
+    if(soirsCol) soirsCol.doc(td.iso).set(entry).catch(function(){});
+    if(dbEntries[td.iso]) dbEntries[td.iso]=entry;
+    applyEntries(); if(sheetOpen&&selected&&selected.iso===td.iso) fillCard(selected);
+  }
+  function full(){
+    sampleFn(writeUpPrompt(td,raw,rel,noteName(entry)),{modelTier:"default"}).then(function(r){
+      var t=sampleText(r);
+      if(t.length<Math.min(80,raw.length*.25)) return; // une réponse trop courte : on garde le texte nettoyé
+      apply(t);
+    }).catch(function(){});
+  }
   var go=function(){
     if(!sampleFn) return;
-    sampleFn(writeUpPrompt(td,raw,rel,noteName(entry)),{modelTier:"default"}).then(function(r){
-      var t=(r&&r.text||"").trim().replace(/^[«"“]\s*|\s*[»"”]$/g,"");
-      if(t.length<Math.min(80,raw.length*.25)) return; // une réponse trop courte : on garde le texte nettoyé
-      entry.why=t; entry.mise_en_mots=new Date().toISOString();
-      localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
-      if(soirsCol) soirsCol.doc(td.iso).set(entry).catch(function(){});
-      if(dbEntries[td.iso]) dbEntries[td.iso]=entry;
-      applyEntries(); if(sheetOpen&&selected&&selected.iso===td.iso) fillCard(selected);
-    }).catch(function(){});
+    var early=earlyUp.raw===raw?earlyUp.p:null;
+    if(!early){ full(); return; }
+    early.then(function(body){
+      if(!body){ full(); return; }
+      sampleFn(situatePrompt(rel,noteName(entry),body),{modelTier:"quick"}).then(function(r){
+        var s=sampleText(r); apply(s&&s.length<240&&!/\n/.test(s)?s+"\n\n"+body:body);
+      }).catch(function(){ apply(body); });
+    });
   };
   if(sampleFn) go(); else setTimeout(go,1500);
 }
@@ -2254,8 +2291,8 @@ try{ localRefl=JSON.parse(lsGet('56n-reflexions')||'{}')||{}; }catch(e){ localRe
 function validRefl(r){ return !!r&&typeof r.d==="string"&&/^\d{4}-\d\d-\d\d$/.test(r.d)&&typeof r.title==="string"&&Array.isArray(r.paras)&&r.paras.length>0&&r.paras.every(function(x){ return typeof x==="string"; }); }
 function allRefl(){
   var out=REFLEXIONS.map(function(r,i){ return {id:"src-"+i,d:r.d,title:r.title,paras:r.paras,created:r.d+"T21:0"+i,mine:false}; }),seen={};
-  Object.keys(dbRefl).forEach(function(k){ var r=dbRefl[k]; if(validRefl(r)){ seen[k]=1; out.push({id:k,d:r.d,title:r.title,paras:r.paras,created:r.created||"",mine:true,where:"db"}); } });
-  Object.keys(localRefl).forEach(function(k){ var r=localRefl[k]; if(!seen[k]&&validRefl(r)) out.push({id:k,d:r.d,title:r.title,paras:r.paras,created:r.created||"",mine:true,where:"local"}); });
+  Object.keys(dbRefl).forEach(function(k){ var r=dbRefl[k]; if(validRefl(r)){ seen[k]=1; out.push({id:k,d:r.d,title:r.title,paras:r.paras,brut:typeof r.brut==="string"?r.brut:null,created:r.created||"",mine:true,where:"db"}); } });
+  Object.keys(localRefl).forEach(function(k){ var r=localRefl[k]; if(!seen[k]&&validRefl(r)) out.push({id:k,d:r.d,title:r.title,paras:r.paras,brut:typeof r.brut==="string"?r.brut:null,created:r.created||"",mine:true,where:"local"}); });
   return out.sort(function(a,b){ return a.d<b.d?1:a.d>b.d?-1:(a.created<b.created?1:a.created>b.created?-1:0); });
 }
 function svgEl(vb){ var e=document.createElementNS("http://www.w3.org/2000/svg","svg"); e.setAttribute('viewBox',vb); e.setAttribute('aria-hidden','true'); return e; }
@@ -2309,10 +2346,12 @@ function openReader(r){
   $('rTitle').textContent=r.title;
   var body=$('rBody'); body.innerHTML="";
   r.paras.forEach(function(t,k){ var p=document.createElement('p'); p.textContent=t; p.className="enter"; p.style.animationDelay=(k*.14)+"s"; body.appendChild(p); });
+  var rb=$('rRawBtn'),rr=$('rRaw'); rr.hidden=true; rr.textContent=r.brut||""; rb.hidden=!r.brut; rb.textContent=L("Ce que j’ai dit, tel quel","What I said, word for word");
   var del=$('readerDel'); del.hidden=!r.mine; del.classList.remove('ask'); del.textContent=L("Effacer cette pensée","Erase this thought");
   $('carnetIndex').hidden=true; $('reader').hidden=false; window.scrollTo(0,0); $('readerBack').focus({preventScroll:true});
 }
 function closeReader(){ $('reader').hidden=true; $('carnetIndex').hidden=false; }
+$('rRawBtn').addEventListener('click',function(){ var rr=$('rRaw'); rr.hidden=!rr.hidden; });
 $('readerBack').addEventListener('click',function(){ closeReader(); window.scrollTo(0,0); });
 // effacer une pensée écrite dans l'app (celles d'avant l'app restent) : en deux touchers
 var delTimer=null;
@@ -2326,11 +2365,13 @@ $('readerDel').addEventListener('click',function(){
 });
 // ----- une nouvelle pensée : écrite, ou dite à voix haute -----
 var penseeTA=$('pensee'),penseeTI=$('penseeTitle');
-function penseeChanged(){ $('penseeSave').disabled=penseeTA.value.trim().length<3; lsSet('56n-pensee-draft',JSON.stringify({t:penseeTI.value,x:penseeTA.value})); }
+function penseeChanged(){ $('penseeSave').disabled=penseeTA.value.trim().length<3; lsSet('56n-pensee-draft',JSON.stringify({t:penseeTI.value,x:penseeTA.value,dic:!!penseeMic.dictated})); }
 penseeTA.addEventListener('input',penseeChanged); penseeTI.addEventListener('input',penseeChanged);
-micTargets.push({btn:$('micBtn2'),ta:penseeTA,partial:$('partial2'),changed:penseeChanged});
+// « dictated » : la pensée a été (au moins en partie) dite à voix haute ; elle sera alors mise en mots
+var penseeMic={btn:$('micBtn2'),ta:penseeTA,partial:$('partial2'),changed:penseeChanged,dictated:false};
+micTargets.push(penseeMic);
 function openComposer(){
-  try{ var dr=JSON.parse(lsGet('56n-pensee-draft')||'null'); if(dr){ penseeTI.value=dr.t||""; penseeTA.value=dr.x||""; } }catch(e){}
+  try{ var dr=JSON.parse(lsGet('56n-pensee-draft')||'null'); if(dr){ penseeTI.value=dr.t||""; penseeTA.value=dr.x||""; penseeMic.dictated=!!dr.dic; } }catch(e){}
   $('compDate').textContent=cap(todayMid.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}))+" · "+moonName(moonAge(todayMid));
   if(!penseeTA.getAttribute('placeholder')) penseeTA.setAttribute('placeholder',L("Ce qui te traverse. Écris, ou touche « Parler ».","What’s going through you. Write, or touch “Speak”."));
   $('composer').hidden=false; $('penseeOpen').hidden=true; penseeChanged();
@@ -2340,14 +2381,54 @@ function closeComposer(){ if(dictation&&dictation.active()&&dictTarget&&dictTarg
 function autoTitle(txt){ var t=txt.replace(/\s+/g," ").trim(),m=t.match(/^(.{8,70}?[.!?…])(\s|$)/); if(m) return m[1].replace(/[.…]$/,""); if(t.length<=60) return t; var c=t.slice(0,60); return c.slice(0,c.lastIndexOf(" ")>20?c.lastIndexOf(" "):60)+"…"; }
 $('penseeOpen').addEventListener('click',openComposer);
 $('penseeCancel').addEventListener('click',closeComposer);
+// ----- mettre une pensée dictée en mots, comme les soirs : ses mots, rien d'inventé ; la dictée brute reste lisible -----
+function penseePrompt(raw,needTitle){
+  var ex=REFLEXIONS.length?REFLEXIONS[REFLEXIONS.length-1]:null;
+  return [
+"Tu aides une personne qui tient un carnet de pensées. Elle les dit souvent à voix haute : le texte vient d'une dictée.",
+"Mets cette pensée en mots. Règles :",
+"- à la première personne, avec SES mots et ses tournures ; c'est elle qui parle, pas toi ;",
+"- retire les hésitations, les reprises, les faux départs, les erreurs de dictée, les « voilà », « du coup » en trop ; corrige la ponctuation ;",
+"- garde toutes ses idées, les prénoms, les lieux, les émotions, dans l'ordre où elle les dit ; tu peux condenser une phrase qui se répète, jamais retirer une idée ;",
+"- n'invente rien, n'interprète rien, ne donne aucun conseil, ne juge pas, ne conclus pas à sa place ;",
+"- des paragraphes courts, séparés par une ligne vide ; écris dans la langue de la pensée.",
+ex?"Une pensée déjà dans son carnet, pour le ton :\n« "+ex.title+" »\n"+ex.paras.slice(0,2).join("\n\n"):"",
+needTitle?"Sur la première ligne, écris un titre court (3 à 8 mots) tiré de ses mots, sans guillemets ni point final ; puis une ligne vide ; puis la pensée.":"",
+needTitle?"Réponds uniquement avec le titre et la pensée, sans commentaire.":"Réponds uniquement avec la pensée, sans titre ni commentaire.",
+"","La pensée dictée :","<<<",raw.slice(-12000),">>>"].filter(function(x,i){ return x!==""||i>9; }).join("\n");
+}
+function writeUpPensee(id,doc,where,keepTitle){
+  var raw=doc.brut; if(!raw||raw.length<40) return;
+  initSample();
+  var go=function(){
+    if(!sampleFn) return;
+    sampleFn(penseePrompt(raw,!keepTitle),{modelTier:"default"}).then(function(r){
+      var t=(r&&r.text||"").trim(),title=doc.title; if(!t) return;
+      if(!keepTitle){ var m=t.match(/^([^\n]{2,90})\n\s*\n([\s\S]+)$/); if(m){ title=m[1].replace(/^(titre\s*:\s*)/i,"").replace(/^[«"“*#\s]+|[»"”*.\s]+$/g,"").trim()||title; t=m[2].trim(); } }
+      var paras=t.replace(/^[«"“]\s*|\s*[»"”]$/g,"").split(/\n\s*\n+/).map(function(x){ return x.replace(/\s+/g," ").trim(); }).filter(Boolean);
+      if(!paras.length||paras.join(" ").length<Math.min(60,raw.length*.25)) return; // trop court : on garde le texte nettoyé
+      if(!dbRefl[id]&&!localRefl[id]) return; // effacée entre-temps
+      var nd={}; Object.keys(doc).forEach(function(k){ nd[k]=doc[k]; }); nd.title=title; nd.paras=paras; nd.mise_en_mots=new Date().toISOString();
+      if(where==="db"&&reflCol){ dbRefl[id]=nd; reflCol.doc(id).set(nd).catch(function(){}); }
+      else { localRefl[id]=nd; lsSet('56n-reflexions',JSON.stringify(localRefl)); }
+      renderCarnet();
+      if(readerItem&&readerItem.id===id&&!$('reader').hidden){ var ri={}; Object.keys(readerItem).forEach(function(k){ ri[k]=readerItem[k]; }); ri.title=nd.title; ri.paras=nd.paras; openReader(ri); }
+    }).catch(function(){});
+  };
+  if(sampleFn) go(); else setTimeout(go,1500);
+}
 $('penseeSave').addEventListener('click',function(){
   var txt=penseeTA.value.trim(); if(txt.length<3) return;
-  var paras=txt.split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean);
-  var doc={d:isoOf(todayMid),title:(penseeTI.value.trim()||autoTitle(paras[0])),paras:paras,created:new Date().toISOString(),source:"app"};
+  var dictated=!!penseeMic.dictated, typedTitle=penseeTI.value.trim();
+  // dictée : nettoyée tout de suite sur l'appareil, puis mise en mots par Claude ; la dictée brute est gardée à côté
+  var paras=(dictated?cleanSpeech(txt):txt).split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean);
+  var doc={d:isoOf(todayMid),title:(typedTitle||autoTitle(paras[0])),paras:paras,created:new Date().toISOString(),source:"app"};
+  if(dictated) doc.brut=txt;
   var id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),btn=$('penseeSave'); btn.disabled=true;
   function done(where){
     if(where==="local"){ localRefl[id]=doc; lsSet('56n-reflexions',JSON.stringify(localRefl)); } else dbRefl[id]=doc;
-    lsDel('56n-pensee-draft'); penseeTA.value=""; penseeTI.value=""; closeComposer(); openDay=doc.d; renderCarnet();
+    lsDel('56n-pensee-draft'); penseeTA.value=""; penseeTI.value=""; penseeMic.dictated=false; closeComposer(); openDay=doc.d; renderCarnet();
+    if(dictated) writeUpPensee(id,doc,where,!!typedTitle);
     try{ var ac=audio(); glass(79,ac.currentTime+.02,.35); glass(84,ac.currentTime+.18,.25); }catch(e){}
     toast(where==="db"?L("Ta pensée a rejoint le carnet.","Your thought has joined the notebook."):L("Ta pensée a rejoint le carnet, sur cet appareil seulement.","Your thought has joined the notebook, on this device only."));
   }
