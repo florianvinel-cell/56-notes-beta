@@ -146,6 +146,17 @@ h1 .n{font-style:italic;color:var(--gold)}
 .cd.silence i{background:transparent;border:1px solid rgba(var(--moonc),.35)}
 @keyframes pulse{50%{box-shadow:0 0 10px 2px rgba(var(--acc),.45)}}
 .carte-hint{margin:-.5rem 0 0;font-style:italic;color:var(--muted);font-size:.92rem}
+/* écouter tout le chemin : toutes les notes posées depuis le premier soir, à la suite */
+.carte-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem 1rem;margin-top:-.5rem}
+.carte-foot .carte-hint{margin:0}
+.path-play{display:inline-flex;align-items:center;gap:.55rem;font-family:var(--f-display);font-style:italic;font-size:1.05rem;line-height:1.2;color:var(--soft);border:1px solid var(--hair);border-radius:999px;padding:.42rem 1.05rem .42rem .85rem;background:rgba(10,8,9,.45);cursor:pointer;transition:border-color .3s,box-shadow .3s,color .3s;-webkit-tap-highlight-color:transparent}
+.path-play svg{width:9px;height:9px;fill:var(--gold);flex:none}
+.path-play .pp-stop{display:none}
+.path-play[aria-pressed="true"] .pp-play{display:none}
+.path-play[aria-pressed="true"] .pp-stop{display:block}
+.path-play:hover:not(:disabled),.path-play:focus-visible{border-color:rgba(var(--acc),.55);box-shadow:0 0 14px rgba(var(--acc),.2);color:var(--text);outline:none}
+.path-play[aria-pressed="true"]{border-color:rgba(var(--acc),.5);color:var(--text)}
+.path-play:disabled{opacity:.45;cursor:default}
 .carte-line{display:flex;align-items:center;gap:.6rem;margin:.55rem 0 0;font-family:var(--f-display);font-size:1.15rem;line-height:1.35;color:var(--soft)}
 .carte-line svg{width:26px;height:26px;flex:none}
 .hero.intro .moonline{opacity:0}
@@ -432,7 +443,10 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
     <div class="gut col">
       <div class="carte">
         <div class="carte-dots" id="carteDots" aria-label="Les 56 soirs" data-en-aria="The 56 evenings"></div>
-        <p class="carte-hint" data-en="Touch a dot to read that evening again.">Touche un point pour relire ce soir-là.</p>
+        <div class="carte-foot">
+          <p class="carte-hint" data-en="Touch a dot to read that evening again.">Touche un point pour relire ce soir-là.</p>
+          <button class="path-play" id="pathPlay" type="button" aria-pressed="false" disabled><svg class="pp-play" viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 .8v8.4L9 5z"/></svg><svg class="pp-stop" viewBox="0 0 10 10" aria-hidden="true"><rect x="1.5" y="1.5" width="7" height="7" rx="1"/></svg><span id="pathPlayTxt">Écouter tout le chemin</span></button>
+        </div>
       </div>
     </div>
   </section>
@@ -1496,6 +1510,7 @@ function renderCarte(){
     }
     box.appendChild(g);
   }
+  setPathUI();
   moonSvg($('carteMoon'),moonAge(todayMid));
   var lit=LIVED.length,rest=56-lit,txt;
   // seulement la lune du soir : une phrase, en haut du ciel
@@ -1545,12 +1560,44 @@ $('prevDay').addEventListener('click',function(){ if(selected&&selected.i>0) ope
 $('nextDay').addEventListener('click',function(){ if(selected&&selected.i<55) openSheet(DAYS[selected.i+1],true); });
 $('playWeek').addEventListener('click',function(){ playWeek(selected?selected.w:0); });
 function playWeek(w){
+  stopPath();
   var seq=DAYS.filter(function(d){return d.w===w&&d.status==="lived";}); if(!seq.length) return;
   var c=audio(); if(c.state==="suspended") c.resume();
   seq.forEach(function(d,k){ glass(d.midi,c.currentTime+k*.95,k===seq.length-1?1:.85); setTimeout(function(){ d.flash=performance.now(); burst(d,.8); },k*950); });
   ambDuck((seq.length-1)*.95+3);
   return (seq.length-1)*950+2400;
 }
+
+// ----- Écouter tout le chemin : chaque note posée depuis le premier soir, semaine après semaine -----
+// Même pas que pour une semaine ; un petit souffle entre deux semaines, comme entre deux phrases. Un second appui arrête.
+var pathTimers=[],pathOn=false;
+function setPathUI(){
+  var b=$('pathPlay'); if(!b) return;
+  var any=DAYS.some(function(d){ return d.status==="lived"; });
+  b.disabled=!any&&!pathOn; b.setAttribute('aria-pressed',pathOn?'true':'false');
+  $('pathPlayTxt').textContent=pathOn?L("Arrêter","Stop"):L("Écouter tout le chemin","Listen to the whole path");
+}
+function stopPath(){
+  pathTimers.forEach(clearTimeout); pathTimers=[];
+  if(!pathOn) return; pathOn=false; setPathUI();
+  if(amb.running&&AC&&amb.out){ var t=AC.currentTime,g=amb.out.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value,t); g.linearRampToValueAtTime(.62,t+2.5); } // la musique revient doucement
+}
+function playPath(){
+  var seq=DAYS.filter(function(d){ return d.status==="lived"; }); if(!seq.length) return 0;
+  stopPath(); var c=audio(); if(c.state==="suspended") c.resume();
+  pathOn=true; setPathUI();
+  var at=0,prevW=seq[0].w;
+  seq.forEach(function(d,k){
+    if(k>0&&d.w!==prevW){ at+=650; prevW=d.w; }
+    var last=k===seq.length-1;
+    pathTimers.push(setTimeout(function(){ glass(d.midi,0,last?1:.85); d.flash=performance.now(); burst(d,.8); },at));
+    at+=950;
+  });
+  var total=at-950+2400; ambDuck(total/1000);
+  pathTimers.push(setTimeout(function(){ pathOn=false; pathTimers=[]; setPathUI(); },total));
+  return total;
+}
+$('pathPlay').addEventListener('click',function(){ if(pathOn) stopPath(); else playPath(); });
 
 // ----- Coda : après la mélodie, une phrase -----
 // La réserve de phrases choisies par l’auteur (20 nov.). Une par soir, toujours la même pour un soir donné.
