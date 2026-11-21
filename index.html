@@ -1411,7 +1411,8 @@ function frameSky(now){
     dctx.fillStyle='rgba('+(lerp(bc[0],p.col[0],wm)|0)+','+(lerp(bc[1],p.col[1],wm)|0)+','+(lerp(bc[2],p.col[2],wm)|0)+','+a.toFixed(3)+')';
     var sz=p.s*(1+wm*.7); dctx.fillRect(p.x-sx,vy,sz,sz);
   }
-  if(!skyVisible) return;
+  // le ciel n'est dessiné que s'il est à l'écran ; on le mesure à chaque image (plus sûr qu'un observateur dans un cadre)
+  var skyTopV=o.y-sy; if(skyTopV>window.innerHeight+80||skyTopV+H<-80) return;
   sctx.clearRect(0,0,W,H);
   var curW=clamp(Math.floor(TODAY_I/7),0,7),tint=WEEKS_META[curW];
   if(tint&&TODAY_I>=0&&TODAY_I<56){ var tg=sctx.createRadialGradient(tint.cx,tint.cy,0,tint.cx,tint.cy,tint.r); tg.addColorStop(0,'rgba(79,163,184,.07)'); tg.addColorStop(1,'rgba(79,163,184,0)'); sctx.fillStyle=tg; sctx.fillRect(tint.cx-tint.r,tint.cy-tint.r,tint.r*2,tint.r*2); }
@@ -2436,16 +2437,18 @@ $('penseeSave').addEventListener('click',function(){
 });
 
 // ===== Boucle et redimensionnement =====
-if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ es.forEach(function(e){ skyVisible=e.isIntersecting; }); },{rootMargin:'80px'}).observe(sky); }
+// la boucle se relance d'abord : si un dessin échoue une fois, le ciel continue de vivre au lieu de se figer
+var loopErr={};
+function safe(name,fn,now){ try{ fn(now); }catch(e){ if(!loopErr[name]){ loopErr[name]=1; try{ console.error('56 notes · '+name,e); }catch(_){} } } }
 function loop(now){
-  frameGalaxy(now);
-  if(!lockEl.hidden) frameLock(now);
-  if(unlocked){
-    if(currentView==="ciel") frameSky(now);
-    if(currentView==="soir"&&soirStep==="presence") framePresence(now);
-    if(currentView==="soir"&&soirStep==="traduire") frameTr(now);
-  }
   requestAnimationFrame(loop);
+  safe('galaxie',frameGalaxy,now);
+  if(!lockEl.hidden) safe('mélodie',frameLock,now);
+  if(unlocked){
+    if(currentView==="ciel") safe('ciel',frameSky,now);
+    if(currentView==="soir"&&soirStep==="presence") safe('présence',framePresence,now);
+    if(currentView==="soir"&&soirStep==="traduire") safe('traduire',frameTr,now);
+  }
 }
 var rsz=null;
 window.addEventListener('resize',function(){ clearTimeout(rsz); rsz=setTimeout(function(){ buildGalaxy(); if(unlocked){ if(currentView==="ciel") layoutSky(); pres.W=0; if(soirStep==="presence") layoutPresence(); tr.W=0; if(soirStep==="traduire") layoutTr(); } },180); });
