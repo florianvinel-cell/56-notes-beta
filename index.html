@@ -673,10 +673,12 @@ function moonSvg(svg,age){
 // ===== Les 56 soirs =====
 var START=(function(){ var k='56n-debut',v=null; try{ v=localStorage.getItem(k); }catch(e){}
   if(v&&/^\d{4}-\d\d-\d\d$/.test(v)){ var p=v.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
-  var n=new Date(),d=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  var n=new Date(),d=new Date(n.getFullYear(),n.getMonth(),n.getDate()-(n.getHours()<4?1:0)); // le soir dure jusqu'à 4 h
   try{ localStorage.setItem(k,d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); }catch(e){}
   return d; })(); // bêta : le premier soir est le jour de la première ouverture
-var nowD=new Date(), todayMid=new Date(nowD.getFullYear(),nowD.getMonth(),nowD.getDate());
+// le soir dure jusqu'à 4 h du matin : un récit dicté après minuit appartient encore à la veille
+var SOIR_FIN_H=4;
+var nowD=new Date(), todayMid=new Date(nowD.getFullYear(),nowD.getMonth(),nowD.getDate()-(nowD.getHours()<SOIR_FIN_H?1:0));
 var TODAY_I=Math.round((todayMid-START)/864e5);
 var DAYS=[], LIVED=[], dbEntries={}, localEntries={};
 try{ localEntries=JSON.parse(lsGet('56n-soirs')||'{}')||{}; }catch(e){ localEntries={}; }
