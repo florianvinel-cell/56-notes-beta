@@ -135,6 +135,8 @@ h1 .n{font-style:italic;color:var(--gold)}
 #dust{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transition:opacity 1.2s ease}
 #dust.off{opacity:0}
 #stars{position:relative;touch-action:manipulation}
+/* les particules qui tournent autour des notes vivent dans le ciel (et non sur le calque fixe) : au défilement, elles suivent les étoiles sans attendre */
+#swirl{position:absolute;left:0;top:0;pointer-events:none}
 .carte{display:grid;gap:1.1rem;padding-block:2.2rem 0}
 /* la carte : deux lignes de quatre semaines ; chaque semaine a son bouton lecture, et des points assez grands pour le doigt */
 .carte-dots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem 1.8rem}
@@ -449,6 +451,7 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
       <p class="carte-line moonline"><svg id="carteMoon" viewBox="0 0 40 40" aria-hidden="true"></svg><span id="carteText"></span></p>
     </div>
     <div class="sky" id="sky">
+      <canvas id="swirl" aria-hidden="true"></canvas>
       <canvas id="stars" role="img" aria-label="Un ciel de 56 étoiles en huit constellations, une par semaine. Les soirs vécus brillent à la hauteur de leur note." data-en-aria="A sky of 56 stars in eight constellations, one per week. The evenings lived shine at the height of their note."></canvas>
     </div>
     <div class="gut col">
@@ -1348,7 +1351,7 @@ function route(){
 window.addEventListener('hashchange',route);
 
 // ===== Le ciel =====
-var sky=$('sky'),dustCv=$('dust'),starCv=$('stars'),dctx=dustCv.getContext('2d'),sctx=starCv.getContext('2d');
+var sky=$('sky'),dustCv=$('dust'),starCv=$('stars'),dctx=dustCv.getContext('2d'),sctx=starCv.getContext('2d'),swCv=$('swirl'),swx=swCv.getContext('2d');
 var W=0,H=0,WEEKS_META=[],particles=[],bursts=[],pointer=null,hover=null,skyVisible=true,sprites={},T0=performance.now(),linesFrom=0;
 function sprite(col){
   var key=col.map(Math.round).join(",");
@@ -1376,6 +1379,7 @@ function layoutSky(){
   sky.style.setProperty('--skyRight',Math.round(gut+cellW*.1)+'px');
   H=rows*cellH+16;
   starCv.width=Math.round(W*dpr); starCv.height=Math.round(H*dpr); starCv.style.height=H+"px"; sctx.setTransform(dpr,0,0,dpr,0,0);
+  swCv.width=starCv.width; swCv.height=starCv.height; swCv.style.height=H+"px"; swx.setTransform(dpr,0,0,dpr,0,0);
   WEEKS_META=[];
   for(var w=0;w<8;w++){
     var col=w%cols,row=Math.floor(w/cols),x0=gut+col*cellW,y0=8+row*cellH,padX=cellW*.1,top=22,bottom=46,ih=cellH-top-bottom;
@@ -1413,12 +1417,15 @@ function frameSky(now){
   for(var jj=0;jj<LIVED.length;jj++){ LIVED[jj].px=LIVED[jj].x+o.x; LIVED[jj].py=LIVED[jj].y+o.y; }
   var PR=MOBILE?80:40; // le cercle que la souris (ou le doigt) creuse dans la poussière : deux fois plus petit sur ordinateur
   var R=62,R2=R*R; bursts=bursts.filter(function(b){return now-b.t<1600;});
+  swx.globalCompositeOperation='destination-out'; swx.fillStyle='rgba(0,0,0,'+(REDUCED?1:.24)+')'; swx.fillRect(0,0,W,H); swx.globalCompositeOperation='lighter';
+  var bandTop=o.y-R,bandBot=o.y+H+R,nearSky;
   for(var i=0;i<particles.length;i++){
     var p=particles[i];
     var ang=Math.sin(p.x*.0042+t*.00011)*1.6+Math.cos(p.y*.0051-t*.00008)*1.6+Math.sin((p.x-p.y)*.0017+p.seed)*.8;
     p.vx+=Math.cos(ang)*.012*SPD; p.vy+=Math.sin(ang)*.012*SPD;
     var warmT=0;
-    for(var j=0;j<LIVED.length;j++){
+    nearSky=p.y>bandTop&&p.y<bandBot;
+    for(var j=0;nearSky&&j<LIVED.length;j++){
       var s=LIVED[j],dx=s.px-p.x,dy=s.py-p.y,d2=dx*dx+dy*dy;
       if(d2<R2&&d2>1){ var dd=Math.sqrt(d2),k=1-dd/R,inw=dd>13?.011:-.014;
         p.vx+=(dx/dd*inw+(-dy/dd)*.017)*k*SPD; p.vy+=(dy/dd*inw+(dx/dd)*.017)*k*SPD; if(k>warmT){warmT=k;p.col=s.col;} }
@@ -1433,10 +1440,12 @@ function frameSky(now){
     if(p.x<-4)p.x=DW+4; else if(p.x>DW+4)p.x=-4; if(p.y<-4)p.y=PH+4; else if(p.y>PH+4)p.y=-4;
     p.warm+=(warmT-p.warm)*.035;
     var vy=p.y-sy; if(vy<-4||vy>DH+4) continue;
+    var lx=p.x+sx-o.x,ly=p.y-o.y,onSky=p.warm>.06&&lx>-4&&lx<W+4&&ly>-4&&ly<H+4;
     var tw=.6+.4*Math.sin(t*.002*p.tw+p.seed),wm=p.warm,a=(.13+.5*wm)*tw;
     var bc=RAINBOW?(p.rb||(p.rb=rbAt((p.x/DW*.8+p.y/PH*.35+p.seed*.002)%1))):SKY.dust;
-    dctx.fillStyle='rgba('+(lerp(bc[0],p.col[0],wm)|0)+','+(lerp(bc[1],p.col[1],wm)|0)+','+(lerp(bc[2],p.col[2],wm)|0)+','+a.toFixed(3)+')';
-    var sz=p.s*(1+wm*.7); dctx.fillRect(p.x-sx,vy,sz,sz);
+    var cx2=onSky?swx:dctx;
+    cx2.fillStyle='rgba('+(lerp(bc[0],p.col[0],wm)|0)+','+(lerp(bc[1],p.col[1],wm)|0)+','+(lerp(bc[2],p.col[2],wm)|0)+','+a.toFixed(3)+')';
+    var sz=p.s*(1+wm*.7); if(onSky) swx.fillRect(lx,ly,sz,sz); else dctx.fillRect(p.x-sx,vy,sz,sz);
   }
   // le ciel n'est dessiné que s'il est à l'écran ; on le mesure à chaque image (plus sûr qu'un observateur dans un cadre)
   var skyTopV=o.y-sy; if(skyTopV>window.innerHeight+80||skyTopV+H<-80) return;
