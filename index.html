@@ -1097,13 +1097,7 @@ function buildGalaxy(){
     var R=n[2]*Math.max(OW,OH),g=o.createRadialGradient(n[0]*OW,n[1]*OH,0,n[0]*OW,n[1]*OH,R);
     g.addColorStop(0,"rgba("+n[3]+","+n[4]+")"); g.addColorStop(1,"rgba("+n[3]+",0)"); o.fillStyle=g; o.fillRect(0,0,OW,OH);
   });
-  var ax=0,ay=OH*.9,bx=OW,by=OH*.1,len=Math.hypot(bx-ax,by-ay),nx=-(by-ay)/len,ny=(bx-ax)/len,N=Math.round(OW*OH/380*PART);
-  for(var i=0;i<N;i++){
-    var t=rnd(i*1.37+.5),gs=(rnd(i*2.71+1.1)+rnd(i*3.17+2.3)+rnd(i*5.3)-1.5)/1.5,spread=OH*(.075+.05*Math.sin(t*9));
-    var x=lerp(ax,bx,t)+nx*gs*spread,y=lerp(ay,by,t)+ny*gs*spread,c=rnd(i*7.7);
-    var col=c<.1?SKY.gstar[0]:c<.3?SKY.gstar[1]:SKY.gstar[2],a=(.035+.2*rnd(i*9.1))*(1-Math.abs(gs)*.6),s=.5+rnd(i*4.4)*1.1;
-    o.fillStyle="rgba("+col+","+a.toFixed(3)+")"; o.fillRect(x,y,s,s);
-  }
+  // (la voie lactée en diagonale a été retirée le 21 novembre : l’auteur la trouvait ordinaire ; ce sont les particules vivantes qui font le ciel)
   var M=Math.round(OW*OH/3200*PART);
   for(var j=0;j<M;j++){ var a2=.08+.45*Math.pow(rnd(j*6.1),2),s2=rnd(j*8.3)<.06?1.6:.8; o.fillStyle="rgba("+SKY.gstar2+","+a2.toFixed(3)+")"; o.fillRect(rnd(j*3.3)*OW,rnd(j*4.9)*OH,s2,s2); }
   twinkles=[]; for(var k=0;k<90;k++) twinkles.push({x:rnd(k*11.1)*OW,y:rnd(k*13.7)*OH,ph:rnd(k*2.2)*6.28,sp:.3+rnd(k*3.9)*.8});
@@ -1393,7 +1387,8 @@ function layoutDust(){
   var dpr=Math.min(2,window.devicePixelRatio||1); DW=window.innerWidth; DH=window.innerHeight;
   dustCv.width=Math.round(DW*dpr); dustCv.height=Math.round(DH*dpr); dctx.setTransform(dpr,0,0,dpr,0,0);
   PH=Math.max(DH,document.documentElement.scrollHeight);
-  var n=Math.round(clamp(DW*PH/260,800,3200)*(REDUCED?.6:1)*(MOBILE?.65:1)*PART); particles=[];
+  // plus de particules vivantes depuis que la voie lactée est partie : une fois et demie sur ordinateur, un peu moins sur téléphone
+  var n=Math.round(clamp(DW*PH/260,800,3200)*(REDUCED?.6:1)*(MOBILE?.65*1.35:1.5)*PART); particles=[];
   for(var k=0;k<n;k++) particles.push({x:Math.random()*DW,y:Math.random()*PH,vx:0,vy:0,s:.5+Math.random()*1.2,seed:Math.random()*100,tw:.5+Math.random()*1.5,warm:0,col:ACCV});
   dctx.clearRect(0,0,DW,DH); lastSy=-1;
 }
