@@ -155,11 +155,17 @@ h1 .n{font-style:italic;color:var(--gold)}
 @media (max-width:640px){ .carte-dots{grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem 1.1rem} }
 .cd.silence i{background:transparent;border:1px solid rgba(var(--moonc),.35)}
 @keyframes pulse{50%{box-shadow:0 0 10px 2px rgba(var(--acc),.45)}}
+/* la note qui joue (une semaine, ou tout le chemin) : son point s'illumine, un petit cercle s'ouvre autour */
+.cd{position:relative}
+.cd.ping i{animation:dotPing 1.1s ease-out}
+.cd.ping::after{content:"";position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;border:1px solid rgba(var(--acc),.85);pointer-events:none;animation:dotRing 1.1s ease-out forwards}
+@keyframes dotPing{0%{transform:scale(1)}22%{transform:scale(1.9);filter:brightness(1.6)}100%{transform:scale(1);filter:none}}
+@keyframes dotRing{0%{transform:scale(.6);opacity:.9}100%{transform:scale(2.6);opacity:0}}
 .carte-hint{margin:-.5rem 0 0;font-style:italic;color:var(--muted);font-size:.92rem}
 /* écouter tout le chemin : toutes les notes posées depuis le premier soir, à la suite */
 .carte-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem 1rem;margin-top:-.5rem}
 .carte-foot .carte-hint{margin:0}
-.path-play{display:inline-flex;align-items:center;gap:.55rem;font-family:var(--f-display);font-style:italic;font-size:1.05rem;line-height:1.2;color:var(--soft);border:1px solid var(--hair);border-radius:999px;padding:.42rem 1.05rem .42rem .85rem;background:rgba(10,8,9,.45);cursor:pointer;transition:border-color .3s,box-shadow .3s,color .3s;-webkit-tap-highlight-color:transparent}
+.path-play{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;font-family:var(--f-display);font-style:italic;font-size:1.05rem;line-height:1.2;color:var(--soft);border:1px solid var(--hair);border-radius:999px;padding:.42rem 1.05rem .42rem .85rem;background:rgba(10,8,9,.45);cursor:pointer;transition:border-color .3s,box-shadow .3s,color .3s;-webkit-tap-highlight-color:transparent}
 .path-play svg{width:9px;height:9px;fill:var(--gold);flex:none}
 .path-play .pp-stop{display:none}
 .path-play[aria-pressed="true"] .pp-play{display:none}
@@ -312,6 +318,8 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
 
 /* barre du bas */
 .dock{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:.2rem;padding:6px;background:rgba(12,10,10,.74);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--hair);border-radius:999px}
+html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
+.dock{transition:opacity .35s ease,transform .35s ease}
 .dock a{display:grid;justify-items:center;gap:3px;padding:8px 18px 6px;white-space:nowrap;color:var(--muted);text-decoration:none;font-family:var(--f-mono);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;border-radius:999px;transition:color .6s,background .6s}
 .dock a svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
 .dock a svg .fill{fill:currentColor;stroke:none}
@@ -360,6 +368,17 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
 .hero.intro .principle,.hero.intro .lede{opacity:0}
 .hero.intro h1{color:transparent}
 .hero .principle{transition:opacity 2s ease}
+/* après les trois premiers soirs, la description du ciel se replie : toucher « 56 notes » la rouvre.
+   Le principe revient seul le lendemain d'un soir grave ; le 56e soir, tout revient. */
+#v-ciel .fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .9s cubic-bezier(.2,.8,.2,1),opacity .8s ease}
+#v-ciel .fold>div{overflow:hidden;min-height:0}
+#v-ciel .hero.folded:not(.open) .fold-lede,#v-ciel .hero.folded:not(.open):not(.pr) .fold-pr{grid-template-rows:0fr;opacity:0}
+#v-ciel .hero.folded h1{cursor:pointer;-webkit-tap-highlight-color:transparent}
+#v-ciel .hero.folded h1::after{content:"";display:inline-block;width:.13em;height:.13em;margin-left:.2em;vertical-align:.2em;border-right:1.5px solid rgba(var(--acc),.75);border-bottom:1.5px solid rgba(var(--acc),.75);transform:rotate(45deg);opacity:.85;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity 1.4s ease}
+#v-ciel .hero.folded.open h1::after{transform:translateY(.06em) rotate(-135deg)}
+#v-ciel .hero.folded:not(.settled) h1::after{opacity:0}
+#v-ciel .hero.folded h1:focus-visible{outline:1px solid rgba(var(--acc),.5);outline-offset:6px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){ #v-ciel .fold,#v-ciel .hero.folded h1::after{transition:none} }
 /* le reflet sur la fin de la phrase : chaque mot s'illumine à son tour, de gauche à droite, sans toucher à la mise en page */
 .lede em .w.gleam{animation:gleam 1.5s ease-in-out both}
 @keyframes gleam{0%{color:var(--gold);text-shadow:0 0 0 rgba(var(--acc),0)}45%{color:#fff6e4;text-shadow:0 0 14px rgba(var(--acc),.75)}100%{color:var(--gold);text-shadow:0 0 0 rgba(var(--acc),0)}}
@@ -380,6 +399,43 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
 .coda-poem span{display:block}
 .coda-poem span+span{margin-top:.5rem}
 .coda-where{margin:0;color:var(--muted);font-size:.85rem}
+/* la fin du soir : « Une dernière pensée » ouvre une question, « Bonne nuit » referme avec une phrase */
+.coda-choice{justify-content:center}
+.coda.show .coda-in>:nth-child(7),.coda.show .coda-in>:nth-child(8){transition-delay:3.4s}
+.coda .coda-in>.coda-poem.hush{opacity:0;transform:translateY(8px)}
+.coda.show .coda-in>.coda-poem.lit{transition-delay:.15s}
+.coda .coda-in>.coda-replay.gone,.coda .coda-in>.coda-choice.gone{opacity:0;pointer-events:none;transition:opacity .7s ease;transition-delay:0s}
+.coda.show .coda-in>.coda-choice.now{transition-delay:.5s}
+.coda-poem.q{font-style:normal;font-size:1.45rem;line-height:1.45;color:var(--text)}
+.coda-replay{font-size:.82rem}
+/* ===== La fin de la semaine : le dimanche, quand la septième note est posée, la semaine devient une constellation ===== */
+.we{position:fixed;inset:0;z-index:22;overflow:hidden;background:radial-gradient(90% 65% at 50% 34%,rgba(24,18,15,.985),rgba(6,5,6,.995) 70%);opacity:0;transition:opacity 2.4s ease}
+.we.show{opacity:1}
+#weCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.we-in{position:absolute;inset:0;display:grid;grid-template-rows:auto 1fr auto;text-align:center;pointer-events:none;
+  padding:calc(30px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(30px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
+.we-head{display:grid;gap:.45rem;justify-items:center}
+.we-kick{margin:0;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.we-title{margin:0;font-family:var(--f-display);font-weight:300;font-size:clamp(2.1rem,7vw,3.3rem);line-height:1.05;letter-spacing:-.01em;text-wrap:balance}
+.we-sub{margin:0;font-family:var(--f-display);font-style:italic;font-size:clamp(1.1rem,3.6vw,1.3rem);line-height:1.45;color:var(--soft);text-wrap:balance}
+.we-foot{display:grid;gap:1.1rem;justify-items:center;align-content:end;min-height:13rem}
+.we-line{display:grid;gap:.6rem;justify-items:center;max-width:32rem}
+.we-day{margin:0;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.we-quote{margin:0;font-family:var(--f-display);font-style:italic;font-size:clamp(1.2rem,4.3vw,1.55rem);line-height:1.45;color:var(--text);text-wrap:pretty}
+.we-quote.quiet{color:var(--muted)}
+.we-fade{opacity:0;transform:translateY(8px);transition:opacity 1.3s ease,transform 1.3s ease}
+.we-fade.on{opacity:1;transform:none}
+.we-name,.we-end{display:grid;gap:.8rem;justify-items:center;width:min(27rem,100%);pointer-events:auto}
+.we-named{margin:0;font-family:var(--f-display);font-style:italic;font-size:clamp(1.6rem,5.5vw,2.2rem);line-height:1.2;color:var(--gold);text-shadow:0 0 22px rgba(var(--acc),.35)}
+.we-input{width:100%;background:rgba(10,8,9,.6);border:1px solid var(--hair);border-radius:999px;padding:.7rem 1.1rem;color:var(--text);font-family:var(--f-display);font-style:italic;font-size:1.25rem;text-align:center}
+.we-input:focus{outline:none;border-color:rgba(var(--acc),.55);box-shadow:0 0 16px rgba(var(--acc),.18)}
+.we-input::placeholder{color:var(--faint)}
+.we-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.45rem}
+.we-chip{font-family:var(--f-display);font-style:italic;font-size:1.02rem;color:var(--soft);border:1px solid var(--hair);background:rgba(10,8,9,.45);border-radius:999px;padding:.32rem .9rem;cursor:pointer}
+.we-chip:hover,.we-chip:focus-visible{color:var(--text);border-color:rgba(var(--acc),.5);outline:none}
+.we-x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));z-index:2;width:40px;height:40px;border-radius:50%;border:1px solid var(--hair);background:rgba(10,8,9,.4);color:var(--muted);font-size:.95rem;cursor:pointer;opacity:0;transition:opacity 1.5s ease;pointer-events:none}
+.we-x.on{opacity:.7;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){ .we,.we-fade,.we-x{transition-duration:.01s} }
 @media (prefers-reduced-motion:reduce){.coda,.coda-in>*{transition:none}}
 
 /* grand écran seulement : plus d'air à gauche, le titre remonte dans la barre, et le ciel tient dans l'écran (layoutSky) */
@@ -404,6 +460,66 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
   .lock,.sheet,.sheet-back,#app{transition:none}
   .cd.tonight i{animation:none}
 }
+
+/* ---------- les pierres : une nuit en plein écran (collines, pierres levées) ; les mots en haut, une carte à la fois ---------- */
+#v-pierres{padding:0}
+#v-pierres::before{content:"";position:fixed;inset:0;z-index:0;background:#060405} /* sous la nuit : si l'écran est plus haut que le dessin, c'est la colline qui continue */
+#pzCv{position:fixed;left:0;top:0;width:100%;height:100vh;display:block;touch-action:none;z-index:0}
+.pz-veil{position:fixed;left:0;right:0;top:0;height:52vh;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(6,5,8,.7),rgba(6,5,8,.32) 55%,rgba(6,5,8,0));transition:opacity 1.4s ease}
+.pz-veil.off{opacity:0}
+.pz-panel{position:fixed;left:0;right:0;top:0;z-index:2;padding:calc(env(safe-area-inset-top,0px) + 66px) max(16px,env(safe-area-inset-right,0px)) 1rem max(16px,env(safe-area-inset-left,0px));display:grid;justify-items:center;pointer-events:none}
+.pz-card{grid-area:1/1;align-self:start;width:min(34rem,100%);display:grid;gap:.7rem;text-align:center;justify-items:center;pointer-events:auto;transition:opacity 1.2s ease,transform 1.2s ease}
+.pz-card.off{opacity:0;transform:translateY(-6px);pointer-events:none}
+.pz-kick{margin:0;font-family:var(--f-mono);font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.pz-kick:empty{display:none}
+.pz-card h1{margin:0;font-family:var(--f-display);font-weight:300;font-size:clamp(2.1rem,7vw,3rem);line-height:1.05;letter-spacing:.005em;text-wrap:balance;text-shadow:0 0 28px rgba(6,5,8,.9)}
+.pz-card h1 em{font-style:italic;color:var(--gold)}
+.pz-sub{margin:0;max-width:30rem;color:var(--soft);font-size:1rem;line-height:1.6;text-wrap:pretty;text-shadow:0 0 18px rgba(6,5,8,.95)}
+.pz-card textarea{width:100%;min-height:5.4rem;resize:none;background:rgba(10,8,10,.55);border:1px solid var(--hair);border-radius:12px;padding:.8rem .95rem;color:var(--text);font-family:var(--f-display);font-size:1.3rem;line-height:1.4;text-align:center;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.pz-card textarea::placeholder{color:var(--faint);font-style:italic}
+.pz-card textarea:focus{outline:none;border-color:rgba(var(--acc),.5)}
+.pz-partial{margin:0;min-height:1.2em;font-style:italic;color:var(--muted);font-size:.95rem}
+.pz-partial:empty{display:none}
+.pz-row{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;align-items:center}
+.pz-row[hidden]{display:none}
+#v-pierres .glow,#v-pierres .ghost{background:rgba(10,8,10,.38)}
+/* l'introduction : le titre lettre par lettre, la phrase mot par mot (comme le ciel), puis le reste */
+#v-pierres .hero{padding:0;gap:.55rem}
+#pz-lieu h1{font-size:clamp(2.7rem,10vw,4rem);margin-bottom:.15rem}
+#pz-lieu .lede{margin:0;max-width:30rem;font-size:clamp(1.25rem,4.4vw,1.6rem);text-shadow:0 0 22px rgba(6,5,8,.95)}
+.pz-after{transition:opacity 1.4s ease,transform 1.4s ease}
+#pz-lieu:not(.settled) .pz-after{opacity:0;transform:translateY(5px);pointer-events:none}
+#pz-lieu .pz-sub:empty{display:none}
+#v-pierres .ghost[aria-pressed="true"]{color:var(--gold);border-color:rgba(var(--acc),.6);box-shadow:0 0 14px rgba(var(--acc),.2)}
+/* le coffre : ce que tu portes, rangé dans le dolmen. Un écrin sombre bordé d'or, qui s'ouvre doucement */
+.pz-coffre{width:100%;display:grid;gap:.6rem;justify-items:center;padding:1.1rem 1rem 1rem;border-radius:20px;border:1px solid rgba(var(--acc),.3);
+  background:radial-gradient(120% 80% at 50% 0%,rgba(70,50,36,.5),rgba(16,11,11,.9) 62%),rgba(12,9,9,.9);
+  box-shadow:inset 0 0 0 4px rgba(8,6,6,.55),inset 0 0 0 5px rgba(var(--acc),.12),inset 0 18px 40px -28px rgba(var(--acc),.45),0 24px 60px rgba(0,0,0,.55);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:transform 1.1s cubic-bezier(.2,.8,.2,1)}
+#pz-coll.off .pz-coffre{transform:scale(.95) translateY(10px)}
+.pz-coffre h1{font-size:clamp(1.8rem,6vw,2.4rem)!important}
+.pz-list{list-style:none;margin:.2rem 0 0;padding:0;width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:.5rem;max-height:42vh;overflow:auto}
+.pz-thumb{flex:none;width:64px;height:48px}
+.pz-item{width:100%;display:flex;align-items:center;gap:.7rem;text-align:left;background:rgba(10,8,10,.45);border:1px solid var(--hair);border-radius:14px;padding:.65rem .95rem;color:var(--text);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:border-color .5s,box-shadow .6s}
+.pz-item:hover{border-color:rgba(var(--acc),.45);box-shadow:0 0 18px rgba(var(--acc),.1)}
+.pz-item i{flex:none;width:14px;height:11px;border-radius:52% 46% 50% 48%;background:radial-gradient(circle at 50% 62%,rgba(255,210,150,.95),rgba(214,140,60,.55) 42%,rgba(52,40,38,.95) 74%);box-shadow:0 0 10px rgba(var(--acc),.45)}
+.pz-item span{display:grid;gap:.15rem;min-width:0}
+.pz-item em{font-family:var(--f-display);font-size:1.15rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pz-item small{font-family:var(--f-mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.pz-mots{width:100%;max-height:28vh;overflow:auto;display:grid;gap:.6rem;padding:.1rem .3rem}
+.pz-mots p{margin:0;font-family:var(--f-display);font-style:italic;font-size:1.22rem;line-height:1.35;color:var(--text);text-shadow:0 0 18px rgba(6,5,8,.95);overflow-wrap:anywhere}
+.pz-mots small{display:block;font-family:var(--f-mono);font-style:normal;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:.2rem}
+/* le geste : appuyer longuement, l'anneau se remplit */
+.pz-hold{position:relative;width:8.4rem;height:8.4rem;border-radius:50%;border:0;background:transparent;color:var(--gold);font-family:var(--f-display);font-style:italic;font-size:1.45rem;line-height:1.1;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+.pz-hold::before{content:"";position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,rgba(var(--acc),.2),rgba(var(--acc),.05) 55%,rgba(var(--acc),0) 72%);animation:pzBreathe 3.8s ease-in-out infinite}
+@keyframes pzBreathe{0%,100%{transform:scale(.9);opacity:.55}50%{transform:scale(1.06);opacity:1}}
+.pz-hold svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);pointer-events:none;overflow:visible}
+.pz-hold .track{fill:none;stroke:rgba(var(--acc),.2);stroke-width:1}
+.pz-hold .fill{fill:none;stroke:var(--gold);stroke-width:1.8;stroke-linecap:round;filter:drop-shadow(0 0 4px rgba(var(--acc),.75))}
+.pz-hold span{position:relative}
+@media (max-height:620px){ .pz-sub{font-size:.92rem} .pz-card h1{font-size:1.9rem} .pz-hold{width:6.6rem;height:6.6rem;font-size:1.2rem} }
+@media (max-width:390px){ .dock a{padding:8px 9px 6px;letter-spacing:.06em} }
+@media (prefers-reduced-motion:reduce){ .pz-card,.pz-veil{transition:none} .pz-hold::before{animation:none} }
 </style>
 
 <canvas id="galaxy" aria-hidden="true"></canvas>
@@ -449,8 +565,8 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
   <section class="view" id="v-ciel" hidden>
     <div class="hero gut col intro nwait">
       <h1><span class="n">56</span> notes</h1>
-      <p class="lede" data-en="Every evening, a star. Every week, a constellation. After eight, &lt;em&gt;music no one else could have written.&lt;/em&gt;">Chaque soir, une étoile. Chaque semaine, une constellation. Au bout de huit, <em>une musique que personne d’autre n’aurait pu écrire.</em></p>
-      <p class="principle" data-en="The sky doesn’t sort its stars. The dark evenings shine here too.">Le ciel ne trie pas ses étoiles. Les soirs sombres y brillent aussi.</p>
+      <div class="fold fold-lede"><div><p class="lede" data-en="Every evening, a star. Every week, a constellation. After eight, &lt;em&gt;music no one else could have written.&lt;/em&gt;">Chaque soir, une étoile. Chaque semaine, une constellation. Au bout de huit, <em>une musique que personne d’autre n’aurait pu écrire.</em></p></div></div>
+      <div class="fold fold-pr"><div><p class="principle" data-en="The sky doesn’t sort its stars. The dark evenings shine here too.">Le ciel ne trie pas ses étoiles. Les soirs sombres y brillent aussi.</p></div></div>
       <p class="carte-line moonline"><svg id="carteMoon" viewBox="0 0 40 40" aria-hidden="true"></svg><span id="carteText"></span></p>
     </div>
     <div class="sky" id="sky">
@@ -562,10 +678,92 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
     </div>
   </section>
 
+  <!-- Les pierres : ce qu'on porte, et le jour où on le laisse partir -->
+  <section class="view" id="v-pierres" hidden aria-label="Les pierres" data-en-aria="Stones">
+    <canvas id="pzCv" aria-hidden="true"></canvas>
+    <div class="pz-veil off" id="pzVeil"></div>
+    <div class="pz-panel">
+      <div class="pz-card hero intro off" id="pz-lieu" hidden>
+        <h1 id="pzLieuT" data-en="The &lt;em&gt;stones&lt;/em&gt;">Les <em>pierres</em></h1>
+        <p class="lede" data-en="What you carry becomes a stone. You lay it in the dolmen, and when the day comes, &lt;em&gt;you let it fly away.&lt;/em&gt;">Ce que tu portes devient une pierre. Tu la déposes dans le dolmen, et le jour venu, <em>tu la laisses s’envoler.</em></p>
+        <p class="pz-sub pz-after" id="pzLieuS"></p>
+        <div class="pz-row pz-after"><button class="glow" id="pzOpen" type="button"></button><button class="ghost" id="pzNew" type="button"></button></div>
+      </div>
+      <div class="pz-card off" id="pz-coll" hidden>
+        <div class="pz-coffre">
+          <p class="pz-kick" id="pzCollK"></p>
+          <h1 id="pzCollT"></h1>
+          <ul class="pz-list" id="pzList"></ul>
+          <div class="pz-row"><button class="ghost" id="pzNew2" type="button"></button><button class="ghost" id="pzCollBack" type="button"></button></div>
+        </div>
+      </div>
+      <div class="pz-card off" id="pz-porter" hidden>
+        <h1 id="pzPorterT"></h1>
+        <p class="pz-sub" id="pzPorterS"></p>
+        <textarea id="pzWords" rows="2" maxlength="600"></textarea>
+        <p class="pz-partial" id="pzPartial" aria-live="polite"></p>
+        <div class="pz-row">
+          <button class="ghost" id="pzMicW" type="button" aria-pressed="false" hidden data-en="Speak">Parler</button>
+          <button class="glow" id="pzCarry" type="button" disabled></button>
+          <button class="ghost" id="pzCancel" type="button"></button>
+        </div>
+      </div>
+      <div class="pz-card off" id="pz-avec" hidden>
+        <h1 id="pzAvecT"></h1>
+        <p class="pz-sub" id="pzAvecS"></p>
+        <div class="pz-row"><button class="glow" id="pzTake" type="button"></button></div>
+      </div>
+      <div class="pz-card off" id="pz-chemin" hidden>
+        <p class="pz-kick" id="pzCheminK"></p>
+        <h1 id="pzCheminT"></h1>
+        <div class="pz-mots" id="pzMots"></div>
+        <div class="pz-row">
+          <button class="glow" id="pzClimb" type="button"></button>
+          <button class="ghost" id="pzAdd" type="button"></button>
+          <button class="ghost" id="pzKeep" type="button"></button>
+        </div>
+      </div>
+      <div class="pz-card off" id="pz-garder" hidden>
+        <p class="pz-kick" id="pzGarderK"></p>
+        <h1 id="pzGarderT"></h1>
+        <p class="pz-sub" id="pzGarderS"></p>
+        <div class="pz-row"><button class="ghost" id="pzBackTo" type="button"></button></div>
+      </div>
+      <div class="pz-card off" id="pz-dolmen" hidden>
+        <p class="pz-kick" id="pzDolK"></p>
+        <h1 id="pzDolT"></h1>
+        <p class="pz-sub" id="pzDolS"></p>
+        <button class="pz-hold" id="pzHold" type="button">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="48"/><circle class="fill" id="pzRing" cx="50" cy="50" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"/></svg>
+          <span id="pzHoldL"></span>
+        </button>
+        <p class="pz-partial" id="pzPartial2" aria-live="polite"></p>
+        <div class="pz-row"><button class="ghost" id="pzMicR" type="button" aria-pressed="false" hidden></button></div>
+      </div>
+      <div class="pz-card off" id="pz-merci" hidden>
+        <p class="pz-kick" id="pzMerciK"></p>
+        <h1 id="pzMerciT"></h1>
+        <p class="pz-sub" id="pzMerciS"></p>
+        <p class="pz-partial" id="pzPartial3" aria-live="polite"></p>
+        <div class="pz-row" id="pzMerciRow">
+          <button class="glow" id="pzMerci" type="button"></button>
+          <button class="ghost" id="pzMicM" type="button" aria-pressed="false" hidden></button>
+        </div>
+      </div>
+      <div class="pz-card off" id="pz-route" hidden>
+        <p class="pz-kick" id="pzRouteK"></p>
+        <h1 id="pzRouteT"></h1>
+        <p class="pz-sub" id="pzRouteS"></p>
+        <div class="pz-row"><button class="ghost" id="pzAgain" type="button"></button></div>
+      </div>
+    </div>
+  </section>
+
   <nav class="dock" aria-label="Navigation" data-en-aria="Navigation">
     <a href="#ciel" data-v="ciel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16 9 8l6 5 5-7"/><circle class="fill" cx="4" cy="16" r="1.6"/><circle class="fill" cx="9" cy="8" r="1.3"/><circle class="fill" cx="15" cy="13" r="1.6"/><circle class="fill" cx="20" cy="6" r="1.2"/></svg><span data-en="The sky">Le ciel</span></a>
     <a href="#soir" data-v="soir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 13.2A7 7 0 0 1 15.5 3.5Z"/><circle class="fill" cx="19" cy="6" r=".9"/></svg><span data-en="Tonight">Ce soir</span></a>
     <a href="#carnet" data-v="carnet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C9.5 4.8 6.5 4.5 3.5 5v13c3-.5 6-.2 8.5 1.5 2.5-1.7 5.5-2 8.5-1.5V5c-3-.5-6-.2-8.5 1.5Z"/><path d="M12 6.5v13"/></svg><span data-en="Notebook">Le carnet</span></a>
+    <a href="#pierres" data-v="pierres"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.6 7.4 7.4l8-.7 5.6 1.8-.7 1.5-5.4-.8-7.2.6Z"/><path d="M5.5 19.2 5.9 11.4l2.8-.4.3 8.2M15.2 19.2l.1-8.4 2.9.1.6 8.3"/><path d="M2.5 19.4h19"/><circle class="fill" cx="19.6" cy="3.6" r=".9"/></svg><span data-en="Stones">Les pierres</span></a>
   </nav>
 
   <div class="sheet-back" id="sheetBack" hidden></div>
@@ -580,7 +778,7 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
         </div>
       </div>
       <p class="day-why" id="dayWhy"></p>
-      <div class="day-acts"><button class="link" id="dayCopy" type="button" hidden>Copier</button><button class="link day-rawbtn" id="dayRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button></div>
+      <div class="day-acts"><button class="link" id="dayWeekEnd" type="button" hidden>Revoir la semaine</button><button class="link" id="dayCopy" type="button" hidden>Copier</button><button class="link day-rawbtn" id="dayRawBtn" type="button" hidden>Ce que j’ai dit, tel quel</button></div>
       <p class="day-raw" id="dayRaw" hidden></p>
     </div>
     <div class="row day-nav">
@@ -603,17 +801,44 @@ html.lockscroll body{min-height:100vh;min-height:100dvh} /* sinon le corps, pres
     <p class="prefs-note" id="prefsNote"></p>
     <button class="redo" id="prefsReset" type="button" data-en="Back to the original settings">Revenir aux réglages d’origine</button>
   </section>
+  <div class="we" id="we" hidden role="dialog" aria-modal="true" aria-labelledby="weTitle">
+    <canvas id="weCv" aria-hidden="true"></canvas>
+    <div class="we-in">
+      <div class="we-head we-fade" id="weHead"><p class="we-kick" id="weKick"></p><h2 class="we-title" id="weTitle"></h2><p class="we-sub" id="weSub"></p></div>
+      <div></div>
+      <div class="we-foot">
+        <div class="we-line we-fade" id="weLine" aria-live="polite"><p class="we-day" id="weDay"></p><p class="we-quote" id="weQuote"></p></div>
+        <div class="we-name we-fade" id="weName" hidden>
+          <p class="we-kick" id="weNameK"></p>
+          <p class="we-named" id="weNamed" hidden></p>
+          <input class="we-input" id="weInput" type="text" maxlength="40" autocomplete="off" placeholder="Un nom, si tu veux" data-en-ph="A name, if you like">
+          <div class="we-chips" id="weChips"></div>
+          <div class="row" style="justify-content:center" id="weNameBtns"><button class="link" id="weLater" type="button" data-en="Later">Plus tard</button><button class="glow" id="weKeep" type="button" disabled data-en="Keep this name">Garder ce nom</button></div>
+        </div>
+        <div class="we-end we-fade" id="weEnd" hidden>
+          <p class="we-sub" id="weClosing"></p>
+          <div class="row" style="justify-content:center"><button class="ghost" id="weReplay" type="button" data-en="Listen to the week again">Réécouter la semaine</button><button class="glow" id="weDone" type="button" data-en="Good night">Bonne nuit</button></div>
+        </div>
+      </div>
+    </div>
+    <button class="we-x" id="weX" type="button" aria-label="Fermer" data-en-aria="Close">✕</button>
+  </div>
   <div class="coda" id="coda" hidden role="dialog" aria-modal="true" aria-labelledby="codaTitle">
     <div class="coda-in">
       <p class="step-date" id="codaDate"></p>
       <h2 id="codaTitle" data-en="Your melody, so far">Ta mélodie, jusqu’ici</h2>
       <p class="coda-seq" id="codaSeq"></p>
-      <p class="coda-poem" id="codaPoem"></p>
+      <p class="coda-poem hush" id="codaPoem" aria-live="polite"></p>
       <p class="coda-where" id="codaWhere" hidden data-en="Kept on this device only.">Gardée sur cet appareil seulement.</p>
-      <div class="row" style="justify-content:center">
-        <button class="ghost" id="codaReplay" type="button" data-en="Listen again">Réécouter</button>
+      <div class="row coda-choice" id="codaChoice">
+        <button class="ghost" id="codaThink" type="button" data-en="One last thought">Une dernière pensée</button>
         <button class="glow" id="codaClose" type="button" data-en="Good night">Bonne nuit</button>
       </div>
+      <div class="row coda-choice" id="codaAfterQ" hidden>
+        <button class="glow" id="codaAnswer" type="button" data-en="Answer it">Y répondre</button>
+        <button class="ghost" id="codaNight2" type="button" data-en="Good night">Bonne nuit</button>
+      </div>
+      <button class="link coda-replay" id="codaReplay" type="button" data-en="Listen again">Réécouter</button>
     </div>
   </div>
 </div>
@@ -776,7 +1001,7 @@ function applyEntries(){
 // une seule gamme pour tout le monde et toutes les semaines : do dorien (décision du 21 nov. : rester simple ;
 // une version avancée, plus tard, pourra rendre la gamme réglable)
 function weekMode(w){ return WEEK_MODES[0]; }
-function weekLabel(w){ return L("semaine ","week ")+(w+1); }
+function weekLabel(w){ var n=weekName(w); return L("semaine ","week ")+(w+1)+(n?" · "+n:""); }
 
 // ===== Le son : verre, bourdon, réverbération =====
 var MOBILE=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -821,21 +1046,38 @@ function glass(midi,when,vel){
   });
 }
 var drone=null, soundChosen=false;
+// ===== La musique de fond : « 56 lives », composée par l’auteur (22 novembre 2026), ou la chanson de la clé =====
+// « 56 lives » : 124 BPM, 32 mesures (61,935 s). Le fichier est la boucle entourée d'une demi-seconde de la boucle elle-même
+// (la fin avant, le début après) : on boucle entre 0,5 s et 0,5 s + 32 mesures, et le raccord ne dépend pas du décalage
+// que l'encodeur mp3 ajoute au début. La traîne de réverbération de la fin est repliée sur le début : aucun trou.
+// Mis de côté le 22 novembre au soir (l’auteur : « finalement, je n'aime pas ma composition dans l'app, on retourne à l'ancienne ») :
+// la chanson de la clé joue de nouveau, le choix a quitté « Ton ciel ». Le code reste, pour « une musique pour chaque lieu » plus tard.
+// Sans le fichier (la bêta, ou hors ligne), on revient tout seul à la chanson.
+var MUSIQUE="chanson", LIVES={buf:null,data:null,loading:false,failed:false}, LIVES_PAD=.5, LIVES_LEN=32*240/124, LIVES_GAIN=1.25;
+function useLives(){ return MUSIQUE==="56lives"&&!LIVES.failed; }
+function livesFail(){ LIVES.failed=true; LIVES.data=null; if(drone&&!amb.running){ if(!MOTIF&&AC){ var t=AC.currentTime; drone.out.gain.cancelScheduledValues(t); drone.out.gain.setValueAtTime(drone.out.gain.value,t); drone.out.gain.linearRampToValueAtTime(.055,t+3); } ambStart(); } }
+function livesFetch(){
+  if(LIVES.buf||LIVES.data||LIVES.loading||LIVES.failed) return; if(!window.fetch){ livesFail(); return; } LIVES.loading=true;
+  fetch('musique/56-lives.mp3').then(function(r){ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(function(ab){ LIVES.loading=false; LIVES.data=ab; livesDecode(); }).catch(function(){ LIVES.loading=false; livesFail(); });
+}
+function livesDecode(){
+  if(LIVES.buf||!LIVES.data||!AC||LIVES.decoding) return; var d=LIVES.data; LIVES.decoding=true;
+  try{ AC.decodeAudioData(d,function(b){ LIVES.decoding=false; LIVES.data=null; LIVES.buf=b; if(drone&&useLives()&&!amb.running) ambStart(); },function(){ LIVES.decoding=false; livesFail(); }); }catch(e){ LIVES.decoding=false; livesFail(); }
+}
+function setMusique(m,persist){
+  if(m!=="56lives"&&m!=="chanson") return; var was=MUSIQUE; MUSIQUE=m; paintMusique();
+  if(persist) savePrefs();
+  if(m==="56lives") livesFetch();
+  if(was!==m&&drone){ ambStop(); setTimeout(function(){ if(!drone||amb.running) return; var t=AC.currentTime; drone.out.gain.cancelScheduledValues(t); drone.out.gain.setValueAtTime(drone.out.gain.value,t); drone.out.gain.linearRampToValueAtTime(useLives()?0:(MOTIF?SOUND.vDrone*.08:.055),t+3); ambStart(); },700); }
+}
+function paintMusique(){ Array.prototype.forEach.call(document.querySelectorAll('#musicPick .mp'),function(b){ b.setAttribute('aria-checked',b.getAttribute('data-m')===MUSIQUE?'true':'false'); }); }
 function droneOn(){
   if(drone) return;
   var c=audio(); if(c.state==="suspended") c.resume();
-  var t=c.currentTime, w=clamp(Math.floor(TODAY_I/7),0,7), root=PC[(weekMode(w)||{root:"C"}).root];
-  // avec la clé, le bourdon suit le niveau choisi dans la base sonore (0 : il se tait, la chanson prend toute la place)
-  var out=c.createGain(); out.gain.setValueAtTime(0,t); out.gain.linearRampToValueAtTime(MOTIF?SOUND.vDrone*.08:.055,t+3.5);
-  var trem=c.createGain(); trem.gain.value=1;
-  var lfo=c.createOscillator(),lfoG=c.createGain(); lfo.frequency.value=.07; lfoG.gain.value=.22; lfo.connect(lfoG); lfoG.connect(trem.gain);
-  var lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=820;
-  var oscs=[[48+root,1,0],[55+root,.55,3],[36+root,.45,-2]].map(function(n){
-    var o=c.createOscillator(),g=c.createGain(); o.type="sine"; o.frequency.value=440*Math.pow(2,(n[0]-69)/12); o.detune.value=n[2]; g.gain.value=n[1];
-    o.connect(g); g.connect(trem); o.start(t); return o;
-  });
-  trem.connect(lp); lp.connect(out); out.connect(volDrone); lfo.start(t);
-  drone={out:out,oscs:oscs,lfo:lfo};
+  // le bourdon est retiré (l’auteur, 22 novembre 2026 : « enlève le bourdon complètement ») : « drone » dit seulement que la musique est allumée
+  var out=c.createGain(); out.gain.value=0; out.connect(volDrone);
+  drone={out:out,oscs:[],lfo:{stop:function(){}}};
   ambStart();
 }
 function droneOff(){
@@ -1045,7 +1287,17 @@ function ambTick(){
   }
 }
 function ambStart(){
-  if(amb.running||!MOTIF||!drone) return;
+  if(amb.running||!drone) return;
+  if(useLives()){
+    if(!LIVES.buf){ livesFetch(); livesDecode(); return; } // elle commence dès qu'elle est prête
+    var c0=audio(),t0=c0.currentTime; amb.running=true;
+    amb.out=c0.createGain(); amb.out.gain.setValueAtTime(0,t0); amb.out.gain.linearRampToValueAtTime(.62,t0+3.5); amb.out.connect(volAmb);
+    drone.out.gain.cancelScheduledValues(t0); drone.out.gain.setValueAtTime(drone.out.gain.value,t0); drone.out.gain.linearRampToValueAtTime(0,t0+3);
+    var src=c0.createBufferSource(), lg=c0.createGain(); src.buffer=LIVES.buf; src.loop=true; src.loopStart=LIVES_PAD; src.loopEnd=LIVES_PAD+LIVES_LEN;
+    lg.gain.value=LIVES_GAIN; src.connect(lg); lg.connect(amb.out); src.start(t0+.05,LIVES_PAD);
+    amb.sources.push(src); amb.lastLoop=0; clearInterval(amb.timer); return;
+  }
+  if(!MOTIF) return;
   var c=audio(),t=c.currentTime; amb.running=true;
   amb.out=c.createGain(); amb.out.gain.setValueAtTime(0,t); amb.out.connect(volAmb); // le fondu d'ouverture part avec la première boucle
   // le bourdon se fait très discret : la basse de la clé prend le relais
@@ -1319,6 +1571,7 @@ function enterApp(){
     reflCol=db.collection('reflexions');
     reflCol.onSnapshot(function(snap){ var m={}; snap.docs.forEach(function(d){ m[d.id]=d.data(); }); dbRefl=m; renderCarnet(); },function(){});
     loadBrouillon();
+    db.collection('semaines').onSnapshot(function(snap){ snap.docs.forEach(function(x){ var w=parseInt(String(x.id).replace(/\D/g,""),10)-1, v=x.data()||{}; if(w>=0&&w<8) WEEK_DATA[w]={nom:typeof v.nom==="string"?v.nom:"",phrases:v.phrases&&typeof v.phrases==="object"?v.phrases:{}}; }); lsSet('56n-semaines',JSON.stringify(WEEK_DATA)); renderCarte(); },function(){});
     soirsCol=db.collection('soirs');
     soirsCol.onSnapshot(function(snap){
       var m={}; snap.docs.forEach(function(d){ var x=d.data(); if(validEntry(x)) m[d.id]=x; });
@@ -1329,7 +1582,7 @@ function enterApp(){
 }
 
 // ----- routes -----
-var VIEWS={ciel:$('v-ciel'),soir:$('v-soir'),carnet:$('v-carnet')};
+var VIEWS={ciel:$('v-ciel'),soir:$('v-soir'),carnet:$('v-carnet'),pierres:$('v-pierres')};
 function route(){
   if(!unlocked) return;
   var h=(location.hash||"").slice(1); if(!VIEWS[h]) h="ciel";
@@ -1337,13 +1590,14 @@ function route(){
   currentView=h;
   Object.keys(VIEWS).forEach(function(k){ VIEWS[k].hidden=k!==h; });
   document.querySelectorAll('.dock a').forEach(function(a){ if(a.getAttribute('data-v')===h) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
-  $('mark').classList.toggle('hide',h==="ciel");
+  $('mark').classList.toggle('hide',h==="ciel"||h==="pierres");
   dustCv.classList.toggle('off',h!=="ciel");
-  document.documentElement.classList.toggle('lockscroll',h==="soir");
-  if(changed){ var v=VIEWS[h]; v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); window.scrollTo(0,0); }
+  document.documentElement.classList.toggle('lockscroll',h==="soir"||h==="pierres");
+  if(changed&&h!=="pierres"){ var v=VIEWS[h]; v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); window.scrollTo(0,0); }
   if(h==="ciel") ensureSky();
   if(h==="soir") enterSoir(true);
   if(h==="carnet") closeReader();
+  if(h==="pierres") PZ.enter(); else PZ.leave();
   closeSheet();
 }
 window.addEventListener('hashchange',route);
@@ -1494,8 +1748,17 @@ function frameSky(now){
   sctx.font='500 '+(W>=900?12:11)+'px "IBM Plex Mono", ui-monospace, monospace'; if('letterSpacing' in sctx) sctx.letterSpacing='1.6px';
   sctx.shadowColor='rgba(6,4,5,.9)'; sctx.shadowBlur=6; // un léger halo sombre : les noms se détachent de la poussière
   for(var wk=0;wk<8;wk++){ var meta=WEEKS_META[wk],has=wk<=curW&&TODAY_I>=0;
-    sctx.fillStyle=has?'rgba(236,229,216,.9)':'rgba(206,198,186,.58)'; sctx.fillText((L("semaine ","week ")+(wk+1)).toUpperCase(),meta.x,meta.y);
+    var lab=(L("semaine ","week ")+(wk+1)).toUpperCase();
+    sctx.fillStyle=has?'rgba(236,229,216,.9)':'rgba(206,198,186,.58)'; sctx.fillText(lab,meta.x,meta.y);
+    var wn=weekName(wk);
+    if(wn){ // le nom donné à la constellation, en italique, à côté de « semaine N »
+      var lw=sctx.measureText(lab).width,f0=sctx.font,ls0=('letterSpacing' in sctx)?sctx.letterSpacing:null;
+      sctx.font='italic 300 '+(W>=900?17:15)+'px "Cormorant Garamond", Garamond, serif'; if(ls0!==null) sctx.letterSpacing='0px';
+      var room=meta.cellW*.84-lw-12,txt=wn; while(txt.length>3&&sctx.measureText(txt).width>room) txt=txt.slice(0,-2)+"…";
+      sctx.fillStyle='rgba('+ACC+',.85)'; sctx.fillText(txt,meta.x+lw+12,meta.y+1);
+      sctx.font=f0; if(ls0!==null) sctx.letterSpacing=ls0;
     }
+  }
   sctx.shadowBlur=0; sctx.shadowColor='transparent';
 }
 function nearest(x,y,maxD){ var best=null,bd=maxD*maxD; DAYS.forEach(function(d){ var dx=d.x-x,dy=d.y-y,dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=d;} }); return best; }
@@ -1539,6 +1802,7 @@ function renderCarte(){
   else if(TODAY_I>55) txt=L("Les 56 soirs sont passés.","The 56 evenings have passed.");
   else txt=L("Ce soir, "+moonName(moonAge(todayMid))+".","Tonight, "+moonName(moonAge(todayMid))+".");
   $('carteText').textContent=txt;
+  heroFold();
 }
 
 // ----- la fiche d'un soir -----
@@ -1558,6 +1822,7 @@ function fillCard(d){
   moonSvg($('dayMoonSvg'),d.moon);
   var rb=$('dayRawBtn'),rr=$('dayRaw'); rr.hidden=true; rb.hidden=!(d.status==="lived"&&d.recit); rr.textContent=d.recit||""; rb.textContent=L("Ce que j’ai dit, tel quel","What I said, word for word");
   var cb=$('dayCopy'); cb.hidden=d.status!=="lived"; cb.textContent=L("Copier","Copy");
+  var wb=$('dayWeekEnd'); wb.hidden=!(d.d===6&&d.status==="lived"); wb.textContent=L("Revoir la semaine","See the week again");
   $('prevDay').disabled=d.i===0; $('nextDay').disabled=d.i===55;
 }
 function openSheet(d,sound){
@@ -1581,11 +1846,12 @@ document.addEventListener('keydown',function(e){ if(e.key==="Escape"&&sheetOpen)
 $('prevDay').addEventListener('click',function(){ if(selected&&selected.i>0) openSheet(DAYS[selected.i-1],true); });
 $('nextDay').addEventListener('click',function(){ if(selected&&selected.i<55) openSheet(DAYS[selected.i+1],true); });
 $('playWeek').addEventListener('click',function(){ playWeek(selected?selected.w:0); });
+function dotPing(d){ var el=$('carteDots').querySelectorAll('.cd')[d.i]; if(!el) return; el.classList.remove('ping'); void el.offsetWidth; el.classList.add('ping'); }
 function playWeek(w){
   stopPath();
   var seq=DAYS.filter(function(d){return d.w===w&&d.status==="lived";}); if(!seq.length) return;
   var c=audio(); if(c.state==="suspended") c.resume();
-  seq.forEach(function(d,k){ glass(d.midi,c.currentTime+k*.95,k===seq.length-1?1:.85); setTimeout(function(){ d.flash=performance.now(); burst(d,.8); },k*950); });
+  seq.forEach(function(d,k){ glass(d.midi,c.currentTime+k*.95,k===seq.length-1?1:.85); setTimeout(function(){ d.flash=performance.now(); burst(d,.8); dotPing(d); },k*950); });
   ambDuck((seq.length-1)*.95+3);
   return (seq.length-1)*950+2400;
 }
@@ -1597,6 +1863,7 @@ function setPathUI(){
   var b=$('pathPlay'); if(!b) return;
   var any=DAYS.some(function(d){ return d.status==="lived"; });
   b.disabled=!any&&!pathOn; b.setAttribute('aria-pressed',pathOn?'true':'false');
+  if(pathOn&&!b.style.minWidth&&b.offsetWidth) b.style.minWidth=b.offsetWidth+'px'; else if(!pathOn) b.style.minWidth='';
   $('pathPlayTxt').textContent=pathOn?L("Arrêter","Stop"):L("Écouter tout le chemin","Listen to the whole path");
 }
 function stopPath(){
@@ -1612,7 +1879,7 @@ function playPath(){
   seq.forEach(function(d,k){
     if(k>0&&d.w!==prevW){ at+=650; prevW=d.w; }
     var last=k===seq.length-1;
-    pathTimers.push(setTimeout(function(){ glass(d.midi,0,last?1:.85); d.flash=performance.now(); burst(d,.8); },at));
+    pathTimers.push(setTimeout(function(){ glass(d.midi,0,last?1:.85); d.flash=performance.now(); burst(d,.8); dotPing(d); },at));
     at+=950;
   });
   var total=at-950+2400; ambDuck(total/1000);
@@ -1644,21 +1911,290 @@ function codaPhrase(d){
   var ok=CODA_PHRASES.filter(function(p){ return p.when!=="soir"||night; });
   var ph=ok[(d.i*5)%ok.length]; return LANG==="en"&&ph.en?ph.en:ph.t;
 }
-var codaDay=null,codaTimer=null;
+// « Une dernière pensée » : une question ouverte, mesurée, qui n'interprète pas la journée (choisies avec l’auteur le 22 novembre)
+var CODA_QUESTIONS=[
+  {t:"Qu’est-ce que tu veux garder de cette journée ?",en:"What do you want to keep from this day?"},
+  {t:"Qu’est-ce qui t’a surpris aujourd’hui ?",en:"What surprised you today?"},
+  {t:"Qu’est-ce qui peut attendre demain ?",en:"What can wait until tomorrow?"},
+  {t:"Qu’est-ce que ton corps a remarqué avant toi ?",en:"What did your body notice before you did?"},
+  {t:"Qu’est-ce que tu as appris de toi aujourd’hui ?",en:"What did you learn about yourself today?"},
+  {t:"À quel moment étais-tu le plus toi-même ?",en:"When were you most yourself today?"},
+  {t:"Qu’est-ce que tu dirais à la personne que tu étais ce matin ?",en:"What would you tell the person you were this morning?"},
+  {t:"Qu’est-ce qui t’a donné de l’élan aujourd’hui ?",en:"What gave you momentum today?"},
+  {t:"Qu’as-tu remarqué de beau aujourd’hui ?",en:"What did you notice that was beautiful today?"},
+  {t:"Si cette journée avait un mot, lequel serait-ce ?",en:"If this day had one word, which would it be?"}
+];
+function codaQuestion(d){ var q=CODA_QUESTIONS[(d.i*7+3)%CODA_QUESTIONS.length]; return LANG==="en"&&q.en?q.en:q.t; }
+// une note plus haute que d'habitude invite un peu plus à la réflexion : le bouton « Une dernière pensée » brille alors davantage
+function codaLeansOpen(d){
+  var o=DAYS.filter(function(x){ return x!==d&&x.status==="lived"&&typeof x.midi==="number"; }).map(function(x){ return x.midi; }).sort(function(a,b){ return a-b; });
+  if(o.length<3||typeof d.midi!=="number") return false;
+  return d.midi>o[Math.floor(o.length/2)];
+}
+var codaDay=null,codaTimer=null,codaTimer2=null,codaStage="",pendingQuestion=null;
+function codaShowText(lines,isQ){
+  var po=$('codaPoem'); po.textContent="";
+  lines.forEach(function(l){ var s=document.createElement('span'); s.textContent=l; po.appendChild(s); });
+  po.className="coda-poem hush"+(isQ?" q":""); void po.offsetWidth; po.className="coda-poem lit"+(isQ?" q":"");
+}
+function codaGoodNight(){
+  if(!codaDay||codaStage==="closing"||codaStage==="phrase"){ closeCoda(); return; }
+  var fromQ=codaStage==="question"; codaStage="closing";
+  $('codaChoice').classList.add('gone'); $('codaAfterQ').classList.add('gone'); $('codaReplay').classList.add('gone');
+  // après une question, c'est elle qui reste le dernier mot ; sinon une phrase vient refermer le soir
+  if(fromQ){ setTimeout(closeCoda,500); return; }
+  setTimeout(function(){
+    if(codaStage!=="closing"||!codaDay) return;
+    codaShowText(codaPhrase(codaDay),false); codaStage="phrase";
+    try{ var ac=audio(); if(typeof codaDay.midi==="number") glass(codaDay.midi,ac.currentTime+.05,.16); }catch(e){}
+    clearTimeout(codaTimer2); codaTimer2=setTimeout(closeCoda,7500);
+  },700);
+}
+function codaLastThought(){
+  if(!codaDay||codaStage!=="choice") return;
+  codaStage="question"; $('codaChoice').classList.add('gone');
+  setTimeout(function(){
+    if(codaStage!=="question"||!codaDay) return;
+    $('codaChoice').hidden=true;
+    codaShowText([codaQuestion(codaDay)],true);
+    var aq=$('codaAfterQ'); aq.className="row coda-choice gone"; aq.hidden=false; void aq.offsetWidth; aq.className="row coda-choice now";
+    setTimeout(function(){ try{ $('codaAnswer').focus({preventScroll:true}); }catch(_){ } },1400);
+  },700);
+}
 function openCoda(d,where){
   codaDay=d; var c=$('coda');
   $('codaDate').textContent=cap(d.date.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}))+" · "+weekLabel(d.w);
   var seq=$('codaSeq'); seq.textContent="";
   DAYS.filter(function(x){ return x.w===d.w&&x.status==="lived"; }).forEach(function(x){
     var el=document.createElement(x===d?'b':'span'); el.textContent=noteName(midiToNote(x.midi)); seq.appendChild(el); });
-  var po=$('codaPoem'); po.textContent=""; codaPhrase(d).forEach(function(l){ var s=document.createElement('span'); s.textContent=l; po.appendChild(s); });
+  var po=$('codaPoem'); po.textContent=""; po.className="coda-poem hush";
+  var ch=$('codaChoice'); ch.hidden=false; ch.className="row coda-choice";
+  var aq=$('codaAfterQ'); aq.hidden=true; aq.className="row coda-choice"; $('codaReplay').className="link coda-replay";
+  var open=codaLeansOpen(d); $('codaThink').className=open?"glow":"ghost"; $('codaClose').className=open?"ghost":"glow";
+  codaStage="choice"; clearTimeout(codaTimer2);
   $('codaWhere').hidden=where!=="local";
   clearTimeout(codaTimer); c.hidden=false; void c.offsetWidth; c.classList.add('show');
-  setTimeout(function(){ try{ $('codaClose').focus({preventScroll:true}); }catch(_){ } },3400);
+  setTimeout(function(){ try{ $(open?'codaThink':'codaClose').focus({preventScroll:true}); }catch(_){ } },3400);
 }
-function closeCoda(){ var c=$('coda'); if(c.hidden) return; c.classList.remove('show'); codaTimer=setTimeout(function(){ c.hidden=true; },1800); }
-$('codaClose').addEventListener('click',closeCoda);
+function closeCoda(){ var c=$('coda'); clearTimeout(codaTimer2); codaStage=""; if(c.hidden) return; c.classList.remove('show'); codaTimer=setTimeout(function(){ c.hidden=true; },1800); }
+$('codaClose').addEventListener('click',codaGoodNight);
+$('codaNight2').addEventListener('click',codaGoodNight);
+$('codaThink').addEventListener('click',codaLastThought);
+// pendant la phrase de fin, toucher l'écran referme sans attendre
+$('coda').addEventListener('click',function(e){ if(codaStage==="phrase"&&!(e.target.closest&&e.target.closest('button'))) closeCoda(); });
+// « Y répondre » : le carnet s'ouvre, la question en titre ; la pensée sera rattachée à ce soir
+$('codaAnswer').addEventListener('click',function(){
+  if(!codaDay) return; pendingQuestion={t:codaQuestion(codaDay),soir:codaDay.iso};
+  closeCoda(); location.hash="#carnet"; setTimeout(openComposer,500);
+});
 $('codaReplay').addEventListener('click',function(){ if(codaDay) playWeek(codaDay.w); });
+
+// ===== La fin de la semaine =====
+// Le dimanche, quand la septième note est posée, la semaine se referme et devient une constellation :
+// les étoiles s'allument une à une, chacune avec une phrase de ce soir-là, recopiée mot pour mot (jamais réécrite),
+// puis la semaine sonne en entier, puis on peut donner un nom à la constellation. Le nom vit ensuite dans le ciel.
+var WEEK_DATA=(function(){ try{ var v=JSON.parse(lsGet('56n-semaines')||'{}'); return v&&typeof v==="object"?v:{}; }catch(e){ return {}; } })();
+function weekName(w){ var x=WEEK_DATA&&WEEK_DATA[w]; return x&&typeof x.nom==="string"?x.nom:""; }
+function weekSave(w,data){
+  WEEK_DATA[w]=data; lsSet('56n-semaines',JSON.stringify(WEEK_DATA));
+  if(db) db.doc('semaines/s'+(w+1)).set({nom:data.nom||"",phrases:data.phrases||{},modifie:new Date().toISOString()}).catch(function(){});
+  renderCarte();
+}
+var WE_SPEED=1; // (pour les essais : accélère tout)
+var ORD_FR=["première","deuxième","troisième","quatrième","cinquième","sixième","septième","huitième"];
+var ORD_EN=["first","second","third","fourth","fifth","sixth","seventh","eighth"];
+function weNorm(t){ return String(t||"").replace(/[’‘]/g,"'").replace(/[«»“”]/g,'"').replace(/\s+/g," ").trim(); }
+function weSentences(t){ return (String(t||"").replace(/\s+/g," ").match(/[^.!?…]+[.!?…]+["»”]?|[^.!?…]+$/g)||[]).map(function(x){ return x.trim(); }).filter(Boolean); }
+// sans Claude : une phrase du soir, prise telle quelle (pas la première, qui situe la note)
+function weFallback(why){
+  var ss=weSentences(why); if(ss.length>1) ss=ss.slice(1);
+  var ok=ss.filter(function(x){ return x.length>=40&&x.length<=130; }); // une phrase qui tient sur l'écran
+  if(!ok.length) ok=ss.filter(function(x){ return x.length>=20; });
+  var pick=ok.length?ok.reduce(function(a,b){ return b.length>a.length&&b.length<=130?b:a; }):(ss[0]||String(why||""));
+  return pick.length>190?pick.slice(0,187).replace(/\s+\S*$/,"")+"…":pick;
+}
+function weIsHis(phrase,why){ var p=weNorm(phrase); return p.length>=12&&weNorm(why).indexOf(p)>=0; }
+function wePrompt(days){
+  return [
+"Voici les « pourquoi » d'une semaine, dans un journal musical : chaque soir, une personne raconte sa journée et la traduit en une note de musique.",
+"1. Pour chaque soir, recopie MOT POUR MOT une seule phrase de son texte : celle qui dit le mieux le cœur de ce soir-là, plutôt ce qu'elle a vécu ou ressenti que la phrase qui situe la note. Moins de 30 mots si possible. Ne change aucun mot, n'en ajoute aucun, n'en retire aucun.",
+"2. Propose trois noms possibles pour la constellation de cette semaine : de 1 à 4 mots, faits de ses propres mots (des mots qu'on trouve dans ses textes), simples, sans emphase, sans article inutile.",
+"Réponds uniquement en JSON : {\"phrases\":{\"AAAA-MM-JJ\":\"…\"},\"noms\":[\"…\",\"…\",\"…\"]}",
+""].concat(days.map(function(d){ return d.iso+" ("+dayName(d.date)+") :\n<<<"+String(d.why).slice(0,4000)+">>>"; })).join("\n");
+}
+var we={on:false,tok:0,w:-1,days:[],shown:-1,gather:0,gatherT:0,parts:[],raf:0,W:0,H:0,geo:null,phr:{},names:[],replay:false,breathe:0};
+var weCv=$('weCv'),wex=weCv.getContext('2d');
+function weLayout(){
+  var dpr=Math.min(2,window.devicePixelRatio||1); we.W=window.innerWidth; we.H=window.innerHeight;
+  weCv.width=Math.round(we.W*dpr); weCv.height=Math.round(we.H*dpr); wex.setTransform(dpr,0,0,dpr,0,0);
+  var aw=Math.min(we.W*.8,540),ax=(we.W-aw)/2,top=Math.max(150,we.H*.22),ah=Math.min(we.H*.3,240);
+  we.geo={ax:ax,aw:aw,ay:top,ah:ah};
+  we.days.forEach(function(d,i){ var t=d.status==="lived"?clamp((d.midi-55)/29,0,1):.45; d.wx=ax+i*aw/6; d.wy=top+ah*(1-t); });
+  if(!we.parts.length){ var n=Math.round((MOBILE?260:520)*(REDUCED?.5:1)); for(var k=0;k<n;k++) we.parts.push({x:Math.random()*we.W,y:Math.random()*we.H,vx:0,vy:0,s:.5+Math.random()*1.3,seed:Math.random()*100,tx:0,ty:0}); }
+}
+function weTargets(){ // chaque particule choisit un point de la constellation, pour le moment où la semaine se rassemble
+  var pts=[],lived=we.days.filter(function(d){ return d.status==="lived"; });
+  lived.forEach(function(d,i){ pts.push([d.wx,d.wy,1]); var nx=lived[i+1]; if(nx){ for(var q=1;q<8;q++) pts.push([lerp(d.wx,nx.wx,q/8),lerp(d.wy,nx.wy,q/8),0]); } });
+  we.parts.forEach(function(p){ var t=pts[(Math.random()*pts.length)|0]; var r=t[2]?6+Math.random()*16:Math.random()*4; var a=Math.random()*6.283; p.tx=t[0]+Math.cos(a)*r; p.ty=t[1]+Math.sin(a)*r; });
+}
+function weFrame(now){
+  if(!we.on) return; we.raf=requestAnimationFrame(weFrame);
+  var W=we.W,H=we.H,g=we.geo; wex.clearRect(0,0,W,H);
+  var t=now*.001, gk=we.gather>0?clamp((now-we.gatherT)/1800,0,1):0, gp=we.gather*gk*gk*(3-2*gk);
+  // la poussière : elle dérive, puis se rassemble sur la constellation quand la semaine sonne
+  wex.globalCompositeOperation='lighter';
+  for(var i=0;i<we.parts.length;i++){ var p=we.parts[i];
+    var ang=Math.sin(p.x*.004+t*.12)*1.7+Math.cos(p.y*.005-t*.09)*1.7+p.seed;
+    p.vx+=Math.cos(ang)*.01*(1-gp); p.vy+=Math.sin(ang)*.01*(1-gp);
+    if(gp>0){ p.vx+=(p.tx-p.x)*.004*gp; p.vy+=(p.ty-p.y)*.004*gp; }
+    p.vx*=.95; p.vy*=.95; p.x+=p.vx; p.y+=p.vy;
+    if(p.x<-6)p.x=W+6; else if(p.x>W+6)p.x=-6; if(p.y<-6)p.y=H+6; else if(p.y>H+6)p.y=-6;
+    var a=(.16+.45*gp)*(.6+.4*Math.sin(t*1.7+p.seed));
+    wex.fillStyle=gp>.05?'rgba('+ACC+','+a.toFixed(3)+')':'rgba('+SKY.dust.map(function(v){return v|0;}).join(",")+','+a.toFixed(3)+')';
+    wex.fillRect(p.x,p.y,p.s,p.s);
+  }
+  // les lignes, tracées au fil des soirs
+  wex.lineWidth=1.1; var prev=null;
+  for(var k=0;k<we.days.length;k++){ var d=we.days[k]; if(k>we.shown) break; if(d.status!=="lived") continue;
+    if(prev){ var lp=clamp((now-d.weT)/1500,0,1); wex.strokeStyle='rgba('+ACC+','+(.3+.2*gp).toFixed(3)+')'; wex.beginPath(); wex.moveTo(prev.wx,prev.wy); wex.lineTo(lerp(prev.wx,d.wx,lp),lerp(prev.wy,d.wy,lp)); wex.stroke(); }
+    prev=d; }
+  // les étoiles
+  for(var j=0;j<we.days.length;j++){ var s=we.days[j]; if(j>we.shown) break; var ap=clamp((now-s.weT)/1000,0,1),e=ap*ap*(3-2*ap);
+    if(s.status==="lived"){
+      var c=s.col.map(function(v){return v|0;}).join(","),br=1+.12*Math.sin(t*1.3+j)+.35*gp+(we.breathe?.2*Math.sin(t*.9+j*.7):0),R=(30+10*gp)*e*br;
+      var gr=wex.createRadialGradient(s.wx,s.wy,0,s.wx,s.wy,R); gr.addColorStop(0,'rgba('+c+',.55)'); gr.addColorStop(.35,'rgba('+c+',.18)'); gr.addColorStop(1,'rgba('+c+',0)');
+      wex.fillStyle=gr; wex.beginPath(); wex.arc(s.wx,s.wy,R,0,6.283); wex.fill();
+      wex.fillStyle='rgba(255,246,228,'+(.95*e).toFixed(3)+')'; wex.beginPath(); wex.arc(s.wx,s.wy,3.6*e+.6,0,6.283); wex.fill();
+      var rg=clamp((now-s.weT)/1900,0,1); if(rg<1){ wex.strokeStyle='rgba('+c+','+((1-rg)*.55).toFixed(3)+')'; wex.lineWidth=1; wex.beginPath(); wex.arc(s.wx,s.wy,6+rg*46,0,6.283); wex.stroke(); }
+    } else { wex.strokeStyle='rgba(236,229,216,'+(.28*e).toFixed(3)+')'; wex.lineWidth=1; wex.beginPath(); wex.arc(s.wx,s.wy,3.2,0,6.283); wex.stroke(); }
+  }
+  // les initiales des jours, sous la constellation
+  wex.globalCompositeOperation='source-over'; wex.font='500 11px "IBM Plex Mono", ui-monospace, monospace'; wex.textAlign='center';
+  for(var q=0;q<we.days.length;q++){ var dd=we.days[q],ini=dayName(dd.date).charAt(0).toUpperCase();
+    wex.fillStyle=q===we.shown&&!we.breathe?'rgba('+ACC+',.95)':(q<=we.shown?'rgba(206,198,186,.6)':'rgba(206,198,186,.22)'); wex.fillText(ini,dd.wx,g.ay+g.ah+42); }
+  wex.textAlign='start';
+}
+function weText(day,quote,quiet){
+  var line=$('weLine'); line.classList.remove('on');
+  setTimeout(function(){ $('weDay').textContent=day; var q=$('weQuote'); q.textContent=quote; q.className='we-quote'+(quiet?' quiet':''); line.classList.add('on'); },REDUCED?0:650*WE_SPEED);
+}
+function weDuck(on){
+  if(!(amb.running&&AC&&amb.out)) return; var t=AC.currentTime,g=amb.out.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value,t); g.linearRampToValueAtTime(on?.05:.62,t+(on?2.2:4));
+}
+function weAsk(){ // Claude choisit une phrase par soir (vérifiée : elle doit être mot pour mot dans le texte) et trois noms possibles
+  var lived=we.days.filter(function(d){ return d.status==="lived"&&d.why; }), tok=we.tok;
+  initSample();
+  return new Promise(function(res){
+    var done=false; function fin(){ if(!done){ done=true; res(); } }
+    setTimeout(fin,9000);
+    var go=function(){
+      if(!sampleFn||!sampleFn.json||we.tok!==tok){ fin(); return; }
+      sampleFn.json(wePrompt(lived),{modelTier:"default"}).then(function(r){
+        if(we.tok!==tok||!r) return fin();
+        var ph=r.phrases||{}; Object.keys(ph).forEach(function(iso){ if(typeof ph[iso]==="string") we.phr[iso]=ph[iso].trim().replace(/^["«“]\s*|\s*["»”]$/g,""); });
+        var all=weNorm(lived.map(function(d){ return d.why; }).join(" ")).toLowerCase();
+        we.names=(Array.isArray(r.noms)?r.noms:[]).filter(function(n){ if(typeof n!=="string") return false; n=n.trim().replace(/^["«“]|["»”.]$/g,"");
+          var ws=n.split(/\s+/); if(!n||n.length>40||ws.length>5) return false;
+          return ws.every(function(x){ x=x.toLowerCase().replace(/[^\p{L}'’-]/gu,""); return x.length<=3||all.indexOf(x)>=0; }); }) // ses mots à lui, pas d'invention
+          .map(function(n){ return n.trim().replace(/^["«“]|["»”.]$/g,""); }).slice(0,3);
+        fin();
+      }).catch(fin);
+    };
+    if(sampleFn) go(); else setTimeout(go,1500);
+  });
+}
+function wePhraseFor(d){ var c=we.phr[d.iso]; return c&&weIsHis(c,d.why)?c:weFallback(d.why); }
+function openWeekEnd(w,replay){
+  var days=DAYS.filter(function(d){ return d.w===w; }), lived=days.filter(function(d){ return d.status==="lived"; });
+  if(lived.length<1) return false;
+  stopPath(); closeCoda();
+  we.tok++; var tok=we.tok; we.w=w; we.days=days; we.shown=-1; we.gather=0; we.breathe=0; we.replay=!!replay; we.parts=[]; we.names=[];
+  var saved=WEEK_DATA[w]||{}; we.phr={}; Object.keys(saved.phrases||{}).forEach(function(k){ we.phr[k]=saved.phrases[k]; });
+  var el=$('we'); el.hidden=false; weLayout(); void el.offsetWidth; el.classList.add('show'); we.on=true; cancelAnimationFrame(we.raf); we.raf=requestAnimationFrame(weFrame);
+  ['weHead','weLine','weName','weEnd'].forEach(function(id){ $(id).classList.remove('on'); }); $('weName').hidden=true; $('weEnd').hidden=true; $('weX').classList.remove('on');
+  var sunday=days[6], n=lived.length, sil=7-n;
+  $('weKick').textContent=cap(sunday.date.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}))+" · "+L("semaine ","week ")+(w+1);
+  $('weTitle').textContent=L("Ta "+ORD_FR[w]+" semaine","Your "+ORD_EN[w]+" week");
+  $('weSub').textContent=LANG==="en"
+    ? cap(numWord(n))+" evening"+(n>1?"s":"")+", "+numWord(n)+" star"+(n>1?"s":"")+(sil?", and "+numWord(sil)+" silence"+(sil>1?"s":""):"")+"."
+    : cap(numFr(n,false))+" soir"+(n>1?"s":"")+", "+numFr(n,true)+" étoile"+(n>1?"s":"")+(sil?", et "+numFr(sil,false)+" silence"+(sil>1?"s":""):"")+".";
+  weDuck(true);
+  var S=function(ms){ return REDUCED?Math.min(ms,600):ms*WE_SPEED; };
+  function later(ms,fn){ setTimeout(function(){ if(we.on&&we.tok===tok) fn(); },S(ms)); }
+  setTimeout(function(){ if(we.tok===tok) $('weX').classList.add('on'); },S(7000));
+  later(600,function(){ $('weHead').classList.add('on'); });
+  var asked=(replay&&Object.keys(we.phr).length)?Promise.resolve():weAsk();
+  // les soirs, un par un
+  var c0=Date.now();
+  asked.then(function(){
+    if(!we.on||we.tok!==tok) return;
+    var wait=Math.max(0,S(3600)-(Date.now()-c0)), k=0;
+    function next(){
+      if(!we.on||we.tok!==tok) return;
+      if(k>=days.length){ return gatherWeek(); }
+      var d=days[k]; we.shown=k; d.weT=performance.now();
+      var label=cap(dayName(d.date))+(d.status==="lived"?" · "+noteName(d):"");
+      if(d.status==="lived"){ glass(d.midi,0,.95); weText(label,"« "+wePhraseFor(d)+" »",false); k++; later(4900,next); }
+      else { weText(label,d.status==="tonight"||d.i>TODAY_I?L("Pas encore venu.","Not yet come."):L("Un silence.","A silence."),true); k++; later(2300,next); }
+    }
+    later(wait/WE_SPEED,next);
+  });
+  function gatherWeek(){ // la semaine sonne en entier, et la poussière vient dessiner la constellation
+    $('weLine').classList.remove('on');
+    var c=audio(),t0=c.currentTime+.3; if(c.state==="suspended") c.resume();
+    lived.forEach(function(d,i){ glass(d.midi,t0+i*.42,.8); });
+    var ms=lived.map(function(d){ return d.midi; }).filter(function(m,i,a){ return a.indexOf(m)===i; }).sort(function(a,b){return a-b;});
+    var tc=t0+lived.length*.42+.5; ms.forEach(function(m,i){ glass(m,tc+i*.05,.5); });
+    later(lived.length*420+300,function(){ weTargets(); we.gather=1; we.gatherT=performance.now(); });
+    later(lived.length*420+5200,function(){ we.gather=0; we.breathe=1; nameStep(); });
+  }
+  function nameStep(){
+    var has=weekName(w), nb=$('weName'); nb.hidden=false;
+    $('weNameK').textContent=L("Ta "+ORD_FR[w]+" constellation","Your "+ORD_EN[w]+" constellation");
+    var named=$('weNamed'),inp=$('weInput'),chips=$('weChips'),btns=$('weNameBtns'); chips.textContent="";
+    if(has){ named.hidden=false; named.textContent=has; inp.hidden=true; btns.hidden=true; }
+    else {
+      named.hidden=true; inp.hidden=false; btns.hidden=false; inp.value=""; $('weKeep').disabled=true;
+      we.names.forEach(function(nm){ var b=document.createElement('button'); b.type="button"; b.className="we-chip"; b.textContent=nm;
+        b.addEventListener('click',function(){ inp.value=nm; $('weKeep').disabled=false; inp.focus({preventScroll:true}); }); chips.appendChild(b); });
+    }
+    later(200,function(){ nb.classList.add('on'); if(has) endStep(); });
+  }
+  return true;
+}
+function weKeepPhrases(){ var o={}; we.days.forEach(function(d){ if(d.status==="lived"&&d.why) o[d.iso]=wePhraseFor(d); }); return o; }
+function endStep(){
+  var e=$('weEnd'); e.hidden=false;
+  $('weClosing').textContent=we.w===7
+    ? L("La huitième constellation. Ton ciel est complet.","The eighth constellation. Your sky is complete.")
+    : L("Une semaine s’est posée dans ton ciel. La suivante commence demain.","A week has settled into your sky. The next one begins tomorrow.");
+  requestAnimationFrame(function(){ e.classList.add('on'); });
+  if(!we.replay||!weekName(we.w)) weekSave(we.w,{nom:weekName(we.w),phrases:weKeepPhrases()});
+}
+function closeWeekEnd(){
+  if(!we.on) return; var w=we.w; we.on=false; we.tok++; cancelAnimationFrame(we.raf);
+  var el=$('we'); el.classList.remove('show'); setTimeout(function(){ if(!we.on) el.hidden=true; },2400);
+  weDuck(false);
+  // dans le ciel, la constellation de la semaine s'allume une dernière fois
+  var now=performance.now(); DAYS.forEach(function(d){ if(d.w===w&&d.status==="lived"){ d.flash=now+d.d*120; } }); linesFrom=now;
+}
+$('weInput').addEventListener('input',function(){ $('weKeep').disabled=!this.value.trim(); });
+$('weInput').addEventListener('keydown',function(e){ if(e.key==="Enter"&&this.value.trim()){ e.preventDefault(); $('weKeep').click(); } });
+$('weKeep').addEventListener('click',function(){
+  var nm=$('weInput').value.trim().slice(0,40); if(!nm) return;
+  weekSave(we.w,{nom:nm,phrases:weKeepPhrases()});
+  var named=$('weNamed'); named.textContent=nm; named.hidden=false; $('weInput').hidden=true; $('weChips').textContent=""; $('weNameBtns').hidden=true;
+  try{ var c=audio(); glass(84,c.currentTime+.05,.4); glass(91,c.currentTime+.22,.3); }catch(_){}
+  endStep();
+});
+$('weLater').addEventListener('click',function(){ $('weInput').hidden=true; $('weChips').textContent=""; $('weNameBtns').hidden=true; endStep(); });
+$('weDone').addEventListener('click',closeWeekEnd);
+$('weX').addEventListener('click',closeWeekEnd);
+$('weReplay').addEventListener('click',function(){ var w=we.w; we.on=false; openWeekEnd(w,true); });
+document.addEventListener('keydown',function(e){ if(e.key==="Escape"&&we.on) closeWeekEnd(); });
+window.addEventListener('resize',function(){ if(we.on) weLayout(); });
+$('dayWeekEnd').addEventListener('click',function(){ if(!selected) return; var w=selected.w; closeSheet(); setTimeout(function(){ openWeekEnd(w,true); },400); });
+
 document.addEventListener('keydown',function(e){ if(e.key==="Escape") closeCoda(); });
 
 // ===== Ton ciel : la couleur des accents et la quantité de particules =====
@@ -1752,6 +2288,7 @@ function setLang(l,persist){
   if(l!=="fr"&&l!=="en") return; LANG=l; applyStatic();
   if(unlocked){
     applyEntries(); renderCarnet();
+    if(currentView==="pierres") PZ.lang();
     if(currentView==="soir"){ enterSoir(false); if(soirStep==="traduire"){ setTrSub(); trLabel(); } if(soirStep==="presence"){ pres.word=""; } }
     if(dictation&&$('micBtn')) $('micBtn').textContent=L("Parler","Speak");
     if($('story').getAttribute('placeholder')) voiceHint();
@@ -1793,6 +2330,35 @@ function revealText(hero,delay){
   setTimeout(function(){ if(pr) pr.style.opacity=""; hero.classList.add('settled'); },t+900);
   setTimeout(function(){ if(ml) ml.style.opacity=""; },t+1700);
 }
+// ----- la description du ciel : dépliée les trois premiers soirs, puis repliée sous « 56 notes » -----
+// On compte les soirs vécus (rien de plus n'est gardé). Le principe revient seul le lendemain d'un soir grave
+// (une note dans le quart le plus grave des tiennes) ; le 56e soir et après, tout est déplié.
+function heroFold(){
+  var hero=document.querySelector('#v-ciel .hero'); if(!hero) return;
+  var h1=hero.querySelector('h1'),fold=LIVED.length>=3&&TODAY_I>=0&&TODAY_I<55,pr=false;
+  if(fold){ var y=DAYS[TODAY_I-1];
+    if(y&&y.status==="lived"&&LIVED.length>=4){ var m=LIVED.map(function(d){ return d.midi; }).sort(function(a,b){ return a-b; }); pr=y.midi<=m[Math.floor((m.length-1)*.25)]; } }
+  var was=hero.classList.contains('folded');
+  hero.classList.toggle('folded',fold); hero.classList.toggle('pr',pr);
+  if(fold){ h1.setAttribute('role','button'); h1.tabIndex=0; h1.setAttribute('aria-expanded',hero.classList.contains('open')?'true':'false'); }
+  else { hero.classList.remove('open'); h1.removeAttribute('role'); h1.removeAttribute('tabindex'); h1.removeAttribute('aria-expanded'); }
+  if(was!==fold) heroRelayout();
+}
+function heroRelayout(){ setTimeout(function(){ if(skyReady&&currentView==="ciel") layoutSky(); },950); } // le ciel se recale une fois le pli fini (grand écran)
+function heroToggle(){
+  var hero=document.querySelector('#v-ciel .hero'); if(!hero||!hero.classList.contains('folded')) return;
+  var open=!hero.classList.contains('open'); hero.classList.toggle('open',open);
+  hero.querySelector('h1').setAttribute('aria-expanded',open?'true':'false');
+  if(open&&!REDUCED&&hero.getAttribute('data-revealed')){ // les mots reviennent un à un, comme la première fois
+    var ws=hero.querySelectorAll('.lede .w'); Array.prototype.forEach.call(ws,function(w){ w.classList.remove('on'); });
+    Array.prototype.forEach.call(ws,function(w,k){ setTimeout(function(){ w.classList.add('on'); },120+k*45); });
+  }
+  heroRelayout();
+}
+(function(){ var h1=document.querySelector('#v-ciel .hero h1'); if(!h1) return;
+  h1.addEventListener('click',heroToggle);
+  h1.addEventListener('keydown',function(e){ if((e.key==="Enter"||e.key===" ")&&h1.getAttribute('role')==="button"){ e.preventDefault(); heroToggle(); } });
+})();
 function playIntro(){
   if(introDone) return; introDone=true;
   var hero=document.querySelector('#v-ciel .hero'); if(!hero) return;
@@ -2004,6 +2570,10 @@ story.addEventListener('input',storyChanged); storyChanged();
 var micTargets=micTargets||[]; micTargets.push({btn:$('micBtn'),ta:story,partial:$('partial'),changed:storyChanged});
 $('storyNext').addEventListener('click',function(){ startEarlyWriteUp(); showStep("traduire"); }); // la mise en mots commence ici, en arrière-plan
 var dictation=null,voiceTried=false;
+// sur téléphone, quand le clavier est ouvert, la barre du bas se glissait juste au-dessus de lui : elle s'efface tant qu'on écrit
+(function(){ if(!MOBILE) return; function isField(el){ return el&&(el.tagName==="TEXTAREA"||(el.tagName==="INPUT"&&/^(text|search|email|)$/i.test(el.type||""))); }
+  document.addEventListener('focusin',function(e){ if(isField(e.target)) document.documentElement.classList.add('typing'); });
+  document.addEventListener('focusout',function(){ setTimeout(function(){ if(!isField(document.activeElement)) document.documentElement.classList.remove('typing'); },120); }); })();
 // les champs qui peuvent recevoir la dictée (remplis plus bas, une fois les champs connus)
 // Dictée : celle de Claude d'abord (ordinateur), sinon la reconnaissance vocale du navigateur (Safari iPhone, Chrome Android).
 function initVoice(){
@@ -2037,13 +2607,13 @@ function micOff(){ micTargets.forEach(function(t){ t.btn.hidden=true; }); voiceH
 function setupDictation(d){
   dictation=d;
   d.onPartial(function(e){ if(dictTarget) dictTarget.partial.textContent=e.text||""; });
-  d.onFinal(function(e){ var t=dictTarget; if(!t) return; var tx=(e.text||"").trim(); if(tx){ t.dictated=true; t.ta.value=(t.ta.value.replace(/\s+$/,"")+(t.ta.value.trim()?" ":"")+tx); t.changed(); } t.partial.textContent=""; });
+  d.onFinal(function(e){ var t=dictTarget; if(!t) return; var tx=(e.text||"").trim(); t.partial.textContent=""; if(tx){ t.dictated=true; t.ta.value=(t.ta.value.replace(/\s+$/,"")+(t.ta.value.trim()?" ":"")+tx); t.changed(); } });
   d.onState(function(e){
     var on=e.state==="listening"||e.state==="starting";
-    micTargets.forEach(function(t){ var mine=on&&dictTarget===t; t.btn.setAttribute('aria-pressed',mine?'true':'false'); t.btn.textContent=mine?L("Arrêter","Stop"):L("Parler","Speak"); });
+    micTargets.forEach(function(t){ var mine=on&&dictTarget===t; t.btn.setAttribute('aria-pressed',mine?'true':'false'); t.btn.textContent=mine?(t.labelOn?t.labelOn():L("Arrêter","Stop")):(t.label?t.label():L("Parler","Speak")); });
     if(e.reason==="not_granted"||e.reason==="unavailable") micOff();
   });
-  micTargets.forEach(function(t){ t.btn.hidden=false;
+  micTargets.forEach(function(t){ t.btn.hidden=false; if(t.label) t.btn.textContent=t.label();
     t.btn.addEventListener('click',function(){
       if(d.active()){ d.stop().catch(function(){}); return; }
       dictTarget=t; d.start({language:LANG}).catch(function(err){ if(err&&(err.code==="not_granted"||err.code==="unavailable")) micOff(); });
@@ -2357,6 +2927,8 @@ function showStepContempler(td,where){
     location.hash="#ciel";
     setTimeout(function(){
       var d=DAYS[td.i]; d.flash=performance.now(); burst(d,1.4); linesFrom=performance.now();
+      // le dimanche, la semaine se referme : elle devient une constellation (à la place de la coda)
+      if(d.d===6){ setTimeout(function(){ var ok=false; try{ ok=openWeekEnd(d.w,false); }catch(e){ ok=false; } if(!ok){ var dur=playWeek(d.w)||2400; setTimeout(function(){ openCoda(d,where); },dur); } },900); return; }
       setTimeout(function(){ var dur=playWeek(d.w)||2400; setTimeout(function(){ openCoda(d,where); },dur); },500);
     },700);
   },500);
@@ -2386,9 +2958,8 @@ function allRefl(){
   return out.sort(function(a,b){ return a.d<b.d?1:a.d>b.d?-1:(a.created<b.created?1:a.created>b.created?-1:0); });
 }
 function svgEl(vb){ var e=document.createElementNS("http://www.w3.org/2000/svg","svg"); e.setAttribute('viewBox',vb); e.setAttribute('aria-hidden','true'); return e; }
-function weekGroupOf(iso){ var wi=Math.floor((dateOf(iso)-START)/(7*864e5));
-  if(wi>=0&&wi<8){ return {key:"w"+wi,label:L("Semaine ","Week ")+(wi+1),mode:""}; }
-  return {key:"m"+iso.slice(0,7),label:cap(dateOf(iso).toLocaleDateString(locale(),{month:'long',year:'numeric'})),mode:""}; }
+// le carnet vit en dehors des semaines (l’auteur, 22 novembre : « c'est plus comme un journal intime, mais sous forme de pensées ») : les pensées se rangent par mois
+function weekGroupOf(iso){ return {key:"m"+iso.slice(0,7),label:cap(dateOf(iso).toLocaleDateString(locale(),{month:'long',year:'numeric'})),mode:""}; }
 function renderCarnet(){
   var box=$('fragments'); box.innerHTML=""; var list=allRefl();
   if(!list.length){ var em=document.createElement('p'); em.className="c-empty"; em.textContent=L("Le carnet est encore vide. Une première pensée ?","The notebook is still empty. A first thought?"); box.appendChild(em); return; }
@@ -2486,12 +3057,13 @@ var penseeMic={btn:$('micBtn2'),ta:penseeTA,partial:$('partial2'),changed:pensee
 micTargets.push(penseeMic);
 function openComposer(){
   try{ var dr=JSON.parse(lsGet('56n-pensee-draft')||'null'); if(dr){ penseeTI.value=dr.t||""; penseeTA.value=dr.x||""; penseeMic.dictated=!!dr.dic; } }catch(e){}
+  if(pendingQuestion) penseeTI.value=pendingQuestion.t;
   $('compDate').textContent=cap(todayMid.toLocaleDateString(locale(),{weekday:'long',day:'numeric',month:'long'}))+" · "+moonName(moonAge(todayMid));
   if(!penseeTA.getAttribute('placeholder')) penseeTA.setAttribute('placeholder',L("Ce qui te traverse. Écris, ou touche « Parler ».","What’s going through you. Write, or touch “Speak”."));
   $('composer').hidden=false; $('penseeOpen').hidden=true; penseeChanged();
   setTimeout(function(){ penseeTA.focus({preventScroll:true}); $('composer').scrollIntoView({block:'start',behavior:REDUCED?'auto':'smooth'}); },60);
 }
-function closeComposer(){ if(dictation&&dictation.active()&&dictTarget&&dictTarget.ta===penseeTA) dictation.stop().catch(function(){}); $('composer').hidden=true; $('penseeOpen').hidden=false; }
+function closeComposer(){ pendingQuestion=null; if(dictation&&dictation.active()&&dictTarget&&dictTarget.ta===penseeTA) dictation.stop().catch(function(){}); $('composer').hidden=true; $('penseeOpen').hidden=false; }
 function autoTitle(txt){ var t=txt.replace(/\s+/g," ").trim(),m=t.match(/^(.{8,70}?[.!?…])(\s|$)/); if(m) return m[1].replace(/[.…]$/,""); if(t.length<=60) return t; var c=t.slice(0,60); return c.slice(0,c.lastIndexOf(" ")>20?c.lastIndexOf(" "):60)+"…"; }
 $('penseeOpen').addEventListener('click',openComposer);
 $('penseeCancel').addEventListener('click',closeComposer);
@@ -2538,6 +3110,7 @@ $('penseeSave').addEventListener('click',function(){
   var paras=(dictated?cleanSpeech(txt):txt).split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean);
   var doc={d:isoOf(todayMid),title:(typedTitle||autoTitle(paras[0])),paras:paras,created:new Date().toISOString(),source:"app"};
   if(dictated) doc.brut=txt;
+  if(pendingQuestion&&typedTitle===pendingQuestion.t){ doc.question=pendingQuestion.t; doc.soir=pendingQuestion.soir; }
   var id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),btn=$('penseeSave'); btn.disabled=true;
   function done(where){
     if(where==="local"){ localRefl[id]=doc; lsSet('56n-reflexions',JSON.stringify(localRefl)); } else dbRefl[id]=doc;
@@ -2555,16 +3128,812 @@ var loopErr={};
 function safe(name,fn,now){ try{ fn(now); }catch(e){ if(!loopErr[name]){ loopErr[name]=1; try{ console.error('56 notes · '+name,e); }catch(_){} } } }
 function loop(now){
   requestAnimationFrame(loop);
-  safe('galaxie',frameGalaxy,now);
+  if(!(unlocked&&currentView==="pierres")) safe('galaxie',frameGalaxy,now); // aux pierres, la nuit couvre tout l'écran
   if(!lockEl.hidden) safe('mélodie',frameLock,now);
   if(unlocked){
     if(currentView==="ciel"){ if(!skyReady&&sky.clientWidth) safe('mise en page du ciel',layoutSky,now); safe('ciel',frameSky,now); }
     if(currentView==="soir"&&soirStep==="presence") safe('présence',framePresence,now);
     if(currentView==="soir"&&soirStep==="traduire") safe('traduire',frameTr,now);
+    if(currentView==="pierres") safe('pierres',PZ.frame,now);
   }
 }
 var rsz=null;
 window.addEventListener('resize',function(){ clearTimeout(rsz); rsz=setTimeout(function(){ buildGalaxy(); if(unlocked){ if(currentView==="ciel") layoutSky(); pres.W=0; if(soirStep==="presence") layoutPresence(); tr.W=0; if(soirStep==="traduire") layoutTr(); } },180); });
+
+// ===== Les pierres : ce qu'on porte, et le jour où on le laisse partir (V47, 22 novembre 2026) =====
+// Né du moment de l’auteur aux dolmens, le 21 novembre (« envole-toi mon amour »). Ce qu'on porte devient une pierre aux veines d'or.
+// On peut la garder aussi longtemps qu'il faut, y revenir, y ajouter des mots d'un soir à l'autre (chaque ajout dessine un fil d'or).
+// Le jour venu, on monte aux pierres levées, on la laisse partir (doigt appuyé, ou « envole-toi » à voix haute), puis on se dit merci.
+// Les pierres portées vivent dans pierres/<id> ({cree, maj, morceaux:[{d,t}]}). Quand une pierre s'envole, son document est effacé
+// pour de bon et il ne reste que traces/<id> ({cree, envol, n}) : des dates, aucun mot. Sans base (la bêta), tout reste dans ce navigateur.
+// Dans cette expérience, l'écran n'a que des mots de l'expérience (demande de l’auteur, 22 novembre).
+var PZ=(function(){
+  var cv=$('pzCv'), cx=cv.getContext('2d'), W=0, H=0, DPR=1, U=18, RM=REDUCED, rnd=Math.random, laid=false, lastT=0;
+  var TOUCH=MOBILE;
+  function ease(k){ return k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2; }
+  function mk(w,h){ var c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w)); c.height=Math.max(1,Math.round(h)); return c; }
+  function mixs(a,b,k){ return 'rgb('+Math.round(a[0]+(b[0]-a[0])*k)+','+Math.round(a[1]+(b[1]-a[1])*k)+','+Math.round(a[2]+(b[2]-a[2])*k)+')'; }
+  function pk(){ return clamp(typeof PART==="number"?PART:1,.35,1.4); }
+  function seeded(str){ var h=1779033703^str.length, i; for(i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
+    return function(){ h=Math.imul(h^(h>>>16),2246822507); h=Math.imul(h^(h>>>13),3266489909); h^=h>>>16; return (h>>>0)/4294967296; }; }
+  function nowIso(){ return new Date().toISOString(); }
+  function fmtDate(iso,wd){ var d=new Date(iso); if(isNaN(d)) return ""; return d.toLocaleDateString(locale(),wd?{weekday:'long',day:'numeric',month:'long'}:{day:'numeric',month:'long'}); }
+
+  /* ---------- les lueurs, dessinées une fois ---------- */
+  function glowSprite(rgb,soft){
+    var c=mk(128,128), o=c.getContext('2d'), g=o.createRadialGradient(64,64,0,64,64,64);
+    g.addColorStop(0,'rgba('+rgb+',1)'); g.addColorStop(soft?.22:.1,'rgba('+rgb+','+(soft?.42:.55)+')');
+    g.addColorStop(.5,'rgba('+rgb+',.1)'); g.addColorStop(1,'rgba('+rgb+',0)');
+    o.fillStyle=g; o.fillRect(0,0,128,128); return c;
+  }
+  var SP={gold:glowSprite('230,176,96',true), warm:glowSprite('255,238,206',false), moon:glowSprite('214,216,234',true), rose:glowSprite('232,146,112',true)};
+  function sprite(s,x,y,r,a){ if(a<=.003||r<=0) return; cx.globalAlpha=Math.min(1,a); cx.drawImage(s,x-r,y-r,r*2,r*2); cx.globalAlpha=1; }
+
+  /* ---------- le paysage ---------- */
+  var skyL=null, farL=null, nearL=null, dolL=null, gclip=null, MOON={x:0,y:0,r:10}, P={}, CH={x:0,y:0};
+  // l'apparition, à chaque arrivée : le ciel, les collines au loin, la colline, puis les pierres levées sortent de terre,
+  // ta lumière, et enfin ce que tu portes. ia(début, durée) va de 0 à 1 (en secondes depuis l'arrivée).
+  var introT=0;
+  function ia(d,dur){ if(RM) return 1; return clamp(((performance.now()-introT)/1000-d)/dur,0,1); }
+  function ground(x){ var top=H*.665, base=H*.9, c=W*.6, sp=Math.max(W*.3,190);
+    return base-(base-top)*Math.exp(-Math.pow((x-c)/sp,2))+Math.sin(x*.013)*H*.004; }
+  function ridge(x,base,amp,seed){ var n=x/Math.max(W,700);
+    return base+amp*(Math.sin(n*5.1+seed)*.55+Math.sin(n*11.3+seed*1.7)*.28+Math.sin(n*23.7+seed*2.9)*.12+Math.sin(n*51+seed*4.1)*.05); }
+  function ridgeFar(x){ return ridge(x,H*.575,H*.034,1.3); }
+  function ridgeMid(x){ return ridge(x,H*.635,H*.028,4.2); }
+  function buildSky(){
+    skyL=mk(W*DPR,H*DPR); var o=skyL.getContext('2d'); o.setTransform(DPR,0,0,DPR,0,0);
+    var g=o.createLinearGradient(0,0,0,H*.72);
+    g.addColorStop(0,'#050407'); g.addColorStop(.42,'#0b0810'); g.addColorStop(.78,'#191118'); g.addColorStop(1,'#2a1a1c');
+    o.fillStyle=g; o.fillRect(0,0,W,H);
+    // des lueurs de couleur, très douces (pas de voie lactée en points : l’auteur ne la trouvait pas extraordinaire, retirée en V42)
+    var ax=-.1*W, ay=H*.04, bx=1.1*W, by=H*.5, dx=bx-ax, dy=by-ay, Ln=Math.hypot(dx,dy), nx=-dy/Ln, ny=dx/Ln, bw=Math.min(W,H)*.1, i;
+    o.globalCompositeOperation='lighter';
+    for(i=0;i<22;i++){ var t=i/21, px=ax+dx*t+nx*(rnd()-.5)*bw, py=ay+dy*t+ny*(rnd()-.5)*bw, r=bw*(1.1+rnd()*1.3);
+      var col=['150,118,176','206,168,136','132,138,188'][i%3], gg=o.createRadialGradient(px,py,0,px,py,r);
+      gg.addColorStop(0,'rgba('+col+',.045)'); gg.addColorStop(1,'rgba('+col+',0)'); o.fillStyle=gg; o.fillRect(px-r,py-r,r*2,r*2); }
+    var n=Math.round(W*H/2400);
+    for(i=0;i<n;i++){ var x=rnd()*W, y=rnd()*H*.64, a=(.12+rnd()*.55).toFixed(2), s2=rnd()<.05?1.5:.5+rnd()*.6, hue=rnd();
+      o.fillStyle=hue<.18?'rgba(255,212,170,'+a+')':(hue>.86?'rgba(196,208,255,'+a+')':'rgba(236,229,216,'+a+')'); o.fillRect(x,y,s2,s2); }
+    var hz=o.createLinearGradient(0,H*.45,0,H*.66); hz.addColorStop(0,'rgba(120,80,90,0)'); hz.addColorStop(1,'rgba(150,96,90,.12)');
+    o.fillStyle=hz; o.fillRect(0,H*.45,W,H*.21);
+    o.globalCompositeOperation='source-over';
+    drawMoon(o);
+  }
+  function drawMoon(o){
+    var r=Math.max(12,Math.min(W,H)*.03), mx=W*.17, my=Math.min(H*.47,ridgeFar(W*.17)-r*2.6);
+    MOON={x:mx,y:my,r:r};
+    o.globalCompositeOperation='lighter';
+    var h=o.createRadialGradient(mx,my,r*.6,mx,my,r*11); h.addColorStop(0,'rgba(226,214,196,.2)'); h.addColorStop(.25,'rgba(200,180,180,.06)'); h.addColorStop(1,'rgba(200,180,180,0)');
+    o.fillStyle=h; o.fillRect(mx-r*11,my-r*11,r*22,r*22);
+    o.globalCompositeOperation='source-over';
+    o.fillStyle='rgba(226,220,206,.07)'; o.beginPath(); o.arc(mx,my,r,0,6.2832); o.fill();
+    var m=mk(r*3*DPR,r*3*DPR), mo=m.getContext('2d'); mo.setTransform(DPR,0,0,DPR,0,0);
+    var mg=mo.createLinearGradient(r*.4,r*2.6,r*2.6,r*.4); mg.addColorStop(0,'#fbf1dc'); mg.addColorStop(1,'#d9c9ae');
+    mo.fillStyle=mg; mo.beginPath(); mo.arc(r*1.5,r*1.5,r,0,6.2832); mo.fill();
+    mo.globalCompositeOperation='destination-out'; mo.beginPath(); mo.arc(r*1.5+r*.5,r*1.5-r*.3,r*.98,0,6.2832); mo.fill();
+    o.drawImage(m,mx-r*1.5,my-r*1.5,r*3,r*3);
+  }
+  function layerRidge(o,f,c1,c2,rim){
+    var x; o.beginPath(); o.moveTo(0,H); for(x=0;x<=W+6;x+=6) o.lineTo(x,f(x)); o.lineTo(W,H); o.closePath();
+    var g=o.createLinearGradient(0,H*.52,0,H); g.addColorStop(0,c1); g.addColorStop(1,c2); o.fillStyle=g; o.fill();
+    o.beginPath(); for(x=0;x<=W+6;x+=6){ if(!x) o.moveTo(x,f(x)); else o.lineTo(x,f(x)); }
+    o.strokeStyle='rgba(214,206,226,'+rim+')'; o.lineWidth=1; o.stroke();
+  }
+  function tree(o,x,y,len,ang,depth,w){
+    if(depth===0||len<1.5) return; var x2=x+Math.cos(ang)*len, y2=y+Math.sin(ang)*len;
+    o.lineWidth=w; o.beginPath(); o.moveTo(x,y); o.lineTo(x2,y2); o.stroke();
+    tree(o,x2,y2,len*.74,ang-.3-rnd()*.28+.06,depth-1,w*.66);
+    tree(o,x2,y2,len*.7,ang+.26+rnd()*.28+.06,depth-1,w*.66);
+    if(rnd()<.35) tree(o,x2,y2,len*.58,ang+(rnd()-.4)*.3,depth-1,w*.6);
+  }
+  function buildFar(){
+    farL=mk(W*DPR,H*DPR); var o=farL.getContext('2d'); o.setTransform(DPR,0,0,DPR,0,0);
+    layerRidge(o,ridgeFar,'#211820','#130f14',.09);
+    layerRidge(o,ridgeMid,'#140f13','#0c090b',.06);
+    var tx=W*.9; o.strokeStyle='#0d0a0c'; o.lineCap='round';
+    tree(o,tx,ridgeMid(tx)+3,Math.max(9,H*.03),-Math.PI/2+.1,7,Math.max(1.6,H*.0035));
+  }
+  function stoneShape(o,pts,u){
+    o.beginPath(); for(var i=0;i<pts.length;i++){ var X=pts[i][0]*u, Y=pts[i][1]*u; if(!i) o.moveTo(X,Y); else o.lineTo(X,Y); } o.closePath();
+  }
+  function dolmenStone(o,pts,u,lit,dark){
+    var xs=pts.map(function(p){ return p[0]*u; }), ys=pts.map(function(p){ return p[1]*u; });
+    var x0=Math.min.apply(null,xs), x1=Math.max.apply(null,xs), y0=Math.min.apply(null,ys), y1=Math.max.apply(null,ys);
+    stoneShape(o,pts,u);
+    var g=o.createLinearGradient(x0,y0,x1,y1); g.addColorStop(0,lit); g.addColorStop(.6,dark); g.addColorStop(1,'#0b0809');
+    o.fillStyle=g; o.fill();
+    o.save(); o.clip();
+    var area=(x1-x0)*(y1-y0), k;
+    for(k=0;k<area/5;k++){ var lx=x0+rnd()*(x1-x0), ly=y0+rnd()*(y1-y0), lw=rnd()*1.6+.4;
+      o.fillStyle=rnd()<.5?'rgba(214,206,196,'+(.03+rnd()*.07).toFixed(3)+')':'rgba(0,0,0,'+(.08+rnd()*.14).toFixed(3)+')'; o.fillRect(lx,ly,lw,lw*.7); }
+    for(k=0;k<5;k++){ var cxp=x0+rnd()*(x1-x0), cyp=y0+rnd()*(y1-y0), rr=u*(.15+rnd()*.3);
+      var lg=o.createRadialGradient(cxp,cyp,0,cxp,cyp,rr); lg.addColorStop(0,'rgba(150,160,138,.09)'); lg.addColorStop(1,'rgba(150,160,138,0)'); o.fillStyle=lg; o.fillRect(cxp-rr,cyp-rr,rr*2,rr*2); }
+    o.strokeStyle='rgba(0,0,0,.35)'; o.lineWidth=.8;
+    for(k=0;k<2;k++){ var fx=x0+(x1-x0)*(.25+rnd()*.5), fy=y0+(y1-y0)*.15; o.beginPath(); o.moveTo(fx,fy); for(var j=0;j<4;j++){ fx+=(rnd()-.5)*u*.3; fy+=(y1-y0)*.18; o.lineTo(fx,fy); } o.stroke(); }
+    o.restore();
+    stoneShape(o,pts,u); o.strokeStyle='rgba(222,214,232,.17)'; o.lineWidth=1; o.stroke();
+  }
+  function drawDolmen(o){
+    var x=P.dolX, gy=ground(x), u=U;
+    // tout ce qui est sous le sol est caché : les pierres sont posées, un peu enfoncées dans l'herbe
+    o.save(); o.beginPath(); o.moveTo(0,0); for(var gx=0;gx<=W+4;gx+=4) o.lineTo(gx,ground(gx)+1.5); o.lineTo(W,0); o.closePath(); o.clip();
+    o.save(); o.translate(x,gy);
+    var cg=o.createLinearGradient(0,-1.8*u,0,0); cg.addColorStop(0,'#020101'); cg.addColorStop(1,'#0b0708');
+    o.fillStyle=cg; stoneShape(o,[[-1.15,1.6],[-1.2,-1.6],[-.6,-1.8],[.8,-1.84],[1.25,-1.7],[1.2,1.6]],u); o.fill();
+    dolmenStone(o,[[-.9,1.6],[-.85,-1.15],[-.2,-1.42],[.7,-1.3],[.92,1.6]],u,'#1b1515','#0a0708');
+    dolmenStone(o,[[-2.18,1.6],[-2.3,-.7],[-2.2,-1.55],[-1.95,-1.95],[-1.5,-2.04],[-1.2,-1.6],[-1.08,-.6],[-1.1,1.6]],u,'#4a3e3b','#201918');
+    dolmenStone(o,[[1.1,1.6],[1.18,-.8],[1.3,-1.6],[1.55,-1.85],[2.05,-1.8],[2.3,-1.2],[2.4,1.6]],u,'#3c3230','#1b1515');
+    var cap=[[-3.1,-1.95],[-2.95,-2.35],[-2.3,-2.62],[-.9,-2.86],[.6,-2.8],[1.9,-2.56],[2.85,-2.2],[3.0,-1.9],[2.6,-1.72],[1.3,-1.82],[-.4,-1.9],[-1.9,-1.98]];
+    dolmenStone(o,cap,u,'#5a4b47','#231b1b');
+    o.beginPath(); for(var i=0;i<7;i++){ if(!i) o.moveTo(cap[i][0]*u,cap[i][1]*u); else o.lineTo(cap[i][0]*u,cap[i][1]*u); }
+    o.strokeStyle='rgba(232,224,242,.24)'; o.lineWidth=1.1; o.stroke();
+    var sh=o.createLinearGradient(0,-2*u,0,-1.35*u); sh.addColorStop(0,'rgba(0,0,0,.5)'); sh.addColorStop(1,'rgba(0,0,0,0)');
+    o.fillStyle=sh; o.fillRect(-2.4*u,-2*u,4.8*u,.65*u);
+    o.restore();
+    [[-3.5,[[-.42,.45],[-.4,-.12],[-.22,-.3],[.2,-.36],[.4,-.1],[.42,.45]]],[3.7,[[-.42,.45],[-.38,-.1],[-.2,-.24],[.25,-.28],[.42,-.06],[.44,.45]]]].forEach(function(r){
+      var lx=x+r[0]*u; o.save(); o.translate(lx,ground(lx)); dolmenStone(o,r[1],u,'#3a302e','#181213'); o.restore(); });
+    o.restore();
+  }
+  function buildNear(){
+    nearL=mk(W*DPR,H*DPR); var o=nearL.getContext('2d'); o.setTransform(DPR,0,0,DPR,0,0); var x;
+    o.beginPath(); o.moveTo(0,H); for(x=0;x<=W+4;x+=4) o.lineTo(x,ground(x)); o.lineTo(W,H); o.closePath();
+    var g=o.createLinearGradient(0,H*.62,0,H); g.addColorStop(0,'#120d0f'); g.addColorStop(1,'#060405'); o.fillStyle=g; o.fill();
+    o.save(); o.clip();
+    var mg=o.createRadialGradient(MOON.x,MOON.y,0,MOON.x,MOON.y,W*.75); mg.addColorStop(0,'rgba(206,200,222,.07)'); mg.addColorStop(1,'rgba(206,200,222,0)');
+    o.fillStyle=mg; o.fillRect(0,0,W,H);
+    for(x=P.startX-50;x<P.dolX-U*2.2;x+=2){ var yy=ground(x)+5+Math.sin(x*.045)*1.5; o.fillStyle='rgba(206,186,156,'+(.025+rnd()*.05).toFixed(3)+')'; o.fillRect(x,yy,2.5,1.3+rnd()); }
+    o.restore();
+    o.lineCap='round';
+    for(x=0;x<W;x+=2.1){ var gy=ground(x), h=1.2+rnd()*rnd()*8, lean=(rnd()-.5)*3.2+.8;
+      o.beginPath(); o.moveTo(x,gy+1.5); o.quadraticCurveTo(x+lean*.3,gy-h*.6,x+lean,gy-h);
+      o.strokeStyle=rnd()<.22?'rgba(200,196,214,.16)':'#0b0809'; o.lineWidth=rnd()<.5?1:.7; o.stroke(); }
+    o.beginPath(); for(x=0;x<=W+4;x+=4){ if(!x) o.moveTo(x,ground(x)); else o.lineTo(x,ground(x)); }
+    o.strokeStyle='rgba(214,208,228,.1)'; o.lineWidth=1; o.stroke();
+  }
+  function buildDol(){
+    dolL=mk(W*DPR,H*DPR); var o=dolL.getContext('2d'); o.setTransform(DPR,0,0,DPR,0,0); drawDolmen(o);
+    gclip=[]; for(var x=0;x<=W+4;x+=4) gclip.push(x,ground(x)+1.5);
+  }
+
+  /* ---------- ce qui vit dans le décor ---------- */
+  var twinkles=[], motes=[], mist=[], shoot=null, nextShoot=0, dawn=0, dawnOn=false;
+  function makeAmbient(){
+    twinkles=[]; var tries=0, i;
+    while(twinkles.length<34&&tries<500){ tries++; var x=rnd()*W, y=rnd()*H*.55;
+      if(y>ridgeFar(x)-16) continue; if(Math.hypot(x-MOON.x,y-MOON.y)<MOON.r*5) continue;
+      twinkles.push({x:x,y:y,r:.7+rnd()*1.1,ph:rnd()*6.3,sp:.5+rnd()*1.5,big:twinkles.length<6}); }
+    motes=[]; for(i=0;i<(RM?6:15);i++){ var x0=rnd()*W; motes.push({x0:x0,h:8+rnd()*60,ph:rnd()*6.3,sp:.6+rnd()*.9}); }
+    mist=[]; for(i=0;i<4;i++) mist.push({x:rnd()*W,y:H*(.6+i*.025),w:W*(.5+rnd()*.4),h:H*(.05+rnd()*.03),sp:(4+rnd()*8)*(i%2?1:-1),a:.05+rnd()*.03});
+  }
+  function stepAmbient(now,dt){
+    mist.forEach(function(m){ if(!RM) m.x+=m.sp*dt; if(m.x>W+m.w/2) m.x=-m.w/2; if(m.x<-m.w/2) m.x=W+m.w/2; });
+    if(!RM){
+      if(!shoot&&now>nextShoot){ if(nextShoot) shoot={x:W*(.35+rnd()*.55),y:H*(.06+rnd()*.25),a:2.5+rnd()*.5,t:now}; nextShoot=now+9000+rnd()*12000; }
+      if(shoot&&now-shoot.t>900) shoot=null;
+    }
+    if(dawnOn) dawn=Math.min(1,dawn+dt/7); else dawn=Math.max(0,dawn-dt/3);
+  }
+  function drawAmbientSky(t){
+    for(var i=0;i<twinkles.length;i++){ var s=twinkles[i], a=(RM?.7:(.35+.65*(.5+.5*Math.sin(s.ph+t*.001*s.sp))))*ia(.5+(i%9)*.13,1.2); if(a<=.004) continue;
+      sprite(SP.warm,s.x,s.y,s.r*5,a*.28);
+      cx.fillStyle='rgba(255,246,228,'+(a*.9).toFixed(3)+')'; cx.fillRect(s.x-s.r/2,s.y-s.r/2,s.r,s.r);
+      if(s.big){ var Lg=s.r*7*a; cx.strokeStyle='rgba(255,240,214,'+(a*.22).toFixed(3)+')'; cx.lineWidth=.6;
+        cx.beginPath(); cx.moveTo(s.x-Lg,s.y); cx.lineTo(s.x+Lg,s.y); cx.moveTo(s.x,s.y-Lg); cx.lineTo(s.x,s.y+Lg); cx.stroke(); } }
+    if(shoot){ var k=(t-shoot.t)/900, hx=shoot.x+Math.cos(shoot.a)*k*420, hy=shoot.y+Math.sin(shoot.a)*k*420, tl=70;
+      var g=cx.createLinearGradient(hx,hy,hx-Math.cos(shoot.a)*tl,hy-Math.sin(shoot.a)*tl), al=Math.sin(k*Math.PI)*.7;
+      g.addColorStop(0,'rgba(255,244,224,'+al.toFixed(3)+')'); g.addColorStop(1,'rgba(255,244,224,0)');
+      cx.strokeStyle=g; cx.lineWidth=1.1; cx.beginPath(); cx.moveTo(hx,hy); cx.lineTo(hx-Math.cos(shoot.a)*tl,hy-Math.sin(shoot.a)*tl); cx.stroke(); }
+    if(dawn>0){ var dg=cx.createLinearGradient(0,H*.66,0,H*.22);
+      dg.addColorStop(0,'rgba(226,132,98,'+(.2*dawn).toFixed(3)+')'); dg.addColorStop(.35,'rgba(196,112,128,'+(.08*dawn).toFixed(3)+')'); dg.addColorStop(1,'rgba(110,96,170,0)');
+      cx.fillStyle=dg; cx.fillRect(0,H*.22,W,H*.44);
+      cx.globalAlpha=.3*dawn; cx.drawImage(SP.rose,W*.5-W*.6,ridgeFar(W*.5)-H*.12,W*1.2,H*.24); cx.globalAlpha=1; }
+  }
+  function drawMist(f){ mist.forEach(function(m){ cx.globalAlpha=m.a*(1+dawn*.6)*(f==null?1:f); cx.drawImage(SP.moon,m.x-m.w/2,m.y-m.h/2,m.w,m.h); }); cx.globalAlpha=1; }
+  function drawMotes(t){
+    motes.forEach(function(m){ var x=m.x0+(RM?0:Math.sin(t*.00023*m.sp+m.ph)*30), y=ground(m.x0)-m.h+(RM?0:Math.sin(t*.0004*m.sp+m.ph*2)*8);
+      var b=RM?.4:Math.pow(.5+.5*Math.sin(t*.0012*m.sp+m.ph),3);
+      b*=ia(2.6+(m.ph%1.5),1.6); sprite(SP.gold,x,y,8,.4*b); sprite(SP.warm,x,y,1.8,.9*b); });
+  }
+
+  /* ---------- ce qu'on porte : les données ---------- */
+  var DATA=[], TR=[], GONE={}, VIS={}, TVIS={}, cur=null, keptId=null, mode='new', useDb=false, subbed=false, loaded=false;
+  function byCree(a,b){ return a.cree<b.cree?-1:a.cree>b.cree?1:0; }
+  function byEnvol(a,b){ return a.envol<b.envol?-1:a.envol>b.envol?1:0; }
+  function normP(id,x){
+    if(!x||GONE[id]||!Array.isArray(x.morceaux)) return null;
+    var m=x.morceaux.filter(function(p){ return p&&typeof p.t==="string"&&p.t.trim(); }).map(function(p){ return {d:typeof p.d==="string"?p.d:"",t:p.t}; });
+    if(!m.length) return null;
+    return {id:id,cree:typeof x.cree==="string"?x.cree:(m[0].d||""),maj:typeof x.maj==="string"?x.maj:"",morceaux:m};
+  }
+  function normT(id,x){ if(!x||typeof x.envol!=="string") return null; return {id:id,cree:typeof x.cree==="string"?x.cree:"",envol:x.envol,n:typeof x.n==="number"?x.n:1}; }
+  function find(id){ for(var i=0;i<DATA.length;i++) if(DATA[i].id===id) return DATA[i]; return null; }
+  function lsLoad(){
+    var p=[],t=[]; try{ p=JSON.parse(lsGet('56n-pierres')||'[]'); }catch(e){} try{ t=JSON.parse(lsGet('56n-traces')||'[]'); }catch(e){}
+    DATA=(Array.isArray(p)?p:[]).map(function(x){ return x&&normP(x.id,x); }).filter(Boolean).sort(byCree);
+    TR=(Array.isArray(t)?t:[]).map(function(x){ return x&&normT(x.id,x); }).filter(Boolean).sort(byEnvol);
+  }
+  function lsSave(){ if(useDb) return; lsSet('56n-pierres',JSON.stringify(DATA)); lsSet('56n-traces',JSON.stringify(TR)); }
+  function subscribe(){
+    if(subbed) return; subbed=true;
+    if(!db){ lsLoad(); loaded=true; refresh(); return; }
+    useDb=true; var got=0, to=setTimeout(function(){ if(!loaded){ loaded=true; refresh(); } },8000);
+    function done(){ got++; if(got>=2&&!loaded){ loaded=true; clearTimeout(to); } refresh(); }
+    var fp=false, ft=false;
+    db.collection('pierres').onSnapshot(function(snap){ var m=[]; snap.docs.forEach(function(d){ var x=normP(d.id,d.data()); if(x) m.push(x); }); DATA=m.sort(byCree); if(!fp){ fp=true; done(); } else refresh(); },function(){ if(!fp){ fp=true; done(); } });
+    db.collection('traces').onSnapshot(function(snap){ var m=[]; snap.docs.forEach(function(d){ var x=normT(d.id,d.data()); if(x) m.push(x); }); TR=m.sort(byEnvol); if(!ft){ ft=true; done(); } else refresh(); },function(){ if(!ft){ ft=true; done(); } });
+  }
+  function save(rec){
+    if(!useDb){ lsSave(); return; }
+    db.doc('pierres/'+rec.id).set({cree:rec.cree,maj:rec.maj,morceaux:rec.morceaux.map(function(m){ return {d:m.d,t:m.t}; })})
+      .catch(function(){ toast(L("Elle n’a pas pu être gardée. Réessaie dans un instant.","It couldn’t be kept. Try again in a moment.")); });
+  }
+  // laisser partir : le document est effacé pour de bon ; il ne reste que des dates
+  function forget(id,tr){
+    GONE[id]=true;
+    if(!useDb){ lsSave(); return; }
+    var tries=0; (function del(){ db.doc('pierres/'+id).delete().catch(function(){ if(++tries<5) setTimeout(del,2500*tries); }); })();
+    db.doc('traces/'+id).set({cree:tr.cree,envol:tr.envol,n:tr.n}).catch(function(){});
+  }
+  function refresh(){
+    var keep={}, t=performance.now();
+    DATA.forEach(function(d){ keep[d.id]=1; var v=VIS[d.id], base=Math.min(10,1+d.morceaux.length);
+      if(!v){ v=VIS[d.id]=makeVis(d.id,d.morceaux.length); v.snap=true; }
+      else if(v!==cur||state!=='gather') v.visT=base; });
+    Object.keys(VIS).forEach(function(id){ if(!keep[id]&&VIS[id]!==cur) delete VIS[id]; });
+    var tk={}; TR.forEach(function(r){ tk[r.id]=1; if(!TVIS[r.id]){ var v=makeVis(r.id,10); v.cool=1; v.life=0; v.released=true; v.placed=true; v.snap=true; TVIS[r.id]=v; } });
+    Object.keys(TVIS).forEach(function(id){ if(!tk[id]) delete TVIS[id]; });
+    if(state==='wait'&&loaded) goHome(true);
+    else if(state==='lieu') fillLieu();
+    else if(state==='coll') fillColl();
+  }
+  function newId(){ return 'p'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36); }
+
+  /* ---------- toi, et ce que tu portes ---------- */
+  var me={x:0,bob:0,walk:false,glow:1,glowT:1,acc:0,a:1}, prints=[];
+  var parts=[], birds=[], sparks=[], rings=[], STAR={x:0,y:0,e:0,ed:0,first:false,full:false}, flashT=-1e9, relT=0;
+  function meY(t){ return ground(me.x)-U*.78-(RM?0:(me.walk?Math.abs(Math.sin(me.bob))*2.2:Math.sin(t*.0016)*1.6)); }
+  function carryX(){ return me.x+U*1.3; }
+  function carryY(t){ return meY(t)-U*.1+(RM?0:Math.sin(t*.0013+1)*2.2); }
+  function heart(t){ var p=(t%1700)/1700; return Math.exp(-Math.pow((p-.08)/.045,2))+.55*Math.exp(-Math.pow((p-.26)/.06,2)); }
+  // chaque pierre a sa forme et ses veines à elle, toujours les mêmes (tirées de son identifiant)
+  function makeVis(id,n){
+    var r=seeded(id), pts=[], i;
+    for(i=0;i<11;i++){ var a=i/11*6.2832, rr=1+(r()-.5)*.26, y=Math.sin(a)*rr*.82; pts.push([Math.cos(a)*rr*1.25,Math.min(.72,y)]); }
+    var vs=[], tries=0;
+    while(vs.length<10&&tries<60){ tries++; var a0=r()*6.283, r0=r()*.3, x=Math.cos(a0)*r0, y2=Math.sin(a0)*r0*.6, ang=r()*6.283, vp=[[x,y2]];
+      for(var k=0;k<8;k++){ ang+=(r()-.5)*1.2; x+=Math.cos(ang)*.19; y2+=Math.sin(ang)*.14; if(x*x/1.4+y2*y2/.5>.82) break; vp.push([x,y2]); }
+      if(vp.length>2) vs.push(vp); }
+    var base=Math.min(10,1+(n||1));
+    return {id:id,shape:pts,veins:vs,x:0,y:0,a:1,charge:0,life:1,cool:0,released:false,placed:false,tether:0,tetherT:0,jx:0,jy:0,vis:base,visT:base,sc:.5,scT:.5,ph:r()*6.283,glowK:0};
+  }
+  function S(v){ return U*.6*v.sc; }
+  function veinVis(v,i){
+    if(v.released||v.cool>0) return 1; var b=clamp(v.vis-i,0,1), fl=Math.floor(v.vis);
+    if(v.charge>0&&i>=fl){ var r=.1+(i-fl)*.1; b=Math.max(b,clamp((v.charge*1.3-r)/.25,0,1)); } return b;
+  }
+  function smoothPath(pts,s){
+    var n=pts.length; cx.beginPath(); cx.moveTo((pts[n-1][0]+pts[0][0])/2*s,(pts[n-1][1]+pts[0][1])/2*s);
+    for(var i=0;i<n;i++){ var p=pts[i], q=pts[(i+1)%n]; cx.quadraticCurveTo(p[0]*s,p[1]*s,(p[0]+q[0])/2*s,(p[1]+q[1])/2*s); }
+    cx.closePath();
+  }
+  function pathPart(pts,segs,s){
+    cx.beginPath(); cx.moveTo(pts[0][0]*s,pts[0][1]*s); var full=Math.floor(segs);
+    for(var i=1;i<=full&&i<pts.length;i++) cx.lineTo(pts[i][0]*s,pts[i][1]*s);
+    var fr=segs-full; if(fr>0&&full+1<pts.length){ var a=pts[full], b=pts[full+1]; cx.lineTo((a[0]+(b[0]-a[0])*fr)*s,(a[1]+(b[1]-a[1])*fr)*s); }
+  }
+  function tetherCurve(v,t){ var x0=me.x+4, y0=meY(t), x2=v.x-S(v)*1.1, y2=v.y; return [x0,y0,(x0+x2)/2,Math.max(y0,y2)+U*.55,x2,y2]; }
+  function qpt(c,k){ var a=1-k; return [a*a*c[0]+2*a*k*c[2]+k*k*c[4], a*a*c[1]+2*a*k*c[3]+k*k*c[5]]; }
+  function veinPoint(v){ var vn=v.veins[Math.floor(rnd()*v.veins.length)], p=vn[Math.floor(rnd()*vn.length)], s=S(v); return [v.x+p[0]*s,v.y+p[1]*s]; }
+
+  // les pierres envolées : posées dans l'herbe autour des pierres levées (la plus ancienne d'abord), fendues d'or
+  var SLOTS=[[-1.9,.55,.6],[2.05,.5,.6],[-.95,.9,.55],[1.05,.86,.55],[-2.95,.62,.5],[3.1,.58,.5],[0,1.2,.5]];
+  function slotPos(i){ var s=SLOTS[i%SLOTS.length], x=P.dolX+s[0]*U; return {x:x,y:ground(x)+s[1]*U-U*.6*s[2]*.62,sc:s[2]}; }
+  // ce qu'on porte repose dans le dolmen, sous la table : une petite pile de pierres qui battent doucement
+  var CHAMBER=[[-.6,0],[0,0],[.6,0],[-.3,-.42],[.3,-.42],[0,-.84],[-.62,-.84],[.62,-.84]];
+  function chamberPos(i){ var c=CHAMBER[i%CHAMBER.length], sc=.42; return {x:P.dolX+c[0]*U,y:ground(P.dolX)+c[1]*U-U*.6*sc*.7,sc:sc}; }
+  function starPos(id){ var r=seeded(id+'*'), x=W*(.5+.44*r()), top=H*.08, bot=Math.max(top+10,Math.min(H*.4,ridgeFar(x)-H*.09)); return {x:x,y:top+(bot-top)*r()}; }
+  function placeTraces(dt){
+    TR.forEach(function(r,i){ var v=TVIS[r.id]; if(!v||(cur&&cur.id===r.id)) return; v.hide=i>=SLOTS.length; if(v.hide) return;
+      var p=slotPos(i), k=v.snap?1:Math.min(1,dt*1.4); v.snap=false; v.a=ease(ia(3.4+i*.15,1.4)); v.x+=(p.x-v.x)*k; v.y+=(p.y-v.y)*k; v.sc+=(p.sc-v.sc)*k; v.scT=p.sc; });
+  }
+  function resting(){ var out=[]; DATA.forEach(function(d){ var v=VIS[d.id]; if(v&&!(v===cur&&cur.out)) out.push(v); }); return out; }
+  function placeResting(dt,snap){
+    DATA.forEach(function(d,i){ var v=VIS[d.id]; if(!v||(v===cur&&cur.out)) return;
+      var p=chamberPos(i), k=(snap||v.snap)?1:Math.min(1,dt*2.4), sel=v===cur; v.snap=false;
+      v.scT=sel?.5:p.sc; v.tetherT=0; v.a=ease(ia(3.0+i*.18,1.3));
+      v.x+=(p.x-v.x)*k; v.y+=(p.y-(sel?U*.06:0)-v.y)*k; if(snap) v.sc=v.scT; });
+  }
+
+  function drawPrints(){ prints.forEach(function(p){ sprite(SP.gold,p.x,p.y,7,.35*p.a); }); }
+  function drawShadow(v){
+    if(v.a<=0) return; var s=S(v), gy=ground(v.x), lift=Math.max(0,gy-v.y-s*.8), sx=s*1.6*(1-Math.min(.5,lift/90));
+    if(lift>U*2.2) return;
+    cx.save(); cx.globalAlpha=.45*v.a*(1-Math.min(.6,lift/60)); cx.fillStyle='#030203';
+    cx.beginPath(); cx.ellipse(v.x,gy,sx,s*.22,0,0,6.2832); cx.fill(); cx.restore();
+  }
+  function drawStoneGlow(v,t){
+    if(v.a<=0) return; var hb=RM?.5:heart(t+v.ph*300), s=S(v);
+    sprite(SP.gold,v.x,v.y,s*(3.4+8*v.charge),(v.life*(.13+.09*hb)+v.charge*.6+v.glowK*.4)*v.a);
+    if(v.placed&&!v.cool) sprite(SP.gold,v.x,v.y-s*.4,s*(2.6+3*v.charge),(v.life*.12+v.charge*.35)*v.a);
+    if(v.cool>0) sprite(SP.gold,v.x,v.y,s*2.2,.06*v.cool*v.a);
+  }
+  function drawStone(v,t){
+    if(v.a<=0) return; var s=S(v), c=v.cool, hb=RM?.5:heart(t+v.ph*300);
+    v.jx=(!RM&&v.charge>.45&&!v.released)?(rnd()-.5)*v.charge*1.8:0; v.jy=v.jx?(rnd()-.5)*v.charge*.7:0;
+    cx.save(); cx.translate(v.x+v.jx,v.y+v.jy); cx.globalAlpha=v.a;
+    smoothPath(v.shape,s);
+    var g=cx.createLinearGradient(-s*.9,-s*.9,s*.8,s*.9);
+    g.addColorStop(0,mixs([92,76,68],[112,110,120],c)); g.addColorStop(.55,mixs([44,35,33],[50,49,57],c)); g.addColorStop(1,mixs([17,13,13],[20,20,25],c));
+    cx.fillStyle=g; cx.fill();
+    var w=v.life*(.2+.18*hb)+v.charge*.5+v.glowK*.3;
+    if(w>.01){ var ig=cx.createRadialGradient(0,s*.1,0,0,s*.1,s*1.3); ig.addColorStop(0,'rgba(244,170,84,'+Math.min(.9,w).toFixed(3)+')'); ig.addColorStop(1,'rgba(244,170,84,0)'); cx.fillStyle=ig; cx.fill(); }
+    cx.strokeStyle='rgba(226,218,236,'+(.16+.12*c).toFixed(3)+')'; cx.lineWidth=.9; cx.stroke();
+    cx.restore();
+  }
+  function drawVeins(v,t){
+    if(v.a<=0) return; var s=S(v), hb=RM?.5:heart(t+v.ph*300), I=v.life*v.a*(.28+.55*hb)+v.charge*1.1+v.glowK*.5;
+    cx.save(); cx.translate(v.x+v.jx,v.y+v.jy); cx.lineCap='round'; cx.lineJoin='round';
+    v.veins.forEach(function(pts,i){
+      var vis=veinVis(v,i), segs=(pts.length-1)*vis; if(segs<=0) return;
+      pathPart(pts,segs,s);
+      if(I>.01){ cx.strokeStyle='rgba(236,156,64,'+Math.min(1,.3*I).toFixed(3)+')'; cx.lineWidth=3.2*Math.max(.6,v.sc); cx.stroke();
+        cx.strokeStyle='rgba(255,230,180,'+Math.min(1,.9*I).toFixed(3)+')'; cx.lineWidth=1; cx.stroke(); }
+      if(v.cool>0){ cx.strokeStyle='rgba(226,190,122,'+(.55*v.cool*v.a).toFixed(3)+')'; cx.lineWidth=1.15*Math.max(.7,v.sc); cx.stroke(); }
+    });
+    cx.restore();
+  }
+  function drawTether(v,t){
+    if(v.a<=0||v.tether<=.01) return; var c=tetherCurve(v,t), a=v.tether*v.a;
+    cx.beginPath(); cx.moveTo(c[0],c[1]); cx.quadraticCurveTo(c[2],c[3],c[4],c[5]);
+    cx.strokeStyle='rgba(236,190,110,'+(.22*a).toFixed(3)+')'; cx.lineWidth=1; cx.stroke();
+    var sp=.00035*(1+4*v.charge);
+    for(var k=0;k<3;k++){ var f=RM?(k+.5)/3:((t*sp+k/3)%1), p=qpt(c,f); sprite(SP.warm,p[0],p[1],2.6+v.charge*2,.6*a*Math.sin(f*Math.PI)); }
+  }
+  function drawMe(t){
+    if(me.x>W+60||me.a<=0) return; var y=meY(t), br=RM?1:(.9+.1*Math.sin(t*.0021)), G=me.glow, gy=ground(me.x), A=me.a;
+    cx.globalAlpha=.34*A; cx.drawImage(SP.gold,me.x-U*3.2*G,gy-U*.45*G,U*6.4*G,U*.9*G); cx.globalAlpha=1;
+    sprite(SP.gold,me.x,y,U*2.6*br*G,.34*A);
+    sprite(SP.warm,me.x,y,U*.8*br*(.8+.2*G),.85*A);
+    sprite(SP.warm,me.x,y,U*.28,A);
+    for(var k=0;k<3;k++){ var ang=(RM?k*2.1:t*.0011*(k%2?1:-1)+k*2.1), ox=Math.cos(ang)*U*.85*G, oy=Math.sin(ang)*U*.32;
+      sprite(SP.warm,me.x+ox,y+oy,2.6,.5*A); }
+  }
+  function drawParts(){
+    for(var i=0;i<parts.length;i++){ var p=parts[i]; if(p.al<=0) continue;
+      if(p.big) sprite(SP.gold,p.x,p.y,6,.38*p.al);
+      else { cx.fillStyle='rgba(255,228,176,'+Math.min(1,p.al).toFixed(3)+')'; cx.fillRect(p.x-.7,p.y-.7,1.4,1.4); } }
+  }
+  function drawBirds(t){
+    birds.forEach(function(b){ if(b.a<=0) return; var s=b.s, flap=RM?.4:Math.sin(b.ph+t*.001*b.f);
+      sprite(SP.gold,b.x,b.y,s*3.4,.32*b.a);
+      cx.save(); cx.translate(b.x,b.y); cx.rotate(clamp(b.vx/320,-.45,.45));
+      cx.beginPath(); cx.moveTo(-s,-flap*s*.8+s*.15); cx.quadraticCurveTo(-s*.45,-s*.22-flap*s*.28,0,0); cx.quadraticCurveTo(s*.45,-s*.22-flap*s*.28,s,-flap*s*.8+s*.15);
+      cx.strokeStyle='rgba(255,238,208,'+(.92*b.a).toFixed(3)+')'; cx.lineWidth=1.4; cx.lineCap='round'; cx.stroke();
+      cx.restore(); sprite(SP.warm,b.x,b.y,2.2,.8*b.a); });
+  }
+  function drawSparks(){ sparks.forEach(function(s){ cx.fillStyle='rgba(255,232,190,'+Math.max(0,s.a).toFixed(3)+')'; cx.fillRect(s.x-.6,s.y-.6,1.2,1.2); }); }
+  function starAt(x,y,e,t,ph){
+    var tw=RM?1:(.86+.14*Math.sin(t*.0026+ph));
+    sprite(SP.gold,x,y,10+36*e,.5*e*tw); sprite(SP.warm,x,y,3+7*e,.95*Math.min(1,e*1.4));
+    var Lg=(6+18*e)*tw; cx.strokeStyle='rgba(255,238,210,'+(.42*e).toFixed(3)+')'; cx.lineWidth=.8;
+    cx.beginPath(); cx.moveTo(x-Lg,y); cx.lineTo(x+Lg,y); cx.moveTo(x,y-Lg*1.2); cx.lineTo(x,y+Lg*1.2); cx.stroke();
+  }
+  function drawStars(t){
+    // une étoile pour chaque chose laissée partir ; celle de ce soir grandit pendant que les oiseaux arrivent
+    TR.forEach(function(r,i){ if(cur&&cur.id===r.id) return; var p=starPos(r.id), v=TVIS[r.id], e=ia(3.1+i*.25,1.6); if(e>0) starAt(p.x,p.y,.42*ease(e),t,v?v.ph:0); });
+    if(STAR.ed>.002) starAt(STAR.x,STAR.y,STAR.ed,t,0);
+  }
+  function drawRings(t){
+    var y=meY(t);
+    rings.forEach(function(r,i){ var k=(t-r.t)/2800; if(k<0||k>1) return; var e=ease(k), R=U*(.8+4.2*e);
+      if(i===0) sprite(SP.gold,me.x,y,U*(2+7*e),.42*Math.sin(k*Math.PI));
+      cx.beginPath(); cx.arc(me.x,y,R,0,6.2832); cx.strokeStyle='rgba(244,202,130,'+(.3*Math.pow(1-k,1.5)).toFixed(3)+')'; cx.lineWidth=1.6-k; cx.stroke(); });
+  }
+  function drawFlash(t){
+    var k=(t-flashT)/1700; if(k<0||k>1||!cur) return;
+    sprite(SP.warm,cur.x,cur.y,U*(1.2+8*ease(Math.min(1,k*2))),.9*Math.pow(1-k,2));
+    sprite(SP.gold,cur.x,cur.y-U,U*(3+14*k),.5*Math.pow(1-k,1.5));
+  }
+  // les mots deviennent de la lumière : on dessine le texte hors champ et on en garde les points
+  function textPoints(txt,rect){
+    var w=Math.max(10,Math.round(rect.width)), h=Math.max(10,Math.round(rect.height)), oc=mk(w,h), o=oc.getContext('2d');
+    var fs=Math.max(16,Math.min(26,rect.width/Math.max(8,txt.length)*1.9));
+    o.fillStyle='#fff'; o.font='italic 300 '+fs+'px "Cormorant Garamond", Garamond, serif'; o.textAlign='center'; o.textBaseline='middle';
+    var arr=txt.split(/\s+/), lines=[], line='';
+    arr.forEach(function(wd){ var tr=line?line+' '+wd:wd; if(o.measureText(tr).width>w-24&&line){ lines.push(line); line=wd; } else line=tr; }); if(line) lines.push(line);
+    lines=lines.slice(0,4); var lh=fs*1.25, y0=h/2-(lines.length-1)*lh/2;
+    lines.forEach(function(l,i){ o.fillText(l,w/2,y0+i*lh); });
+    var data=o.getImageData(0,0,w,h).data, pts=[], st=RM?5:3;
+    for(var y=0;y<h;y+=st) for(var x=0;x<w;x+=st){ if(data[(y*w+x)*4+3]>110) pts.push([rect.left+x,rect.top+y]); }
+    for(var i=pts.length-1;i>0;i--){ var j=Math.floor(rnd()*(i+1)), tmp=pts[i]; pts[i]=pts[j]; pts[j]=tmp; }
+    return pts.slice(0,Math.round((RM?260:760)*pk()));
+  }
+
+  /* ---------- le son : le verre de l'app, et un frisson quand on appuie ---------- */
+  function snd(m,delay,vel){ try{ var c=audio(); glass(m,c.currentTime+(delay||0),vel); }catch(e){} }
+  var shim=null, shimLast=-1;
+  function shimmer(level,slow){
+    if(!AC||Math.abs(level-shimLast)<.01) return; shimLast=level;
+    if(!shim){ shim=AC.createGain(); shim.gain.value=0; shim.connect(bus);
+      [74,81,86].forEach(function(m,i){ var o=AC.createOscillator(), v=AC.createOscillator(), vg=AC.createGain(), g=AC.createGain();
+        o.type='sine'; o.frequency.value=440*Math.pow(2,(m-69)/12); v.frequency.value=4.2+i*.9; vg.gain.value=3+i;
+        v.connect(vg); vg.connect(o.frequency); g.gain.value=[1,.55,.3][i]; o.connect(g); g.connect(shim); o.start(); v.start(); }); }
+    shim.gain.setTargetAtTime(level*level*.045,AC.currentTime,slow?.9:.08);
+  }
+
+  /* ---------- les cartes ---------- */
+  var state='wait', stT=0, walk=null, CARDS=['pz-lieu','pz-coll','pz-porter','pz-avec','pz-chemin','pz-garder','pz-dolmen','pz-merci','pz-route'];
+  function show(id){
+    $('pzVeil').classList.remove('off');
+    CARDS.forEach(function(c){ var el=$(c); if(c===id){ el.hidden=false; requestAnimationFrame(function(){ el.classList.remove('off'); }); }
+      else if(!el.hidden){ el.classList.add('off'); setTimeout(function(){ if(el.classList.contains('off')) el.hidden=true; },1200); } });
+  }
+  function hideAll(){
+    $('pzVeil').classList.add('off');
+    CARDS.forEach(function(c){ var el=$(c); if(!el.hidden){ el.classList.add('off'); setTimeout(function(){ if(el.classList.contains('off')) el.hidden=true; },1200); } });
+  }
+  function go(s){ state=s; stT=performance.now(); }
+  function h1(id,fr,en){ $(id).innerHTML=L(fr,en); }
+  function txt(id,fr,en){ $(id).textContent=L(fr,en); }
+  function resetFlow(){
+    birds=[]; parts=[]; sparks=[]; rings=[]; STAR.e=0; STAR.ed=0; STAR.first=false; STAR.full=false; dawnOn=false;
+    me.walk=false; me.glowT=1; holding=false; setRing(0); shimmer(0,true);
+  }
+  function goHome(snap){
+    if(cur){ cur.out=false; cur.placed=false; cur.charge=0; cur.tetherT=0; cur.tether=0; }
+    cur=null; walk=null; resetFlow();
+    if(snap){ me.x=P.startX; me.a=0; placeResting(1,true); }
+    fillLieu(); show('pz-lieu'); go('lieu');
+    var hero=$('pz-lieu'); if(!hero.getAttribute('data-revealed')) revealText(hero,RM?0:1100); // la première fois : le titre et la phrase naissent avec le paysage
+  }
+  function fillLieu(){
+    var n=DATA.length;
+    $('pzLieuS').textContent=!n?"":n===1?L("Une pierre dans le dolmen.","One stone in the dolmen."):L(cap(numWord(n,true))+" pierres dans le dolmen.",cap(numWord(n))+" stones in the dolmen.");
+    txt('pzOpen',!n?"Créer une pierre":n===1?"La retrouver":"Les retrouver",!n?"Create a stone":n===1?"Find it again":"Find them again");
+    txt('pzNew',"Créer une pierre","Create a stone"); $('pzNew').hidden=!n;
+  }
+  function sinceLine(rec){
+    var days={}; rec.morceaux.forEach(function(m){ if(m.d) days[m.d.slice(0,10)]=1; }); var nd=Object.keys(days).length;
+    var s=L("depuis le ","since ")+fmtDate(rec.cree);
+    if(nd>1) s+=" · "+L(numWord(nd)+" soirs",numWord(nd)+" evenings");
+    return s;
+  }
+  // une vignette de la pierre, dessinée avec ses veines à elle, pour le coffre
+  function thumb(c,rec){
+    var w=64,h=48,d=Math.min(2,window.devicePixelRatio||1); c.width=w*d; c.height=h*d; c.style.width=w+'px'; c.style.height=h+'px';
+    var o=c.getContext('2d'), keep=cx, v=makeVis(rec.id,rec.morceaux.length); o.setTransform(d,0,0,d,0,0);
+    v.x=w/2; v.y=h/2+2; v.sc=15/(U*.6); v.life=1; v.a=1;
+    cx=o; try{ o.globalCompositeOperation='lighter'; drawStoneGlow(v,600); o.globalCompositeOperation='source-over'; drawStone(v,600); o.globalCompositeOperation='lighter'; drawVeins(v,600); }catch(e){} cx=keep;
+  }
+  function fillColl(){
+    txt('pzCollK',"Dans le dolmen","In the dolmen");
+    h1('pzCollT',"Ce que tu <em>portes</em>","What you <em>carry</em>");
+    var ul=$('pzList'); ul.textContent='';
+    DATA.forEach(function(rec){
+      var li=document.createElement('li'), b=document.createElement('button'); b.type='button'; b.className='pz-item';
+      var tc=document.createElement('canvas'), sp=document.createElement('span'), em=document.createElement('em'), sm=document.createElement('small');
+      tc.className='pz-thumb'; tc.setAttribute('aria-hidden','true'); thumb(tc,rec);
+      em.textContent=rec.morceaux[0].t; sm.textContent=sinceLine(rec);
+      sp.appendChild(em); sp.appendChild(sm); b.appendChild(tc); b.appendChild(sp);
+      b.addEventListener('click',function(){ select(rec.id); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+    txt('pzNew2',"Créer une pierre","Create a stone");
+    txt('pzCollBack',"Revenir","Go back");
+  }
+  function openColl(){ if(!DATA.length) return; if(cur&&!cur.out) cur=null; fillColl(); show('pz-coll'); go('coll'); snd(62,0,.16); snd(69,.18,.1); }
+  function select(id){
+    var v=VIS[id], rec=find(id); if(!v||!rec) return goHome();
+    cur=v; v.out=false; v.placed=false; v.glowK=1.2;
+    fillChemin(); show('pz-chemin'); go('chemin'); snd(62,0,.22); snd(69,.2,.14);
+  }
+  function fillChemin(){
+    var rec=cur&&find(cur.id); if(!rec) return;
+    $('pzCheminK').textContent=L("Depuis le ","Since ")+fmtDate(rec.cree);
+    h1('pzCheminT',"Il t’<em>attend</em>","It is <em>waiting</em>");
+    var box=$('pzMots'); box.textContent='';
+    rec.morceaux.forEach(function(m){ var p=document.createElement('p'); p.textContent=m.t;
+      if(rec.morceaux.length>1&&m.d){ var sm=document.createElement('small'); sm.textContent=fmtDate(m.d,true); p.appendChild(sm); } box.appendChild(p); });
+    txt('pzClimb',"Le laisser s’envoler","Let it fly away");
+    txt('pzAdd',"Ajouter des mots","Add some words");
+    txt('pzKeep',"Le laisser là","Leave it there");
+  }
+  function openPorter(m){
+    mode=m; var ta=$('pzWords');
+    if(m==='new'){ h1('pzPorterT',"Ce que tu <em>portes</em>","What you <em>carry</em>"); txt('pzPorterS',"Écris-le, ou dis-le.","Write it, or say it.");
+      ta.setAttribute('placeholder',L("Un moment, une pensée, quelqu’un que tu aimes","A moment, a thought, someone you love")); txt('pzCarry',"Le porter","Carry it"); }
+    else { h1('pzPorterT',"Ce qui <em>revient</em>","What <em>comes back</em>"); txt('pzPorterS',"Ce soir, ajoute-lui des mots.","Tonight, give it a few more words.");
+      ta.setAttribute('placeholder',L("Ce qui pèse, ce qui a changé","What weighs, what has changed")); txt('pzCarry',"L’ajouter","Add it"); }
+    ta.setAttribute('aria-label',L("Ce que tu portes","What you carry"));
+    txt('pzCancel',"Pas maintenant","Not now");
+    $('pzCancel').hidden=false;
+    $('pzCarry').disabled=ta.value.trim().length<2;
+    show('pz-porter'); go('porter');
+  }
+  function setLangTexts(){
+    if(state==='lieu') fillLieu(); else if(state==='coll') fillColl(); else if(state==='chemin') fillChemin(); else if(state==='porter') openPorter(mode);
+    paintStatic();
+  }
+  function paintStatic(){
+    h1('pzAvecT',"Il est <em>avec toi</em>","It is <em>with you</em>");
+    txt('pzAvecS',"Emmène-le jusqu’aux pierres levées.","Take it up to the standing stones.");
+    txt('pzTake',"L’emmener au dolmen","Take it to the dolmen");
+    txt('pzGarderK',"Au dolmen","At the dolmen");
+    h1('pzGarderT',"Il est <em>à l’abri</em>","It is <em>safe here</em>");
+    txt('pzGarderS',"Il t’attend ici, d’un soir à l’autre. Le jour où tu voudras, tu reviendras le laisser s’envoler.","It waits for you here, from one evening to the next. The day you want to, you’ll come back and let it fly away.");
+    txt('pzBackTo',"Redescendre","Walk back down");
+    txt('pzDolK',"Aux pierres levées","At the standing stones");
+    h1('pzDolT',"Ici, tu peux le <em>laisser partir</em>","Here, you can <em>let it go</em>");
+    txt('pzDolS',"Quand tu es prêt, garde le doigt appuyé. Ou dis-le à voix haute.","When you’re ready, keep your finger pressed. Or say it out loud.");
+    $('pzHoldL').textContent=L("Envole-toi","Fly away");
+    $('pzHold').setAttribute('aria-label',L("Envole-toi : appuyer longuement","Fly away: press and hold"));
+    h1('pzRouteT',"Et tu as continué <em>ta route</em>","And you went on <em>your way</em>");
+    txt('pzRouteS',"Là-haut, la pierre est restée avec les pierres levées, avec ses fils d’or. Et il y a une étoile de plus dans ton ciel.","Up there, the stone stayed with the standing stones, with its golden threads. And there is one more star in your sky.");
+    txt('pzAgain',"Revenir","Come back");
+    if(state!=='merciBloom') resetMerci();
+  }
+
+  /* ---------- les gestes ---------- */
+  var ta=$('pzWords');
+  ta.addEventListener('input',function(){ $('pzCarry').disabled=ta.value.trim().length<2; });
+  ta.addEventListener('focus',function(){ setTimeout(function(){ window.scrollTo(0,0); },60); });
+  $('pzOpen').addEventListener('click',function(){ if(!DATA.length) openPorter('new'); else openColl(); });
+  $('pzNew').addEventListener('click',function(){ openPorter('new'); });
+  $('pzNew2').addEventListener('click',function(){ openPorter('new'); });
+  $('pzCollBack').addEventListener('click',function(){ if(cur&&!cur.out){ cur.glowK=0; cur=null; } if(me.x>P.startX+4) descend(); else goHome(); });
+  $('pzCancel').addEventListener('click',function(){ stopDict(); if(mode==='add'&&cur) { fillChemin(); show('pz-chemin'); go('chemin'); } else goHome(); });
+  $('pzCarry').addEventListener('click',function(){
+    var words=ta.value.trim(); if(words.length<2) return;
+    audio(); stopDict();
+    var r=ta.getBoundingClientRect(), pts=textPoints(words,r), now=nowIso(), t=performance.now();
+    if(mode==='new'){
+      var id=newId(), rec={id:id,cree:now,maj:now,morceaux:[{d:now,t:words}]}; DATA.push(rec);
+      var v=makeVis(id,1); VIS[id]=v; v.a=0; v.vis=0; v.visT=2; v.sc=1; v.scT=1; v.tetherT=1; v.out=true; v.x=carryX(); v.y=carryY(t); cur=v; save(rec);
+    } else {
+      var rc=cur&&find(cur.id); if(!rc){ goHome(); return; }
+      rc.morceaux.push({d:now,t:words}); rc.maj=now; save(rc); cur.visT=Math.min(10,1+rc.morceaux.length);
+    }
+    parts=pts.map(function(p){ return {x:p[0],y:p[1],sx:p[0],sy:p[1],d:rnd()*700,al:.95,big:rnd()<.08,g:'gather'}; });
+    ta.value=''; $('pzCarry').disabled=true;
+    hideAll(); go('gather');
+    snd(50,0,.55); snd(57,.35,.3);
+  });
+  $('pzAdd').addEventListener('click',function(){ openPorter('add'); });
+  $('pzKeep').addEventListener('click',function(){ if(!cur) return; cur.glowK=0; cur=null; openColl(); });
+  $('pzBackTo').addEventListener('click',function(){ descend(); });
+  // la première démarche : emmener ce qu'on porte jusqu'au dolmen, et l'y déposer
+  $('pzTake').addEventListener('click',function(){ if(!cur) return; hideAll(); audio(); walkTo(P.standX,function(){ cur.fromX=cur.x; cur.fromY=cur.y; cur.scT=.42; cur.tetherT=0; go('poseNew'); snd(57,0,.2); }); });
+  // la deuxième démarche, un autre jour : monter, sortir la pierre du dolmen, la laisser s'envoler
+  $('pzClimb').addEventListener('click',function(){ if(!cur) return; hideAll(); audio(); walkTo(P.standX,function(){ cur.fromX=cur.x; cur.fromY=cur.y; cur.out=true; cur.placed=true; cur.scT=1; cur.tetherT=1; go('sortie'); snd(57,0,.2); snd(62,.4,.14); }); });
+  function walkTo(x,done){
+    var d=Math.abs(x-me.x), full=Math.abs(P.standX-P.startX)||1; if(d<3){ me.x=x; done(); return; }
+    walk={from:me.x,to:x,dur:(RM?2.5:6.5)*Math.max(.35,d/full),done:done}; go('walk');
+  }
+  function descend(){ hideAll(); walkTo(P.startX,function(){ fillLieu(); show('pz-lieu'); go('lieu'); }); }
+  $('pzAgain').addEventListener('click',function(){ goHome(true); });
+
+  // l'anneau : appuyer longuement
+  var holdStart=0, holding=false, HOLD_MS=2800, ring=$('pzRing'), RING=301.6;
+  function setRing(p){ ring.setAttribute('stroke-dashoffset',(RING*(1-p)).toFixed(1)); }
+  function startHold(){ if(state!=='dolmen'||holding||!cur) return; holding=true; holdStart=performance.now()-cur.charge*HOLD_MS; snd(69,0,.2); }
+  var hb=$('pzHold');
+  hb.addEventListener('pointerdown',function(e){ if(state!=='dolmen') return; e.preventDefault(); startHold(); try{ this.setPointerCapture(e.pointerId); }catch(_){} });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ hb.addEventListener(ev,function(){ holding=false; }); });
+  hb.addEventListener('keydown',function(e){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); startHold(); } });
+  hb.addEventListener('keyup',function(e){ if(e.key===' '||e.key==='Enter') holding=false; });
+  hb.addEventListener('click',function(e){ e.preventDefault(); });
+  hb.addEventListener('contextmenu',function(e){ e.preventDefault(); });
+
+  function release(){
+    if(state!=='dolmen'||!cur) return; holding=false; setRing(1); stopDict();
+    var rec=find(cur.id), now=nowIso(), tr={id:cur.id,cree:rec?rec.cree:now,envol:now,n:rec?rec.morceaux.length:1};
+    DATA=DATA.filter(function(x){ return x.id!==cur.id; }); TR.push(tr); TR.sort(byEnvol);
+    if(!TVIS[cur.id]){ var tv=makeVis(cur.id,10); tv.cool=1; tv.life=0; tv.released=true; tv.placed=true; tv.snap=true; TVIS[cur.id]=tv; }
+    forget(cur.id,tr);
+    hideAll(); go('envol'); relT=performance.now(); flashT=relT; cur.released=true; cur.charge=1; shimmer(0,true);
+    var sp=starPos(cur.id); STAR.x=sp.x; STAR.y=sp.y;
+    var n=Math.round((RM?90:300)*pk()), i, p;
+    for(i=0;i<n;i++){ p=veinPoint(cur); var life=1.4+rnd()*2.4;
+      parts.push({x:p[0],y:p[1],vx:(rnd()-.5)*90,vy:-(30+rnd()*160),g:-14,life:life,max:life,al:1,big:rnd()<.12}); }
+    var c=tetherCurve(cur,relT);
+    for(i=0;i<28;i++){ p=qpt(c,i/27); var l2=1+rnd()*1.6; parts.push({x:p[0],y:p[1],vx:(rnd()-.5)*20,vy:-(10+rnd()*36),g:-8,life:l2,max:l2,al:1,big:rnd()<.2}); }
+    cur.tether=0; cur.tetherT=0;
+    var nb=RM?5:9; birds=[];
+    for(var j=0;j<nb;j++) birds.push({x:cur.x,y:cur.y,born:.25+j*.16,th:rnd()*6.283,r0:U*(.4+rnd()*.5),s:U*(.3+rnd()*.2),f:7+rnd()*3,ph:rnd()*6,a:0,mode:'spiral',vx:0,vy:0,fly:2.1+j*.2+rnd()*.3,dead:false});
+    STAR.e=0; STAR.ed=0; STAR.first=false; STAR.full=false;
+    snd(50,0,.4); [62,65,67,69,72,74,77,79,81,84,86].forEach(function(m,k){ snd(m,.05+k*.17,.32-k*.015); });
+    snd(91,2.2,.08); snd(93,2.55,.06);
+  }
+
+  // se dire merci
+  function resetMerci(){
+    $('pzMerciK').textContent=L("Avant de reprendre ta route","Before you go on your way"); h1('pzMerciT',"Dis-toi <em>merci</em>","Say <em>thank you</em> to yourself");
+    $('pzMerciS').textContent=L("D’avoir su faire l’effort de laisser derrière toi quelque chose d’important : un moment, une pensée, une personne.","For finding the strength to leave something important behind you: a moment, a thought, a person.");
+    $('pzMerciRow').hidden=false; $('pzPartial3').textContent=''; txt('pzMerci',"Merci","Thank you");
+  }
+  function doMerci(){
+    if(state!=='merci') return; stopDict();
+    $('pzMerciRow').hidden=true; $('pzMerciK').textContent=''; h1('pzMerciT',"<em>Merci</em>.","<em>Thank you</em>.");
+    $('pzMerciS').textContent=L("Ce n’était pas rien, de le laisser partir.","Letting it go was no small thing.");
+    go('merciBloom'); var t=performance.now(); rings=[{t:t},{t:t+450},{t:t+900}]; me.glowT=1.4;
+    var y=meY(t); for(var i=0;i<(RM?8:26);i++){ var l=1.6+rnd()*2; parts.push({x:me.x+(rnd()-.5)*U,y:y+(rnd()-.5)*U*.5,vx:(rnd()-.5)*16,vy:-(14+rnd()*30),g:-4,life:l,max:l,al:1,big:rnd()<.3}); }
+    snd(50,0,.3); [62,66,69,74,76].forEach(function(m,k){ snd(m,.06+k*.09,.24-k*.03); }); snd(81,.9,.08);
+  }
+  $('pzMerci').addEventListener('click',doMerci);
+  function onDolmen(x,y){ return Math.abs(x-P.dolX)<U*3.3&&y>ground(P.dolX)-U*3.2&&y<ground(P.dolX)+U*.6; }
+  cv.addEventListener('pointerdown',function(e){
+    if(state==='merci'&&Math.hypot(e.clientX-me.x,e.clientY-meY(performance.now()))<U*2.4){ doMerci(); return; }
+    if((state==='lieu'||state==='garder'||state==='coll'||state==='chemin')&&DATA.length&&onDolmen(e.clientX,e.clientY)) openColl();
+  });
+  cv.addEventListener('pointermove',function(e){ cv.style.cursor=((state==='lieu'||state==='garder'||state==='chemin')&&DATA.length&&onDolmen(e.clientX,e.clientY))||(state==='merci'&&Math.hypot(e.clientX-me.x,e.clientY-meY(performance.now()))<U*2.4)?'pointer':''; });
+
+  // la dictée : celle de l'app (voir setupDictation). Aux pierres levées, dire « envole-toi » suffit ; à la fin, « merci ».
+  var hearR=document.createElement('textarea'), hearM=document.createElement('textarea');
+  function heard(el,t){ el.textContent=t?L("« "+t+" »","“"+t+"”"):""; }
+  micTargets.push({btn:$('pzMicW'),ta:ta,partial:$('pzPartial'),changed:function(){ $('pzCarry').disabled=ta.value.trim().length<2; }});
+  micTargets.push({btn:$('pzMicR'),ta:hearR,partial:$('pzPartial2'),label:function(){ return L("Le dire à voix haute","Say it out loud"); },labelOn:function(){ return L("Je t’écoute…","I’m listening…"); },
+    changed:function(){ var t=hearR.value.trim(); hearR.value=''; heard($('pzPartial2'),t); if(/envole|fly/i.test(t)) setTimeout(release,500); }});
+  micTargets.push({btn:$('pzMicM'),ta:hearM,partial:$('pzPartial3'),label:function(){ return L("Le dire à voix haute","Say it out loud"); },labelOn:function(){ return L("Je t’écoute…","I’m listening…"); },
+    changed:function(){ var t=hearM.value.trim(); hearM.value=''; heard($('pzPartial3'),t); if(/merci|thank/i.test(t)) setTimeout(doMerci,400); }});
+  function stopDict(){ try{ if(dictation&&dictation.active()&&dictTarget&&(dictTarget.ta===ta||dictTarget.ta===hearR||dictTarget.ta===hearM)) dictation.stop().catch(function(){}); }catch(_){} }
+
+  /* ---------- la boucle (appelée par celle de l'app quand on est ici) ---------- */
+  function footstep(dt){ me.acc+=dt; if(me.acc>.42){ me.acc=0; prints.push({x:me.x,y:ground(me.x)+1,a:1}); } }
+  function step(now,dt,el){
+    stepAmbient(now,dt);
+    me.glow+=(me.glowT-me.glow)*Math.min(1,dt*1.2);
+    if(state!=='route'&&state!=='fin'&&ia(2.1,.01)>=1) me.a=Math.min(1,me.a+dt*.8);
+    prints.forEach(function(p){ p.a-=dt*.22; }); prints=prints.filter(function(p){ return p.a>0; });
+    var all=[]; Object.keys(VIS).forEach(function(id){ all.push(VIS[id]); });
+    all.forEach(function(v){ v.sc+=(v.scT-v.sc)*Math.min(1,dt*2.2); v.tether+=(v.tetherT-v.tether)*Math.min(1,dt*1.6);
+      if(!(v===cur&&state==='gather')) v.vis+=(v.visT-v.vis)*Math.min(1,dt*.9); v.glowK=Math.max(0,v.glowK-dt*.6); });
+
+    if(state==='walk'&&walk){
+      var k=Math.min(1,el/walk.dur); me.walk=true; me.bob+=dt*7; footstep(dt);
+      me.x=walk.from+(walk.to-walk.from)*ease(k);
+      var beat=Math.floor(el/1.3); if(beat!==step.lastBeat&&k<1){ step.lastBeat=beat; snd((walk.to>walk.from?[62,64,65,67,69]:[69,67,65,64,62])[beat%5],0,.12); }
+      if(k>=1){ me.walk=false; step.lastBeat=-1; var dn=walk.done; walk=null; dn(); }
+    }
+    if(cur&&cur.out&&!cur.placed){ var kk=(state==='gather'||state==='walk')?1:Math.min(1,dt*4); cur.x+=(carryX()-cur.x)*kk; cur.y+=(carryY(now)-cur.y)*kk; }
+    placeResting(dt,false);
+    placeTraces(dt);
+    if(state==='gather'&&cur){
+      var allIn=true, tx=cur.x, ty=cur.y;
+      parts.forEach(function(p){ var q=clamp((el*1000-p.d)/1600,0,1), e=ease(q), sw=(1-e)*e;
+        p.x=p.sx+(tx-p.sx)*e+sw*Math.sin(p.d*.01+p.sx*.02)*70; p.y=p.sy+(ty-p.sy)*e+sw*Math.cos(p.d*.013)*40; p.al=.95-.7*e; if(q<1) allIn=false; });
+      if(mode==='new'){ cur.a=clamp((el-.7)/1.4,0,1); cur.tether=cur.a; }
+      if(allIn){ parts=[]; cur.a=1; cur.glowK=1; snd(62,0,.25);
+        if(mode==='new'){ show('pz-avec'); go('avec'); } else { fillChemin(); show('pz-chemin'); go('chemin'); snd(74,.25,.14); } }
+    }
+    // la pierre sort du dolmen et vient se poser devant, sur le seuil
+    if(state==='sortie'&&cur){
+      var ks=ease(clamp(el/1.7,0,1));
+      cur.x=cur.fromX+(CH.x-cur.fromX)*ks; cur.y=cur.fromY+(CH.y-cur.fromY)*ks-Math.sin(ks*Math.PI)*U*1.1;
+      if(ks>=1){ cur.x=CH.x; cur.y=CH.y; setRing(0); $('pzPartial2').textContent=''; show('pz-dolmen'); go('dolmen'); snd(55,0,.3); }
+    }
+    // une nouvelle pierre entre dans le dolmen et rejoint les autres
+    if(state==='poseNew'&&cur){
+      var idx=-1; DATA.forEach(function(d,i){ if(d.id===cur.id) idx=i; }); var cp=chamberPos(Math.max(0,idx));
+      var kn=ease(clamp(el/1.9,0,1));
+      cur.x=cur.fromX+(cp.x-cur.fromX)*kn; cur.y=cur.fromY+(cp.y-cur.fromY)*kn-Math.sin(kn*Math.PI)*U*1.5;
+      if(kn>=1){ cur.out=false; cur.glowK=1.6; var t0=performance.now();
+        for(var q=0;q<(RM?6:22);q++) sparks.push({x:cp.x+(rnd()-.5)*U*.6,y:cp.y+(rnd()-.5)*U*.3,vx:(rnd()-.5)*30,vy:-(10+rnd()*40),a:.8,dec:.9});
+        cur=null; show('pz-garder'); go('garder'); snd(50,0,.3); snd(62,.12,.22); snd(69,.3,.16); }
+    }
+    if(state==='dolmen'&&cur){
+      if(holding){ var hp=clamp((now-holdStart)/HOLD_MS,0,1); cur.charge=hp; setRing(hp); if(hp>=1) release(); }
+      else { cur.charge=Math.max(0,cur.charge-dt*1.2); setRing(cur.charge); }
+      if(state==='dolmen'){ shimmer(cur.charge,false);
+        var leak=cur.charge*dt*(RM?12:46); while(leak>0){ if(rnd()<leak){ var vp=veinPoint(cur), l=.8+rnd()*.8; parts.push({x:vp[0],y:vp[1],vx:(rnd()-.5)*14,vy:-(16+rnd()*40),g:-10,life:l,max:l,al:1,big:rnd()<.15}); } leak-=1; } }
+    }
+    if(cur&&cur.released){ cur.life=Math.max(0,cur.life-dt/2.6); cur.cool=Math.min(1,cur.cool+dt/4); cur.charge=Math.max(0,cur.charge-dt*.9); }
+
+    if(state!=='gather'){
+      parts.forEach(function(p){ p.vy+=p.g*dt; p.vx*=.99; p.x+=p.vx*dt+(RM?0:Math.sin(p.y*.03)*dt*10); p.y+=p.vy*dt; p.life-=dt; p.al=clamp(p.life/p.max*1.6,0,1); });
+      parts=parts.filter(function(p){ return p.life>0; });
+    }
+    if(birds.length&&cur){
+      var envEl=(now-relT)/1000, nb=birds.length;
+      birds.forEach(function(b){
+        var age=envEl-b.born; if(age<0) return;
+        if(b.mode==='spiral'){ var px=b.x, py=b.y; b.th+=dt*2.3; var R=b.r0+age*U*1.1, cyy=cur.y-U*1.6-age*U*.9;
+          b.x=cur.x+Math.cos(b.th)*R; b.y=cyy+Math.sin(b.th)*R*.42; if(dt>0){ b.vx=(b.x-px)/dt; b.vy=(b.y-py)/dt; } b.a=Math.min(1,age*2);
+          if(age>b.fly) b.mode='fly'; }
+        else { var dx=STAR.x-b.x, dy=STAR.y-b.y, d=Math.hypot(dx,dy)||1, spd=Math.min(230,70+d*1.3)*Math.max(.8,H/800);
+          b.vx+=(dx/d*spd-b.vx)*Math.min(1,dt*1.8)+(RM?0:Math.sin(now*.002+b.ph)*dt*30); b.vy+=(dy/d*spd-b.vy)*Math.min(1,dt*1.8);
+          b.x+=b.vx*dt; b.y+=b.vy*dt; b.a=clamp((d-8)/90,.12,1);
+          if(!RM&&rnd()<.7) sparks.push({x:b.x,y:b.y,vx:(rnd()-.5)*6,vy:6+rnd()*8,a:.55*b.a,dec:.7});
+          if(d<16){ b.dead=true; STAR.e=Math.min(1,STAR.e+1/nb);
+            for(var i=0;i<8;i++) sparks.push({x:STAR.x,y:STAR.y,vx:(rnd()-.5)*50,vy:(rnd()-.5)*50,a:.8,dec:1.4});
+            if(!STAR.first){ STAR.first=true; snd(88,0,.14); } } }
+        if(!RM&&b.mode==='spiral'&&rnd()<.5) sparks.push({x:b.x,y:b.y,vx:(rnd()-.5)*6,vy:8,a:.45*b.a,dec:.8});
+      });
+      if(envEl>18) birds.forEach(function(b){ if(!b.dead){ b.dead=true; STAR.e=Math.min(1,STAR.e+1/nb); } });
+      birds=birds.filter(function(b){ return !b.dead; });
+      if(!birds.length){ STAR.e=1; }
+    }
+    if(state==='fin') STAR.e=.42; // l'étoile de ce soir rejoint les autres, à leur taille
+    STAR.ed+=(STAR.e-STAR.ed)*Math.min(1,dt*1.6);
+    if(STAR.e>=1&&!STAR.full&&STAR.ed>.6){ STAR.full=true; snd(86,0,.18); snd(93,.3,.12); snd(98,.6,.07); }
+    sparks.forEach(function(s){ s.x+=s.vx*dt; s.y+=s.vy*dt; s.a-=dt*s.dec; }); sparks=sparks.filter(function(s){ return s.a>0; });
+
+    if(state==='envol'&&!birds.length&&el>2){ go('aube'); dawnOn=true; }
+    if(state==='aube'&&el>(RM?1.5:3.2)){ resetMerci(); show('pz-merci'); go('merci'); snd(69,0,.16); snd(74,.3,.12); }
+    if(state==='merciBloom'&&el>(RM?3:5.4)){ hideAll(); go('route'); }
+    if(state==='route'){
+      var k2=Math.min(1,el/(RM?2.5:6.5)); me.walk=true; me.bob+=dt*7; footstep(dt);
+      me.x=P.standX+(P.endX-P.standX)*(k2*k2);
+      if(k2>=1){ me.walk=false; $('pzRouteK').textContent=cap(fmtDate(new Date().toISOString(),true))+L(" · quelque chose s’est envolé"," · something flew away"); show('pz-route'); go('fin'); snd(62,0,.22); snd(69,.12,.18); snd(74,.24,.16); }
+    }
+  }
+  function draw(t){
+    var eS=ease(ia(0,1.5)), eF=ease(ia(.35,1.7)), eN=ease(ia(.7,1.5)), eD=ease(ia(1.7,1.9)), kD=ia(3.1,2.2);
+    cx.globalCompositeOperation='source-over'; cx.globalAlpha=1;
+    if(eS<1){ cx.fillStyle='#050407'; cx.fillRect(0,0,W,H); }
+    cx.globalAlpha=eS; cx.drawImage(skyL,0,0,W,H); cx.globalAlpha=1;
+    cx.globalCompositeOperation='lighter';
+    drawAmbientSky(t); drawStars(t);
+    cx.globalCompositeOperation='source-over';
+    if(eF>0){ cx.globalAlpha=eF; cx.drawImage(farL,0,(1-eF)*H*.035,W,H); cx.globalAlpha=1; }
+    cx.globalCompositeOperation='lighter'; cx.globalAlpha=1; if(eF>0) drawMist(eF);
+    cx.globalCompositeOperation='source-over';
+    if(eN>0){ cx.globalAlpha=eN; cx.drawImage(nearL,0,(1-eN)*H*.05,W,H); cx.globalAlpha=1; }
+    // les pierres levées sortent de terre (le sol cache ce qui est encore dessous), puis un souffle de lumière
+    if(eD>0){ cx.save(); cx.beginPath(); cx.moveTo(0,0); for(var gi=0;gi<gclip.length;gi+=2) cx.lineTo(gclip[gi],gclip[gi+1]); cx.lineTo(W,0); cx.closePath(); cx.clip(); cx.globalAlpha=Math.min(1,eD*1.8); cx.drawImage(dolL,0,(1-eD)*U*3.4,W,H); cx.restore(); cx.globalAlpha=1; }
+    if(kD>0&&kD<1){ cx.globalCompositeOperation='lighter'; sprite(SP.gold,P.dolX,ground(P.dolX)-U*1.5,U*(3+7*kD),.22*Math.sin(kD*Math.PI)); cx.globalCompositeOperation='source-over'; }
+    var list=[]; TR.forEach(function(r){ var v=TVIS[r.id]; if(v&&!v.hide&&!(cur&&cur.id===r.id)) list.push(v); });
+    var carried=resting(); if(cur&&cur.out) carried.push(cur);
+    // le dolmen garde une lumière chaude, un peu plus forte avec chaque pierre qu'il abrite
+    if(DATA.length){ cx.globalCompositeOperation='lighter'; sprite(SP.gold,P.dolX,ground(P.dolX)-U*.55,U*2.3,(.06+.025*Math.min(6,DATA.length))*ease(ia(3.0,1.5))*(RM?1:(.85+.15*heart(t)))); cx.globalCompositeOperation='source-over'; }
+    list.concat(carried).forEach(drawShadow);
+    cx.globalCompositeOperation='lighter';
+    drawPrints(); drawMotes(t);
+    list.forEach(function(v){ drawStoneGlow(v,t); }); carried.forEach(function(v){ drawStoneGlow(v,t); });
+    cx.globalCompositeOperation='source-over';
+    list.forEach(function(v){ drawStone(v,t); }); carried.forEach(function(v){ drawStone(v,t); });
+    cx.globalCompositeOperation='lighter';
+    list.forEach(function(v){ drawVeins(v,t); }); carried.forEach(function(v){ drawVeins(v,t); drawTether(v,t); });
+    drawMe(t); drawParts(); drawSparks(); drawBirds(t); drawRings(t); drawFlash(t);
+    cx.globalCompositeOperation='source-over'; cx.globalAlpha=1;
+  }
+  function layout(){
+    DPR=Math.min(window.devicePixelRatio||1,2); W=window.innerWidth; H=window.innerHeight; if(!W||!H) return;
+    cv.style.height=H+'px';
+    cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); cx.setTransform(DPR,0,0,DPR,0,0);
+    U=Math.max(16,Math.min(W,H)*.034);
+    P.startX=W*.14; P.dolX=W*.6; P.standX=P.dolX-U*3.7; P.endX=W+80;
+    CH.x=P.dolX; CH.y=ground(P.dolX)+U*.6-U*.6*.72; // le seuil, devant le dolmen : là où la pierre attend de s'envoler
+    buildSky(); buildFar(); buildNear(); buildDol(); makeAmbient(); laid=true;
+    if(['walk','route','fin'].indexOf(state)<0) me.x=(['sortie','poseNew','garder','dolmen','envol','aube','merci','merciBloom'].indexOf(state)>=0)?P.standX:P.startX;
+    if(cur&&cur.placed&&cur.out){ cur.x=CH.x; cur.y=CH.y; }
+    if(cur&&cur.released){ var sp=starPos(cur.id); STAR.x=sp.x; STAR.y=sp.y; }
+    Object.keys(TVIS).forEach(function(id){ TVIS[id].snap=true; });
+    placeResting(1,true);
+  }
+  function frame(now){
+    if(!laid) return;
+    var dt=Math.min(.05,Math.max(0,(now-(lastT||now))/1000)); lastT=now; var el=(now-stT)/1000;
+    step(now,dt,el); draw(now);
+  }
+  function enter(){
+    introT=performance.now();
+    if(!laid||W!==window.innerWidth||(!TOUCH&&H!==window.innerHeight)||window.innerHeight>H+2) layout();
+    lastT=0; subscribe(); paintStatic();
+    if(state==='wait'){ if(loaded) goHome(true); else { hideAll(); } return; }
+    if(state==='porter'&&ta.value.trim()) return; // un brouillon en cours : on le retrouve tel quel
+    goHome(true);
+  }
+  function leave(){ stopDict(); holding=false; shimmer(0,true); if(state!=='wait'&&state!=='porter'){ walk=null; if(cur&&!GONE[cur.id]){ cur.out=false; cur.placed=false; } resetFlow(); hideAll(); go('lieu'); } }
+  window.addEventListener('resize',function(){
+    if(currentView!=="pierres"){ laid=laid&&W===window.innerWidth&&H===window.innerHeight; return; }
+    // sur téléphone, le clavier réduit la hauteur : le paysage ne bouge pas, le clavier passe par-dessus
+    if(TOUCH&&window.innerWidth===W&&window.innerHeight<H+2){ window.scrollTo(0,0); return; }
+    layout();
+  });
+  window.__pz={state:function(){ return state; },startHold:startHold,merci:doMerci};
+  return {enter:enter,leave:leave,frame:frame,lang:setLangTexts};
+})();
 
 buildGalaxy();
 requestAnimationFrame(loop);
