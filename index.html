@@ -3203,15 +3203,19 @@ var PZ=(function(){
   function drawMoon(o){
     var r=Math.max(12,Math.min(W,H)*.03), mx=W*.17, my=Math.min(H*.47,ridgeFar(W*.17)-r*2.6);
     MOON={x:mx,y:my,r:r};
+    // la lune de ce soir, telle qu'elle est dans le ciel (même calcul que les petites lunes du carnet)
+    var age=moonAge(new Date()), k=Math.cos(age*6.2832), sg=age<.5?1:-1, illum=(1-k)/2;
     o.globalCompositeOperation='lighter';
-    var h=o.createRadialGradient(mx,my,r*.6,mx,my,r*11); h.addColorStop(0,'rgba(226,214,196,.2)'); h.addColorStop(.25,'rgba(200,180,180,.06)'); h.addColorStop(1,'rgba(200,180,180,0)');
+    var h=o.createRadialGradient(mx,my,r*.6,mx,my,r*11); h.addColorStop(0,'rgba(226,214,196,'+(.1+.16*illum).toFixed(3)+')'); h.addColorStop(.25,'rgba(200,180,180,.06)'); h.addColorStop(1,'rgba(200,180,180,0)');
     o.fillStyle=h; o.fillRect(mx-r*11,my-r*11,r*22,r*22);
     o.globalCompositeOperation='source-over';
     o.fillStyle='rgba(226,220,206,.07)'; o.beginPath(); o.arc(mx,my,r,0,6.2832); o.fill();
     var m=mk(r*3*DPR,r*3*DPR), mo=m.getContext('2d'); mo.setTransform(DPR,0,0,DPR,0,0);
     var mg=mo.createLinearGradient(r*.4,r*2.6,r*2.6,r*.4); mg.addColorStop(0,'#fbf1dc'); mg.addColorStop(1,'#d9c9ae');
-    mo.fillStyle=mg; mo.beginPath(); mo.arc(r*1.5,r*1.5,r,0,6.2832); mo.fill();
-    mo.globalCompositeOperation='destination-out'; mo.beginPath(); mo.arc(r*1.5+r*.5,r*1.5-r*.3,r*.98,0,6.2832); mo.fill();
+    var c=r*1.5, a; mo.fillStyle=mg; mo.beginPath();
+    for(a=-Math.PI/2;a<=Math.PI/2+1e-4;a+=Math.PI/48) mo.lineTo(c+sg*r*Math.cos(a),c+r*Math.sin(a));
+    for(a=Math.PI/2;a>=-Math.PI/2-1e-4;a-=Math.PI/48) mo.lineTo(c+sg*r*k*Math.cos(a),c+r*Math.sin(a));
+    mo.closePath(); mo.fill();
     o.drawImage(m,mx-r*1.5,my-r*1.5,r*3,r*3);
   }
   function layerRidge(o,f,c1,c2,rim){
@@ -3681,7 +3685,8 @@ var PZ=(function(){
   $('pzOpen').addEventListener('click',function(){ if(!DATA.length) openPorter('new'); else openColl(); });
   $('pzNew').addEventListener('click',function(){ openPorter('new'); });
   $('pzNew2').addEventListener('click',function(){ openPorter('new'); });
-  $('pzCollBack').addEventListener('click',function(){ if(cur&&!cur.out){ cur.glowK=0; cur=null; } if(me.x>P.startX+4) descend(); else goHome(); });
+  function closeColl(){ if(cur&&!cur.out){ cur.glowK=0; cur=null; } if(me.x>P.startX+4) descend(); else goHome(); }
+  $('pzCollBack').addEventListener('click',closeColl);
   $('pzCancel').addEventListener('click',function(){ stopDict(); if(mode==='add'&&cur) { fillChemin(); show('pz-chemin'); go('chemin'); } else goHome(); });
   $('pzCarry').addEventListener('click',function(){
     var words=ta.value.trim(); if(words.length<2) return;
@@ -3764,6 +3769,7 @@ var PZ=(function(){
   function onDolmen(x,y){ return Math.abs(x-P.dolX)<U*3.3&&y>ground(P.dolX)-U*3.2&&y<ground(P.dolX)+U*.6; }
   cv.addEventListener('pointerdown',function(e){
     if(state==='merci'&&Math.hypot(e.clientX-me.x,e.clientY-meY(performance.now()))<U*2.4){ doMerci(); return; }
+    if(state==='coll'){ closeColl(); return; } // le coffre ouvert : taper n'importe où en dehors le referme
     if((state==='lieu'||state==='garder'||state==='coll'||state==='chemin')&&DATA.length&&onDolmen(e.clientX,e.clientY)) openColl();
   });
   cv.addEventListener('pointermove',function(e){ cv.style.cursor=((state==='lieu'||state==='garder'||state==='chemin')&&DATA.length&&onDolmen(e.clientX,e.clientY))||(state==='merci'&&Math.hypot(e.clientX-me.x,e.clientY-meY(performance.now()))<U*2.4)?'pointer':''; });
