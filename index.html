@@ -57,8 +57,12 @@ button{font:inherit;cursor:pointer}
 
 /* ---------- le cadenas ---------- */
 .lock{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
-  background:radial-gradient(70% 60% at 50% 45%, rgba(10,8,9,.35), rgba(10,8,9,.82));transition:opacity 1.4s ease,transform 1.4s ease}
-.lock.opening{opacity:0;transform:scale(1.04);pointer-events:none}
+  background:radial-gradient(70% 60% at 50% 45%, rgba(10,8,9,.35), rgba(10,8,9,.82));transition:opacity 1.2s ease}
+.lock.opening{opacity:0;pointer-events:none}
+/* à l'ouverture, les mots et les notes de la mélodie s'effacent d'abord (les notes s'envolent vers le 56), le voile ensuite :
+   plus de notes fantômes posées par-dessus le ciel */
+.lock-inner{transition:opacity .5s ease,transform .9s cubic-bezier(.2,.8,.2,1)}
+.lock.opening .lock-inner{opacity:0;transform:scale(.96)}
 #lockCv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .lock-inner{position:relative;z-index:1;display:grid;justify-items:center;gap:.9rem;text-align:center;max-width:26rem}
 .lock-kicker{font-family:var(--f-display);font-style:italic;font-size:1.25rem;color:var(--gold);margin:0}
@@ -360,7 +364,7 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 .prefs-note{margin:0;font-size:.85rem;color:var(--muted);min-height:1.2em}
 .prefs .redo{justify-self:start;margin:0;padding-left:0}
 /* l'entrée du ciel, après la mélodie : des notes forment le 56, puis le texte se dépose mot à mot */
-#introCv{position:fixed;inset:0;width:100%;height:100%;z-index:25;pointer-events:none}
+#introCv{position:fixed;inset:0;width:100%;height:100%;z-index:31;pointer-events:none} /* au-dessus du voile de la mélodie : les notes en naissent */
 .hero h1 .n{display:inline-block;transition:opacity 1.4s ease,filter 1.8s ease,transform 1.8s cubic-bezier(.2,.8,.2,1)}
 .hero.nwait h1 .n{opacity:0;filter:blur(12px);transform:scale(.97)}
 .hero .w{display:inline-block;opacity:0;transform:translateY(.32em);filter:blur(6px);transition:opacity 1s ease,transform 1.2s cubic-bezier(.2,.8,.2,1),filter 1.1s ease}
@@ -2407,10 +2411,11 @@ function introShape(dpr){
   var data=o.getImageData(0,0,w,h).data,cand=[],step=Math.max(3,Math.round(fs/26));
   for(var y=0;y<h;y+=step) for(var x=0;x<w;x+=step){ if(data[(y*w+x)*4+3]>140) cand.push([x-pad,y-pad-fa]); }
   // chaque signe (♪ ♫ ♩ ♬) est dessiné une seule fois, net, à sa plus grande taille ; en vol on ne fait que le poser
-  var GS={},gMax=Math.ceil(fs*.14*dpr*1.15)+4;
+  // (au moins 18 px : à la taille du 56 seul, les notes en vol ne faisaient que 4 à 7 px, invisibles sur téléphone)
+  var gBase=Math.max(fs*.14,18),GS={},gMax=Math.ceil(gBase*dpr*1.15)+4;
   ["♪","♫","♩","♬"].forEach(function(g){ var c=document.createElement('canvas'); c.width=c.height=gMax*2; var x=c.getContext('2d');
-    x.font=Math.round(fs*.14*dpr)+"px "+cs.fontFamily; x.textAlign="center"; x.textBaseline="middle"; x.fillStyle='rgb('+ACC+')'; x.fillText(g,gMax,gMax); GS[g]=c; });
-  INTRO_PREP={key:key,cs:cs,fs:fs,fa:fa,fd:fd,cand:cand,GS:GS,gMax:gMax,gScale:1/(fs*.14*dpr)};
+    x.font=Math.round(gBase*dpr)+"px "+cs.fontFamily; x.textAlign="center"; x.textBaseline="middle"; x.fillStyle='rgb('+ACC+')'; x.fillText(g,gMax,gMax); GS[g]=c; });
+  INTRO_PREP={key:key,cs:cs,fs:fs,fa:fa,fd:fd,cand:cand,GS:GS,gMax:gMax,gScale:1/(gBase*dpr)};
   return INTRO_PREP;
 }
 // pendant que l'écran de la mélodie attend : on prépare le 56, et les dates du carnet (le premier formateur coûte cher)
@@ -2443,12 +2448,15 @@ function playIntro(){
   var links=[],seen={};
   pts.forEach(function(p,a){ var near=pts.map(function(q,b){ return [b,(q[0]-p[0])*(q[0]-p[0])+(q[1]-p[1])*(q[1]-p[1])]; }).filter(function(e){ return e[0]!==a; }).sort(function(u,v){ return u[1]-v[1]; }).slice(0,2);
     near.forEach(function(e){ if(e[1]>minD*minD*3.6) return; var key=Math.min(a,e[0])+"-"+Math.max(a,e[0]); if(seen[key]) return; seen[key]=1; links.push([a,e[0]]); }); });
-  // 2. les notes : elles partent d'où la mélodie a été jouée (le centre), s'envolent en courbe, de gauche à droite
-  var GL=["♪","♫","♩","♬"],cx0=VWi/2,cy0=VHi*.48,minX=r.left,spanX=Math.max(1,r.width);
-  var notes=pts.map(function(p,i){ var a=Math.random()*6.283,rad=Math.min(VWi,VHi)*(.08+Math.random()*.3),sx=cx0+Math.cos(a)*rad,sy=cy0+Math.sin(a)*rad*.8;
+  // 2. les notes : elles naissent des sept notes de la mélodie, là où elles brillent encore, et s'envolent en courbe vers le 56
+  var GL=["♪","♫","♩","♬"],cx0=VWi/2,cy0=VHi*.48,minX=r.left,spanX=Math.max(1,r.width),LG=null;
+  try{ if(!lockEl.hidden){ LG=lockGeom(); if(!(LG.R>0)) LG=null; } }catch(e){ LG=null; }
+  var notes=pts.map(function(p,i){ var a=Math.random()*6.283,sx,sy;
+    if(LG){ var q=LG.pts[i%7],jr=4+Math.random()*16; sx=q[0]+Math.cos(a)*jr; sy=q[1]+Math.sin(a)*jr; }
+    else { var rad=Math.min(VWi,VHi)*(.08+Math.random()*.3); sx=cx0+Math.cos(a)*rad; sy=cy0+Math.sin(a)*rad*.8; }
     var mx=(sx+p[0])/2,my=(sy+p[1])/2,dx=p[0]-sx,dy=p[1]-sy,len=Math.sqrt(dx*dx+dy*dy)||1,bend=(Math.random()*2-1)*len*.45;
     return {sx:sx,sy:sy,tx:p[0],ty:p[1],cx:mx-dy/len*bend,cy:my+dx/len*bend,g:GL[(Math.random()*GL.length)|0],rot:(Math.random()*2-1)*.5,
-      delay:((p[0]-minX)/spanX)*900+Math.random()*260,dur:1250+Math.random()*500,size:fs*(.09+Math.random()*.05),arr:-1}; });
+      delay:((p[0]-minX)/spanX)*650+Math.random()*200,dur:1250+Math.random()*500,size:(function(k){ return Math.max(fs*(.09+k*.05),11+k*7); })(Math.random()),arr:-1}; });
   function ease(u){ return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2; }
   var GS=P.GS,gMax=P.gMax,gScale=P.gScale;
   var t0=performance.now(),lastArrive=0,formed=-1,fadeStart=-1,chimed=false,col=function(a){ return 'rgba('+ACC+','+a.toFixed(3)+')'; };
@@ -2480,14 +2488,14 @@ function playIntro(){
       }
     });
     // 3. le 56 est formé : une lumière le parcourt, un tintement, puis la constellation devient le texte
-    if(allIn&&formed<0&&now-lastArrive>450){ formed=now;
+    if(allIn&&formed<0&&now-lastArrive>300){ formed=now;
       if(drone&&!chimed){ chimed=true; try{ var ac=audio(); glass(72,ac.currentTime+.05,.32); glass(79,ac.currentTime+.2,.22); }catch(e){} } }
     if(formed>0&&now-formed>350) hero.classList.remove('nwait'); // le 56 naît sous la constellation, pendant qu'elle brille encore
-    if(formed>0&&fadeStart<0&&now-formed>1500){ fadeStart=now; revealText(hero,150); }
+    if(formed>0&&fadeStart<0&&now-formed>1050){ fadeStart=now; revealText(hero,100); }
     if(fadeStart>0&&now-fadeStart>1400){ ctx.clearRect(0,0,VWi,VHi); cv.hidden=true; introEnd(); return; }
     requestAnimationFrame(frame);
   }
-  setTimeout(function(){ t0=performance.now(); requestAnimationFrame(frame); },450);
+  requestAnimationFrame(function(n0){ t0=n0; frame(n0); }); // tout de suite : les notes quittent la mélodie pendant qu'elle s'efface
 }
 
 // ===== Ce soir : le rituel, un écran à la fois =====
