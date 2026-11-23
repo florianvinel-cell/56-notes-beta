@@ -399,6 +399,9 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 .coda h2{margin:0}
 .coda-seq{margin:0;font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:center;gap:.3rem .7rem}
 .coda-seq b{font-weight:400;color:var(--gold)}
+/* la mélodie entière, semaine après semaine : un souffle plus large entre deux semaines */
+.coda-seq{gap:.45rem 1.5rem}
+.coda-seq .cw{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:.3rem .7rem}
 .coda-poem{margin:0;font-family:var(--f-display);font-style:italic;font-size:1.3rem;line-height:1.55;color:var(--soft);text-wrap:pretty}
 .coda-poem span{display:block}
 .coda-poem span+span{margin-top:.5rem}
@@ -1990,9 +1993,11 @@ function codaLastThought(){
 function openCoda(d,where){
   codaDay=d; var c=$('coda');
   $('codaDate').textContent=cap(fmtD(d.date,{weekday:'long',day:'numeric',month:'long'}))+" · "+weekLabel(d.w);
-  var seq=$('codaSeq'); seq.textContent="";
-  DAYS.filter(function(x){ return x.w===d.w&&x.status==="lived"; }).forEach(function(x){
-    var el=document.createElement(x===d?'b':'span'); el.textContent=noteName(midiToNote(x.midi)); seq.appendChild(el); });
+  // toute la mélodie posée depuis le premier soir, regroupée par semaine (pas seulement la semaine en cours)
+  var seq=$('codaSeq'); seq.textContent=""; var grp=null,gw=-1;
+  DAYS.filter(function(x){ return x.status==="lived"; }).forEach(function(x){
+    if(!grp||x.w!==gw){ grp=document.createElement('span'); grp.className="cw"; seq.appendChild(grp); gw=x.w; }
+    var el=document.createElement(x===d?'b':'span'); el.textContent=noteName(midiToNote(x.midi)); grp.appendChild(el); });
   var po=$('codaPoem'); po.textContent=""; po.className="coda-poem hush";
   var ch=$('codaChoice'); ch.hidden=false; ch.className="row coda-choice";
   var aq=$('codaAfterQ'); aq.hidden=true; aq.className="row coda-choice"; $('codaReplay').className="link coda-replay";
@@ -2013,7 +2018,7 @@ $('codaAnswer').addEventListener('click',function(){
   if(!codaDay) return; pendingQuestion={t:codaQuestion(codaDay),soir:codaDay.iso};
   closeCoda(); location.hash="#carnet"; setTimeout(openComposer,500);
 });
-$('codaReplay').addEventListener('click',function(){ if(codaDay) playWeek(codaDay.w); });
+$('codaReplay').addEventListener('click',function(){ if(codaDay) playPath(); });
 
 // ===== La fin de la semaine =====
 // Le dimanche, quand la septième note est posée, la semaine se referme et devient une constellation :
@@ -3001,8 +3006,9 @@ function showStepContempler(td,where){
     setTimeout(function(){
       var d=DAYS[td.i]; d.flash=performance.now(); burst(d,1.4); linesFrom=performance.now();
       // le dimanche, la semaine se referme : elle devient une constellation (à la place de la coda)
-      if(d.d===6){ setTimeout(function(){ var ok=false; try{ ok=openWeekEnd(d.w,false); }catch(e){ ok=false; } if(!ok){ var dur=playWeek(d.w)||2400; setTimeout(function(){ openCoda(d,where); },dur); } },900); return; }
-      setTimeout(function(){ var dur=playWeek(d.w)||2400; setTimeout(function(){ openCoda(d,where); },dur); },500);
+      if(d.d===6){ setTimeout(function(){ var ok=false; try{ ok=openWeekEnd(d.w,false); }catch(e){ ok=false; } if(!ok){ var dur=playPath()||2400; setTimeout(function(){ openCoda(d,where); },dur); } },900); return; }
+      // toute la mélodie, depuis le premier soir, jusqu'à la note de ce soir
+      setTimeout(function(){ var dur=playPath()||2400; setTimeout(function(){ openCoda(d,where); },dur); },500);
     },700);
   },500);
 }
