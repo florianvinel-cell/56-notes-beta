@@ -338,6 +338,12 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 .beta-tag{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:.25rem .6rem;margin-right:.2rem}
 .beta-install{cursor:pointer;color:var(--gold);border-color:rgba(var(--acc),.4);background:rgba(10,8,9,.45)}
 .beta-install:hover,.beta-install:focus-visible{border-color:rgba(var(--acc),.7);outline:none}
+.ios-sheet h2{margin:0 2.8rem 1rem 0;font-family:var(--f-display);font-weight:300;font-size:1.7rem;line-height:1.15}
+.ios-steps{margin:0;padding-left:1.3rem;display:grid;gap:.85rem;line-height:1.5;color:var(--soft)}
+.ios-steps b{color:var(--text);font-weight:500}
+.ios-steps li.hot{color:var(--text)}
+.ios-note{margin:1.2rem 0 0;color:var(--muted);font-size:.9rem;line-height:1.5}
+.ios-share{display:inline-block;width:.95em;height:1.15em;vertical-align:-.18em;background:var(--gold);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 9H4v13h12V9h-3M10 15V2M6 6l4-4 4 4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 9H4v13h12V9h-3M10 15V2M6 6l4-4 4 4'/%3E%3C/svg%3E") center/contain no-repeat}
 .bar-r{display:flex;gap:.5rem;align-items:center;margin-left:auto}
 .sound.lang{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.1em;color:var(--soft);cursor:pointer}
 .sound.lang:hover,.sound.lang:focus-visible{color:var(--gold);border-color:rgba(var(--acc),.45);outline:none}
@@ -773,6 +779,17 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
     <a href="#pierres" data-v="pierres"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.6 7.4 7.4l8-.7 5.6 1.8-.7 1.5-5.4-.8-7.2.6Z"/><path d="M5.5 19.2 5.9 11.4l2.8-.4.3 8.2M15.2 19.2l.1-8.4 2.9.1.6 8.3"/><path d="M2.5 19.4h19"/><circle class="fill" cx="19.6" cy="3.6" r=".9"/></svg><span data-en="Stones">Les pierres</span></a>
   </nav>
 
+  <div class="sheet-back" id="iosBack" hidden></div>
+  <aside class="sheet ios-sheet" id="iosSheet" role="dialog" aria-modal="true" aria-labelledby="iosT" hidden>
+    <button class="sheet-close" id="iosClose" type="button" aria-label="Fermer" data-en-aria="Close">✕</button>
+    <h2 id="iosT" data-en="Install on your iPhone">Installer sur ton iPhone</h2>
+    <ol class="ios-steps">
+      <li id="iosSafari" data-en="Open this link in <b>Safari</b>. If it opened inside another app (Instagram, Messenger…), use its menu to <b>Open in Safari</b>.">Ouvre ce lien dans <b>Safari</b>. S’il s’est ouvert dans une autre app (Instagram, Messenger…), passe par son menu pour <b>Ouvrir dans Safari</b>.</li>
+      <li data-en="Tap the <b>Share</b> button <span class=ios-share></span> (if you don’t see it, it is behind <b>···</b>).">Touche le bouton <b>Partager</b> <span class=ios-share></span> (s’il n’est pas visible, il est derrière <b>···</b>).</li>
+      <li data-en="Scroll down, choose <b>Add to Home Screen</b>, then <b>Add</b>.">Descends, choisis <b>Sur l’écran d’accueil</b>, puis <b>Ajouter</b>.</li>
+    </ol>
+    <p class="ios-note" data-en="The app then appears on your home screen, full screen, like any other app.">L’app apparaît alors sur ton écran d’accueil, en plein écran, comme les autres.</p>
+  </aside>
   <div class="sheet-back" id="sheetBack" hidden></div>
   <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="dayDate" hidden>
     <button class="sheet-close" id="sheetClose" type="button" aria-label="Fermer" data-en-aria="Close">✕</button>
@@ -4035,7 +4052,22 @@ bootLock();
   function cache(){ if(b) b.hidden=true; invite=null; }
   addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); invite=e; if(b) b.hidden=false; });
   addEventListener('appinstalled',cache);
-  if(b) b.addEventListener('click',function(){ if(!invite) return; invite.prompt(); invite.userChoice.then(cache,cache); });
+  // iPhone / iPad : Safari ne propose jamais d'installer lui-même ; le bouton reste visible et montre le geste
+  var ua=navigator.userAgent, ios=/iP(hone|ad|od)/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  var installee=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  var horsSafari=/FBAN|FBAV|Instagram|Snapchat|LinkedInApp|Line\/|GSA\/|Twitter/.test(ua);
+  var fb=document.getElementById('iosBack'), fs=document.getElementById('iosSheet'), ft=null;
+  function ouvre(){ if(!fs) return; clearTimeout(ft); var st=document.getElementById('iosSafari'); if(st) st.className=horsSafari?'hot':'';
+    fb.hidden=false; fs.hidden=false; void fs.offsetWidth; fb.classList.add('open'); fs.classList.add('open');
+    setTimeout(function(){ try{ document.getElementById('iosClose').focus({preventScroll:true}); }catch(e){} },400); }
+  function ferme(){ if(!fs||fs.hidden) return; fb.classList.remove('open'); fs.classList.remove('open'); ft=setTimeout(function(){ fb.hidden=true; fs.hidden=true; },600); if(b) try{ b.focus({preventScroll:true}); }catch(e){} }
+  if(fb) fb.addEventListener('click',ferme);
+  var fc=document.getElementById('iosClose'); if(fc) fc.addEventListener('click',ferme);
+  addEventListener('keydown',function(e){ if(e.key==='Escape') ferme(); });
+  if(ios&&!installee&&b) b.hidden=false;
+  if(b) b.addEventListener('click',function(){
+    if(invite){ invite.prompt(); invite.userChoice.then(cache,cache); return; }
+    if(ios) ouvre(); });
 })();
 </script>
 </body>
