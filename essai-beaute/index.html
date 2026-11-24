@@ -577,8 +577,8 @@ function EngineThree(cv,opt){
 // ---------- les quatre rendus ----------
 var V=[
   {k:"0", nom:"Aujourd’hui", sous:"le ciel de l’app", make:function(cv){ return new Engine2D(cv); }},
-  {k:"A", nom:"A", sous:"500 000 grains doux", make:function(cv){ return new EngineGL(cv,{n:500000,grain:.62,dg:.3,wg:.006,bloom:0,minP:1.8}); }},
-  {k:"B", nom:"B", sous:"250 000 grains, lueur légère", make:function(cv){ return new EngineGL(cv,{n:250000,grain:.8,dg:.32,wg:.008,bloom:.45,minP:1.8}); }},
+  {k:"A", nom:"A", sous:"500 000 grains doux", make:function(cv){ return new EngineGL(cv,{n:500000,grain:.62,dg:.3,wg:.006,bloom:0,minP:3.2}); }},
+  {k:"B", nom:"B", sous:"250 000 grains, lueur légère", make:function(cv){ return new EngineGL(cv,{n:250000,grain:.8,dg:.32,wg:.008,bloom:.45,minP:3.2}); }},
   {k:"C", nom:"C", sous:"40 000 grains, lueur, 3D", make:function(cv){ return new EngineThree(cv,{n:40000}); }}
 ];
 var stage=$('stage'), active=-1, SKY=null, fpsT=[], shownAt=0, slow=false;
