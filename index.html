@@ -4701,5 +4701,41 @@ bootLock();
   if(!get('56n-lock')){ var l0=$('keepLoad0'); if(l0) l0.hidden=false; }
 })();
 </script>
+<script>
+(function(){
+  var ICI='6dd4a58aa1', K='56n-maj', pending=null;
+  function get(){ try{ return JSON.parse(localStorage.getItem(K)||'null'); }catch(e){ return null; } }
+  function visible(el){ return !!(el&&el.offsetParent!==null); }
+  function calme(){
+    var a=document.activeElement; if(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.isContentEditable)) return false;
+    var h=(location.hash||'').slice(1);
+    if(h==='soir'){ var d=document.getElementById('st-done'); if(!d||d.hidden) return false; }        // un soir en cours
+    var lk=document.getElementById('lock'); if(lk&&!lk.hidden&&document.querySelector('#lockDots .on')) return false; // une mélodie commencée
+    var ic=document.getElementById('introCv'); if(ic&&!ic.hidden) return false;                     // l'arrivée du 56
+    if(document.querySelector('.sheet.open, .reader:not([hidden])')) return false;                    // une fiche ou une lecture ouverte
+    var tas=document.querySelectorAll('textarea, input[type=text]');
+    for(var i=0;i<tas.length;i++){ if(visible(tas[i])&&tas[i].value.trim()) return false; }           // des mots pas encore gardés
+    return true;
+  }
+  function recharge(){
+    if(!pending||!calme()) return false;
+    var g=get(); if(g&&g.v===pending&&Date.now()-g.t<20*60000) return false; // déjà tenté pour cette version : pas de boucle si le réseau sert encore l'ancienne page
+    try{ localStorage.setItem(K,JSON.stringify({v:pending,t:Date.now()})); }catch(e){}
+    location.reload(); return true;
+  }
+  function verifie(puis){
+    if(!navigator.onLine||!window.fetch) return;
+    fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():''; }).then(function(v){
+      v=(v||'').trim(); if(/^[0-9a-f]{10}$/.test(v)&&v!==ICI){ pending=v; if(puis) recharge(); } }).catch(function(){});
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){ recharge(); }          // en partant : si une version attend, elle sera là au retour
+    else verifie(true);                         // en revenant : on regarde, et on recharge tout de suite si c'est calme
+  });
+  addEventListener('pageshow',function(e){ if(e.persisted) verifie(true); });
+  setInterval(function(){ verifie(false); },60*60000); // l'app reste ouverte : on note seulement qu'une version attend
+  setTimeout(function(){ verifie(false); },15000);
+})();
+</script>
 </body>
 </html>
