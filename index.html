@@ -110,7 +110,7 @@ button{font:inherit;cursor:pointer}
 #soundBtn[aria-pressed="true"] .waves{opacity:1}
 #soundBtn[aria-pressed="true"] .mute{opacity:0}
 .sound[aria-pressed="true"]{color:var(--gold);border-color:rgba(var(--acc),.45);box-shadow:0 0 16px rgba(var(--acc),.18)}
-/* le volume de la musique : une petite bulle sous le haut-parleur */
+/* le volume de toute l'app : une petite bulle sous le haut-parleur */
 .vol-wrap{position:relative}
 .vol-pop{position:absolute;top:calc(100% + 10px);right:0;z-index:12;display:flex;align-items:center;gap:.75rem;width:min(15.5rem,calc(100vw - 32px));padding:.65rem .95rem;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--hair);border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transform:translateY(-6px);transition:opacity .3s,transform .3s}
 .vol-pop.open{opacity:1;transform:none}
@@ -610,11 +610,11 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.4"/><path d="M10 2.6v2.6M10 14.8v2.6M2.6 10h2.6M14.8 10h2.6M4.8 4.8l1.7 1.7M13.5 13.5l1.7 1.7M4.8 15.2l1.7-1.7M13.5 6.5l1.7-1.7"/></svg>
       </button>
       <div class="vol-wrap" id="volWrap">
-        <button class="sound" id="soundBtn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="volPop" aria-label="Fond sonore et volume" data-en-aria="Background music and volume">
+        <button class="sound" id="soundBtn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="volPop" aria-label="Musique et volume" data-en-aria="Music and volume">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path class="spk" d="M3 7.6h2.8L9.6 4.4v11.2L5.8 12.4H3z"/><path class="waves" d="M12.4 7.4a3.6 3.6 0 0 1 0 5.2M14.6 5.2a6.8 6.8 0 0 1 0 9.6"/><path class="mute" d="M12.8 8l4 4M16.8 8l-4 4"/></svg>
         </button>
         <div class="vol-pop" id="volPop" hidden>
-          <input type="range" id="volRange" min="0" max="100" step="1" value="100" aria-label="Volume de la musique" data-en-aria="Music volume">
+          <input type="range" id="volRange" min="0" max="100" step="1" value="100" aria-label="Volume" data-en-aria="Volume">
           <span class="vol-v" id="volVal" aria-hidden="true">100 %</span>
         </div>
       </div>
@@ -1073,8 +1073,8 @@ function weekLabel(w){ var n=weekName(w); return L("semaine ","week ")+(w+1)+(n?
 
 // ===== Le son : verre, bourdon, réverbération =====
 var MOBILE=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Android|iPhone|iPad/i.test(navigator.userAgent);
-var AC=null,bus=null,dry=null,rev=null,master=null,volAmb=null,volDrone=null,nightLP=null,nightG=null;
-var VOL=100, volKeep=100; // le volume de la musique, de 0 à 100 ; volKeep = le dernier volume non nul, celui qu'on garde
+var AC=null,bus=null,dry=null,rev=null,master=null,volAmb=null,volDrone=null,volAll=null,nightLP=null,nightG=null;
+var VOL=100, volKeep=100; // le volume de toute l'app (musique, notes de verre, mélodie), de 0 à 100 ; volKeep = le dernier volume non nul, celui qu'on garde
 function volGain(v){ var x=v/100; return x*x; } // une courbe qui suit l'oreille : la moitié du curseur sonne vraiment à mi-chemin
 function audio(){
   if(AC) return AC;
@@ -1084,7 +1084,9 @@ function audio(){
   master=AC.createGain(); master.gain.value=.7;
   var comp=AC.createDynamicsCompressor(); comp.threshold.value=-24; comp.knee.value=10; comp.ratio.value=12; comp.attack.value=.002; comp.release.value=.25;
   var outG=AC.createGain(); outG.gain.value=.9;
-  master.connect(comp); comp.connect(outG); outG.connect(AC.destination);
+  // le volume agit tout au bout, après le compresseur : il règle tous les sons de l'app ensemble, sans changer leur caractère (25 nov., l’auteur)
+  volAll=AC.createGain(); volAll.gain.value=volGain(VOL);
+  master.connect(comp); comp.connect(outG); outG.connect(volAll); volAll.connect(AC.destination);
   // couper le son quand l'app passe en arrière-plan, le reprendre au retour
   document.addEventListener('visibilitychange',function(){ if(!AC) return; if(document.hidden){ if(AC.state==="running") AC.suspend(); } else if(drone&&AC.state==="suspended") AC.resume(); });
   bus=AC.createBiquadFilter(); bus.type="lowpass"; bus.frequency.value=5200; bus.Q.value=.3;
@@ -1096,13 +1098,13 @@ function audio(){
   rev.buffer=buf; var revWet=AC.createGain(); revWet.gain.value=.42; bus.connect(rev); rev.connect(revWet); revWet.connect(master);
   var dly=AC.createDelay(2); dly.delayTime.value=.42; var fb=AC.createGain(); fb.gain.value=.3; var dw=AC.createGain(); dw.gain.value=.16;
   bus.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(dw); dw.connect(master);
-  // le volume de la musique (la chanson et le bourdon) : 100 % = le niveau d'origine
-  volAmb=AC.createGain(); volAmb.gain.value=volGain(VOL);
+  // l'entrée de la musique (la chanson et le bourdon) : son volume est désormais celui de toute l'app (volAll)
+  volAmb=AC.createGain(); volAmb.gain.value=1;
   // la nuit feutre la musique : un filtre doux, grand ouvert le jour, qui se referme lentement jusqu'à la nuit profonde
   nightLP=AC.createBiquadFilter(); nightLP.type="lowpass"; nightLP.Q.value=.5; nightLP.frequency.value=nightFreq(NUIT.feutre);
   nightG=AC.createGain(); nightG.gain.value=1-.16*NUIT.feutre;
   volAmb.connect(nightLP); nightLP.connect(nightG); nightG.connect(master);
-  volDrone=AC.createGain(); volDrone.gain.value=volGain(VOL); volDrone.connect(dry); volDrone.connect(rev);
+  volDrone=AC.createGain(); volDrone.gain.value=1; volDrone.connect(dry); volDrone.connect(rev);
   return AC;
 }
 function glass(midi,when,vel){
@@ -1392,10 +1394,10 @@ function ambDuck(sec){ // s'efface quand une mélodie du ciel joue
 }
 var soundBtn=$('soundBtn');
 function setSound(on){ if(on) droneOn(); else droneOff(); soundBtn.setAttribute('aria-pressed',on?'true':'false'); }
-// Le volume : un appui sur le haut-parleur ouvre le curseur (et lance la musique si elle dort). Tout à gauche, 0 : la musique s'arrête.
+// Le volume : un appui sur le haut-parleur ouvre le curseur (et lance la musique si elle dort). Il règle tous les sons de l'app. Tout à gauche, 0 : silence, et la musique s'arrête.
 function setVolume(v){
   VOL=clamp(Math.round(+v||0),0,100); var r=$('volRange'); r.value=VOL; r.style.setProperty('--p',VOL+'%'); $('volVal').textContent=VOL+' %';
-  if(AC&&volAmb){ var t=AC.currentTime,g=volGain(VOL); [volAmb,volDrone].forEach(function(n){ n.gain.cancelScheduledValues(t); n.gain.setTargetAtTime(g,t,.05); }); }
+  if(AC&&volAll){ var t=AC.currentTime; volAll.gain.cancelScheduledValues(t); volAll.gain.setTargetAtTime(volGain(VOL),t,.05); }
 }
 var volOpen=false;
 function openVol(){ var p=$('volPop'); p.hidden=false; volOpen=true; soundBtn.setAttribute('aria-expanded','true'); requestAnimationFrame(function(){ p.classList.add('open'); }); }
