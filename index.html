@@ -1038,7 +1038,9 @@ var DAYS=[], LIVED=[], dbEntries={}, localEntries={};
 try{ localEntries=JSON.parse(lsGet('56n-soirs')||'{}')||{}; }catch(e){ localEntries={}; }
 for(var i=0;i<56;i++){
   var dt=new Date(START.getFullYear(),START.getMonth(),START.getDate()+i);
-  DAYS.push({i:i,w:Math.floor(i/7),d:i%7,date:dt,iso:isoOf(dt),moon:moonAge(dt),x:0,y:0,flash:-1e9,phase:rnd(i*5.31)*6.283});
+  // chaque note a son axe, penché de 26° à 63° vers une direction à elle : ses grains tournent sur un anneau incliné, comme autour d'une planète
+  var tilt=.45+.65*rnd(i*2.17),azi=rnd(i*4.93)*6.283;
+  DAYS.push({i:i,w:Math.floor(i/7),d:i%7,date:dt,iso:isoOf(dt),moon:moonAge(dt),x:0,y:0,flash:-1e9,phase:rnd(i*5.31)*6.283,ax:[Math.sin(tilt)*Math.cos(azi),Math.sin(tilt)*Math.sin(azi),Math.cos(tilt)]});
 }
 function validEntry(e){
   return e && typeof e==="object" && /^[A-G]$/.test(e.note) && (e.acc===""||e.acc==="b"||e.acc==="#") && typeof e.oct==="number" && e.oct>=2 && e.oct<=7 && typeof e.why==="string";
@@ -1447,7 +1449,7 @@ function nuitTick(){
 nuitTick(); setInterval(nuitTick,30000);
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) nuitTick(); });
 
-var gal=$('galaxy'),gctx=gal.getContext('2d'),goff=null,VW=0,VH=0,OW=0,OH=0,cam={x:0,y:0},twinkles=[],par={x:0,y:0};
+var gal=$('galaxy'),gctx=gal.getContext('2d'),goff=null,VW=0,VH=0,OW=0,OH=0,cam={x:0,y:0},galLastT=0,twinkles=[],par={x:0,y:0};
 var VIEW_CAM={ciel:[0,0],soir:[-.12,.05],carnet:[.12,-.04],lock:[0,.06]};
 function buildGalaxy(){
   VW=window.innerWidth; VH=window.innerHeight; var dpr=Math.min(2,window.devicePixelRatio||1);
@@ -1468,7 +1470,8 @@ function frameGalaxy(now){
   if(!OW||!OH||!VW||!VH){ if(window.innerWidth>0&&window.innerHeight>0) buildGalaxy(); if(!OW||!OH) return; }
   var tg=VIEW_CAM[unlocked?currentView:"lock"]||[0,0],mx=(OW-VW)/2,my=(OH-VH)/2;
   var tx=tg[0]*VW+par.x*16, ty=tg[1]*VH-Math.min(my*.6,window.scrollY*.05)+par.y*12;
-  var k=REDUCED?1:.022; cam.x+=(tx-cam.x)*k; cam.y+=(ty-cam.y)*k;
+  var gf=galLastT?clamp((now-galLastT)/16.667,.25,3):1; galLastT=now; // la caméra glisse au même rythme, quelle que soit la cadence
+  var k=REDUCED?1:1-Math.pow(.978,gf); cam.x+=(tx-cam.x)*k; cam.y+=(ty-cam.y)*k;
   var ox=-mx+clamp(cam.x,-mx,mx), oy=-my+clamp(cam.y,-my,my);
   gctx.clearRect(0,0,VW,VH); gctx.globalAlpha=.92*(1-.4*NUIT.prof); gctx.drawImage(goff,ox,oy); gctx.globalAlpha=1;
   var t=now*.001; gctx.fillStyle="rgb("+SKY.twinkle+")";
@@ -1713,7 +1716,7 @@ window.addEventListener('hashchange',route);
 
 // ===== Le ciel =====
 var sky=$('sky'),dustCv=$('dust'),starCv=$('stars'),dctx=dustCv.getContext('2d'),sctx=starCv.getContext('2d'),swCv=$('swirl'),swx=swCv.getContext('2d');
-var W=0,H=0,WEEKS_META=[],particles=[],bursts=[],pointer=null,hover=null,skyVisible=true,sprites={},T0=performance.now(),linesFrom=0;
+var W=0,H=0,skyLastT=0,WEEKS_META=[],particles=[],bursts=[],pointer=null,hover=null,skyVisible=true,sprites={},T0=performance.now(),linesFrom=0;
 function sprite(col){
   var key=col.map(Math.round).join(",");
   if(sprites[key]) return sprites[key];
@@ -1756,7 +1759,7 @@ function layoutDust(){
   PH=Math.max(DH,document.documentElement.scrollHeight);
   // plus de particules vivantes depuis que la voie lactée est partie : une fois et demie sur ordinateur, un peu moins sur téléphone
   var n=Math.round(clamp(DW*PH/260,800,3200)*(REDUCED?.6:1)*(MOBILE?.65*1.35:1.5)*PART); particles=[];
-  for(var k=0;k<n;k++) particles.push({x:Math.random()*DW,y:Math.random()*PH,vx:0,vy:0,s:.5+Math.random()*1.2,seed:Math.random()*100,tw:.5+Math.random()*1.5,warm:0,col:ACCV});
+  for(var k=0;k<n;k++) particles.push({x:Math.random()*DW,y:Math.random()*PH,z:0,vx:0,vy:0,vz:0,cs:null,s:.5+Math.random()*1.2,seed:Math.random()*100,tw:.5+Math.random()*1.5,warm:0,col:ACCV});
   dctx.clearRect(0,0,DW,DH); lastSy=-1;
 }
 function skyOrigin(){ var r=starCv.getBoundingClientRect(); return {x:r.left+window.scrollX,y:r.top+window.scrollY}; }
@@ -1772,45 +1775,65 @@ function burst(day,k){ var o=skyOrigin(); bursts.push({x:day.x+o.x,y:day.y+o.y,t
 function frameSky(now){
   if(!skyReady||!W) return;
   var t=now-T0,sx=window.scrollX,sy=window.scrollY,o=skyOrigin();
+  // le mouvement se compte en temps, plus en images : si l'appareil sert moins d'images (calcul plus lourd, écran 120 Hz qui redescend à 60),
+  // les grains gardent leur vitesse au lieu de ralentir avec lui (fdt = 1 à 60 images par seconde)
+  var fdt=skyLastT?clamp((now-skyLastT)/16.667,.25,3):1; skyLastT=now;
+  var SPf=SPD*fdt,damp=Math.pow(.955,fdt),warmK=1-Math.pow(.965,fdt),fadeA=REDUCED?1:1-Math.pow(.76,fdt);
   // au défilement, on fait glisser l'image d'autant : les sillages restent alignés et les particules gardent tout leur éclat
   if(sy!==lastSy){ if(lastSy>=0){ dctx.globalCompositeOperation='copy'; dctx.drawImage(dustCv,0,0,dustCv.width,dustCv.height,0,lastSy-sy,DW,DH); } else dctx.clearRect(0,0,DW,DH); lastSy=sy; }
-  dctx.globalCompositeOperation='destination-out'; dctx.fillStyle='rgba(0,0,0,'+(REDUCED?1:.24)+')'; dctx.fillRect(0,0,DW,DH);
+  dctx.globalCompositeOperation='destination-out'; dctx.fillStyle='rgba(0,0,0,'+fadeA.toFixed(3)+')'; dctx.fillRect(0,0,DW,DH);
   dctx.globalCompositeOperation='lighter';
   for(var jj=0;jj<LIVED.length;jj++){ LIVED[jj].px=LIVED[jj].x+o.x; LIVED[jj].py=LIVED[jj].y+o.y; }
   var PR=MOBILE?80:40; // le cercle que la souris (ou le doigt) creuse dans la poussière : deux fois plus petit sur ordinateur
   var R=62,R2=R*R; bursts=bursts.filter(function(b){return now-b.t<1600;});
-  swx.globalCompositeOperation='destination-out'; swx.fillStyle='rgba(0,0,0,'+(REDUCED?1:.24)+')'; swx.fillRect(0,0,W,H); swx.globalCompositeOperation='lighter';
-  var bandTop=o.y-R,bandBot=o.y+H+R,nearSky;
+  swx.globalCompositeOperation='destination-out'; swx.fillStyle='rgba(0,0,0,'+fadeA.toFixed(3)+')'; swx.fillRect(0,0,W,H); swx.globalCompositeOperation='lighter';
+  var bandTop=o.y-R,bandBot=o.y+H+R,nearSky,grid={};
+  for(var gi=0;gi<LIVED.length;gi++){ var gs=LIVED[gi],gk=Math.floor(gs.py/R)*4096+Math.floor(gs.px/R); (grid[gk]||(grid[gk]=[])).push(gs); }
   // les grains froids partagent une même couleur : on ne la reformule pas à chaque grain, seul l'éclat change (globalAlpha)
   var dustS=RAINBOW?"":'rgb('+(SKY.dust[0]|0)+','+(SKY.dust[1]|0)+','+(SKY.dust[2]|0)+')',swS="",dS="";
   for(var i=0;i<particles.length;i++){
     var p=particles[i];
     var ang=Math.sin(p.x*.0042+t*.00011)*1.6+Math.cos(p.y*.0051-t*.00008)*1.6+Math.sin((p.x-p.y)*.0017+p.seed)*.8;
-    p.vx+=Math.cos(ang)*.012*SPD; p.vy+=Math.sin(ang)*.012*SPD;
-    var warmT=0;
+    p.vx+=Math.cos(ang)*.012*SPf; p.vy+=Math.sin(ang)*.012*SPf;
+    var warmT=0,cap=null,cd2=R2;
     nearSky=p.y>bandTop&&p.y<bandBot;
-    for(var j=0;nearSky&&j<LIVED.length;j++){
-      var s=LIVED[j],dx=s.px-p.x,dy=s.py-p.y,d2=dx*dx+dy*dy;
-      if(d2<R2&&d2>1){ var dd=Math.sqrt(d2),k=1-dd/R,inw=dd>13?.011:-.014;
-        p.vx+=(dx/dd*inw+(-dy/dd)*.017)*k*SPD; p.vy+=(dy/dd*inw+(dx/dd)*.017)*k*SPD; if(k>warmT){warmT=k;p.col=s.col;} }
-    }
+    // une seule note tient un grain à la fois (la plus proche, et celle qui le tient déjà le garde un peu) :
+    // entre deux notes voisines, les courants ne se contrarient plus, les grains passent devant ou derrière
+    if(nearSky){ var gcx=Math.floor(p.x/R),gcy=Math.floor(p.y/R);
+      for(var gy=gcy-1;gy<=gcy+1;gy++) for(var gx=gcx-1;gx<=gcx+1;gx++){ var cell=grid[gy*4096+gx]; if(!cell) continue;
+        for(var j=0;j<cell.length;j++){ var s=cell[j],dx=s.px-p.x,dy=s.py-p.y,d2=dx*dx+dy*dy; if(s===p.cs) d2*=.7;
+          if(d2<cd2){ cd2=d2; cap=s; } } } }
+    p.cs=cap;
+    if(cap){ var rx=p.x-cap.px,ry=p.y-cap.py,rz=p.z,d3=rx*rx+ry*ry+rz*rz;
+      if(d3<R2&&d3>1){ var n=cap.ax,h=rx*n[0]+ry*n[1]+rz*n[2],qx=rx-h*n[0],qy=ry-h*n[1],qz=rz-h*n[2],rho=Math.sqrt(qx*qx+qy*qy+qz*qz)+.01,
+        kk=1-Math.sqrt(d3)/R,k=kk*SPf,inw=rho>13?-.017:.018,ux=qx/rho,uy=qy/rho,uz=qz/rho,hp=-h*.0035;
+        // un anneau penché autour de chaque note : vers le cercle de 13 px, le long de l'anneau, et ramené dans son plan
+        p.vx+=(ux*inw+(n[1]*uz-n[2]*uy)*.023+n[0]*hp)*k; p.vy+=(uy*inw+(n[2]*ux-n[0]*uz)*.023+n[1]*hp)*k; p.vz+=(uz*inw+(n[0]*uy-n[1]*ux)*.023+n[2]*hp)*k;
+        if(kk>warmT){warmT=kk;p.col=cap.col;} }
+      else p.vz-=p.z*.004*SPf; }
+    else p.vz-=p.z*.004*SPf;
     for(var b=0;b<bursts.length;b++){
       var bb=bursts[b],age=(now-bb.t)/1600,bx=p.x-bb.x,by=p.y-bb.y,bd=Math.sqrt(bx*bx+by*by)+.01,reach=22+age*70;
-      if(bd<reach&&bd>reach-34){ var f=(1-age)*.24*bb.k*SPD; p.vx+=bx/bd*f; p.vy+=by/bd*f; warmT=Math.max(warmT,(1-age)*.8); p.col=bb.col; }
+      if(bd<reach&&bd>reach-34){ var f=(1-age)*.24*bb.k*SPf; p.vx+=bx/bd*f; p.vy+=by/bd*f; warmT=Math.max(warmT,(1-age)*.8); p.col=bb.col; }
     }
     if(pointer){ var px=p.x-pointer.x,py=p.y-pointer.y,pd2=px*px+py*py;
-      if(pd2<PR*PR&&pd2>1){ var pd=Math.sqrt(pd2),push=(1-pd/PR)*.28*SPD; p.vx+=px/pd*push; p.vy+=py/pd*push; } }
-    p.vx*=.955; p.vy*=.955; p.x+=p.vx; p.y+=p.vy;
+      if(pd2<PR*PR&&pd2>1){ var pd=Math.sqrt(pd2),push=(1-pd/PR)*.28*SPf; p.vx+=px/pd*push; p.vy+=py/pd*push; } }
+    p.vx*=damp; p.vy*=damp; p.vz*=damp; p.x+=p.vx*fdt; p.y+=p.vy*fdt; p.z+=p.vz*fdt;
     if(p.x<-4)p.x=DW+4; else if(p.x>DW+4)p.x=-4; if(p.y<-4)p.y=PH+4; else if(p.y>PH+4)p.y=-4;
-    p.warm+=(warmT-p.warm)*.035;
+    p.warm+=(warmT-p.warm)*warmK;
     var vy=p.y-sy; if(vy<-4||vy>DH+4) continue;
     var lx=p.x+sx-o.x,ly=p.y-o.y,onSky=p.warm>.06&&lx>-4&&lx<W+4&&ly>-4&&ly<H+4;
     var tw=.6+.4*Math.sin(t*.002*p.tw+p.seed),wm=p.warm,a=(.13+.5*wm)*tw;
     var bc=RAINBOW?(p.rb||(p.rb=rbAt((p.x/DW*.8+p.y/PH*.35+p.seed*.002)%1))):SKY.dust;
     var cs2;
     if(wm<.01){ if(RAINBOW){ if(p.rbk!==bc){ p.rbk=bc; p.rbs='rgb('+(bc[0]|0)+','+(bc[1]|0)+','+(bc[2]|0)+')'; } cs2=p.rbs; } else cs2=dustS; }
+    else if(!RAINBOW){ if(p.col._wd!==SKY.dust){ p.col._wd=SKY.dust; p.col._wc=[]; } var cc=p.col._wc,lv=Math.min(23,(wm*24)|0); cs2=cc[lv]||(cc[lv]='rgb('+(lerp(bc[0],p.col[0],(lv+.5)/24)|0)+','+(lerp(bc[1],p.col[1],(lv+.5)/24)|0)+','+(lerp(bc[2],p.col[2],(lv+.5)/24)|0)+')'); }
     else cs2='rgb('+(lerp(bc[0],p.col[0],wm)|0)+','+(lerp(bc[1],p.col[1],wm)|0)+','+(lerp(bc[2],p.col[2],wm)|0)+')';
     var sz=p.s*(1+wm*.7);
+    // la profondeur : devant, un grain est un peu plus grand et plus vif ; derrière, plus pâle, et caché quand il passe derrière la note
+    if(wm>.02){ var zn=clamp(p.z/14,-1,1)*Math.min(1,wm*2);
+      if(p.cs&&p.z<-2){ var ox=p.cs.px-p.x,oy=p.cs.py-p.y; if(ox*ox+oy*oy<20) continue; }
+      a*=1+.5*zn; sz*=1+.25*zn; }
     if(onSky){ if(swS!==cs2){ swx.fillStyle=cs2; swS=cs2; } swx.globalAlpha=a; swx.fillRect(lx,ly,sz,sz); }
     else { if(dS!==cs2){ dctx.fillStyle=cs2; dS=cs2; } dctx.globalAlpha=a; dctx.fillRect(p.x-sx,vy,sz,sz); }
   }
@@ -3316,7 +3339,16 @@ function loop(now){
   }
 }
 var rsz=null;
-window.addEventListener('resize',function(){ clearTimeout(rsz); rsz=setTimeout(function(){ buildGalaxy(); if(unlocked){ if(currentView==="ciel") layoutSky(); pres.W=0; if(soirStep==="presence") layoutPresence(); tr.W=0; if(soirStep==="traduire") layoutTr(); } },180); });
+// sur téléphone, la barre d'adresse qui paraît ou s'efface au défilement change seulement la hauteur, de quelques dizaines de pixels :
+// on agrandit les calques sans rien reconstruire (avant, la galaxie était refaite et tous les grains retirés au hasard : une saccade, et le ciel sautait)
+var rszW=window.innerWidth,rszH=window.innerHeight;
+function barResize(){ var dpr=Math.min(2,window.devicePixelRatio||1);
+  VH=window.innerHeight; gal.height=Math.round(VH*dpr); gctx.setTransform(dpr,0,0,dpr,0,0);
+  if(DW){ DH=window.innerHeight; dustCv.height=Math.round(DH*dpr); dctx.setTransform(dpr,0,0,dpr,0,0); lastSy=-1; } }
+window.addEventListener('resize',function(){ clearTimeout(rsz); rsz=setTimeout(function(){
+  var w=window.innerWidth,h=window.innerHeight,bar=MOBILE&&VW&&OH>h&&w===rszW&&Math.abs(h-rszH)<=160; rszW=w; rszH=h;
+  if(bar){ barResize(); return; }
+  buildGalaxy(); if(unlocked){ if(currentView==="ciel") layoutSky(); pres.W=0; if(soirStep==="presence") layoutPresence(); tr.W=0; if(soirStep==="traduire") layoutTr(); } },180); });
 
 // ===== Les pierres : ce qu'on porte, et le jour où on le laisse partir (V47, 22 novembre 2026) =====
 // Né du moment de l’auteur aux dolmens, le 21 novembre (« envole-toi mon amour »). Ce qu'on porte devient une pierre aux veines d'or.
