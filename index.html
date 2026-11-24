@@ -336,8 +336,12 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 .redo:hover,.redo:focus-visible{color:var(--text)}
 .redo.ask{color:var(--gold);text-decoration-color:rgba(var(--acc),.5)}
 .beta-tag{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:.25rem .6rem;margin-right:.2rem}
+.lock-install{position:absolute;z-index:2;top:calc(16px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));margin:0;padding:.4rem .85rem;transition:opacity .5s ease}
+.lock.opening .lock-install{opacity:0}
 .beta-install{cursor:pointer;color:var(--gold);border-color:rgba(var(--acc),.4);background:rgba(10,8,9,.45)}
 .beta-install:hover,.beta-install:focus-visible{border-color:rgba(var(--acc),.7);outline:none}
+#iosBack{z-index:40}
+.ios-sheet{z-index:41}
 .ios-sheet h2{margin:0 2.8rem 1rem 0;font-family:var(--f-display);font-weight:300;font-size:1.7rem;line-height:1.15}
 .ios-steps{margin:0;padding-left:1.3rem;display:grid;gap:.85rem;line-height:1.5;color:var(--soft)}
 .ios-steps b{color:var(--text);font-weight:500}
@@ -538,7 +542,19 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 <canvas id="galaxy" aria-hidden="true"></canvas>
 <canvas id="dust" class="off" aria-hidden="true"></canvas>
 
+<div class="sheet-back" id="iosBack" hidden></div>
+  <aside class="sheet ios-sheet" id="iosSheet" role="dialog" aria-modal="true" aria-labelledby="iosT" hidden>
+    <button class="sheet-close" id="iosClose" type="button" aria-label="Fermer" data-en-aria="Close">✕</button>
+    <h2 id="iosT" data-en="Install on your iPhone">Installer sur ton iPhone</h2>
+    <ol class="ios-steps">
+      <li id="iosSafari" data-en="Open this link in <b>Safari</b>. If it opened inside another app (Instagram, Messenger…), use its menu to <b>Open in Safari</b>.">Ouvre ce lien dans <b>Safari</b>. S’il s’est ouvert dans une autre app (Instagram, Messenger…), passe par son menu pour <b>Ouvrir dans Safari</b>.</li>
+      <li data-en="Tap the <b>Share</b> button <span class=ios-share></span> (if you don’t see it, it is behind <b>···</b>).">Touche le bouton <b>Partager</b> <span class=ios-share></span> (s’il n’est pas visible, il est derrière <b>···</b>).</li>
+      <li data-en="Scroll down, choose <b>Add to Home Screen</b>, then <b>Add</b>.">Descends, choisis <b>Sur l’écran d’accueil</b>, puis <b>Ajouter</b>.</li>
+    </ol>
+    <p class="ios-note" data-en="The app then appears on your home screen, full screen, like any other app.">L’app apparaît alors sur ton écran d’accueil, en plein écran, comme les autres.</p>
+</aside>
 <div class="lock" id="lock" role="dialog" aria-labelledby="lockTitle">
+  <button class="beta-tag beta-install lock-install" id="betaInstall" type="button" hidden data-en="Install">Installer</button>
   <canvas id="lockCv" aria-hidden="true"></canvas>
   <div class="lock-inner">
     <p class="lock-kicker"><b>56</b> notes</p>
@@ -558,7 +574,6 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
     <a class="mark" id="mark" href="#ciel" aria-label="56 notes, retour au ciel" data-en-aria="56 notes, back to the sky"><span class="n">56</span></a>
     <div class="bar-r">
       <span class="beta-tag" title="Version d’essai">bêta</span>
-      <button class="beta-tag beta-install" id="betaInstall" type="button" hidden data-en="Install">Installer</button>
       <button class="sound lang" id="langBtn" type="button" aria-label="Langue : français. Passer en anglais">FR</button>
       <button class="sound" id="prefsBtn" type="button" aria-label="Ton ciel : couleur et particules" data-en-aria="Your sky: colour and particles" aria-haspopup="dialog">
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.4"/><path d="M10 2.6v2.6M10 14.8v2.6M2.6 10h2.6M14.8 10h2.6M4.8 4.8l1.7 1.7M13.5 13.5l1.7 1.7M4.8 15.2l1.7-1.7M13.5 6.5l1.7-1.7"/></svg>
@@ -779,17 +794,6 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
     <a href="#pierres" data-v="pierres"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.6 7.4 7.4l8-.7 5.6 1.8-.7 1.5-5.4-.8-7.2.6Z"/><path d="M5.5 19.2 5.9 11.4l2.8-.4.3 8.2M15.2 19.2l.1-8.4 2.9.1.6 8.3"/><path d="M2.5 19.4h19"/><circle class="fill" cx="19.6" cy="3.6" r=".9"/></svg><span data-en="Stones">Les pierres</span></a>
   </nav>
 
-  <div class="sheet-back" id="iosBack" hidden></div>
-  <aside class="sheet ios-sheet" id="iosSheet" role="dialog" aria-modal="true" aria-labelledby="iosT" hidden>
-    <button class="sheet-close" id="iosClose" type="button" aria-label="Fermer" data-en-aria="Close">✕</button>
-    <h2 id="iosT" data-en="Install on your iPhone">Installer sur ton iPhone</h2>
-    <ol class="ios-steps">
-      <li id="iosSafari" data-en="Open this link in <b>Safari</b>. If it opened inside another app (Instagram, Messenger…), use its menu to <b>Open in Safari</b>.">Ouvre ce lien dans <b>Safari</b>. S’il s’est ouvert dans une autre app (Instagram, Messenger…), passe par son menu pour <b>Ouvrir dans Safari</b>.</li>
-      <li data-en="Tap the <b>Share</b> button <span class=ios-share></span> (if you don’t see it, it is behind <b>···</b>).">Touche le bouton <b>Partager</b> <span class=ios-share></span> (s’il n’est pas visible, il est derrière <b>···</b>).</li>
-      <li data-en="Scroll down, choose <b>Add to Home Screen</b>, then <b>Add</b>.">Descends, choisis <b>Sur l’écran d’accueil</b>, puis <b>Ajouter</b>.</li>
-    </ol>
-    <p class="ios-note" data-en="The app then appears on your home screen, full screen, like any other app.">L’app apparaît alors sur ton écran d’accueil, en plein écran, comme les autres.</p>
-  </aside>
   <div class="sheet-back" id="sheetBack" hidden></div>
   <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="dayDate" hidden>
     <button class="sheet-close" id="sheetClose" type="button" aria-label="Fermer" data-en-aria="Close">✕</button>
@@ -4065,7 +4069,7 @@ bootLock();
   var fc=document.getElementById('iosClose'); if(fc) fc.addEventListener('click',ferme);
   addEventListener('keydown',function(e){ if(e.key==='Escape') ferme(); });
   if(ios&&!installee&&b) b.hidden=false;
-  if(b) b.addEventListener('click',function(){
+  if(b) b.addEventListener('click',function(e){ e.stopPropagation();
     if(invite){ invite.prompt(); invite.userChoice.then(cache,cache); return; }
     if(ios) ouvre(); });
 })();
