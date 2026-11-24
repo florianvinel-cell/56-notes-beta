@@ -350,6 +350,18 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 .ios-steps li.hot{color:var(--text)}
 .ios-note{margin:1.2rem 0 0;color:var(--muted);font-size:.9rem;line-height:1.5}
 .ios-share{display:inline-block;width:.95em;height:1.15em;vertical-align:-.18em;background:var(--gold);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 9H4v13h12V9h-3M10 15V2M6 6l4-4 4 4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 9H4v13h12V9h-3M10 15V2M6 6l4-4 4 4'/%3E%3C/svg%3E") center/contain no-repeat}
+.keep-row{display:flex;gap:.6rem;flex-wrap:wrap}
+.keep-txt{min-height:0}
+.prefs-note.bad{color:#e08a7a}
+.prefs-note.warm{color:var(--gold)}
+.lock-back{background:none;border:0;padding:.4rem .6rem;margin-top:.1rem;font:inherit;font-size:.9rem;color:var(--muted);text-decoration:underline;text-decoration-color:rgba(168,159,146,.35);text-underline-offset:4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lock-back:hover,.lock-back:focus-visible{color:var(--gold);outline:none}
+.lock.free .lock-back{display:none}
+#keepBack{z-index:40}
+.keep-sheet{z-index:41}
+.keep-sheet h2{margin:0 0 .8rem;font-family:var(--f-display);font-weight:300;font-size:1.7rem;line-height:1.15}
+.keep-what{margin:0;color:var(--text)}
+.keep-warn{margin:.3rem 0 1.1rem;color:var(--muted);font-size:.92rem}
 .bar-r{display:flex;gap:.5rem;align-items:center;margin-left:auto}
 .sound.lang{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.1em;color:var(--soft);cursor:pointer}
 .sound.lang:hover,.sound.lang:focus-visible{color:var(--gold);border-color:rgba(var(--acc),.45);outline:none}
@@ -556,6 +568,13 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
     </ol>
     <p class="ios-note" data-en="The app then appears on your home screen, full screen, like any other app.">L’app apparaît alors sur ton écran d’accueil, en plein écran, comme les autres.</p>
 </aside>
+<div class="sheet-back" id="keepBack" hidden></div>
+<aside class="sheet keep-sheet" id="keepAsk" role="dialog" aria-modal="true" aria-labelledby="keepT" hidden>
+  <h2 id="keepT" data-en="Find this sky again?">Retrouver ce ciel ?</h2>
+  <p class="keep-what" id="keepWhat"></p>
+  <p class="keep-warn" data-en="It will replace the sky on this device.">Il remplacera le ciel de cet appareil.</p>
+  <div class="keep-row"><button class="glow" id="keepYes" type="button" data-en="Find this sky again">Retrouver ce ciel</button><button class="ghost" id="keepNo" type="button" data-en="Cancel">Annuler</button></div>
+</aside>
 <div class="lock" id="lock" role="dialog" aria-labelledby="lockTitle">
   <button class="beta-tag beta-install lock-install" id="betaInstall" type="button" hidden data-en="Install">Installer</button>
   <canvas id="lockCv" aria-hidden="true"></canvas>
@@ -569,6 +588,7 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
     <div class="lock-dots" id="lockDots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <button class="link lock-erase" id="lockErase" type="button" data-en="erase the last note">effacer la dernière note</button>
     <button class="link lock-free" id="lockFree" type="button" hidden>Jouer librement</button>
+    <button class="lock-back" id="keepLoad0" type="button" hidden data-en="Find my sky again">Retrouver mon ciel</button>
   </div>
 </div>
 
@@ -830,6 +850,10 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
     <p class="prefs-k" data-en="Particles">Les particules</p>
     <div class="range"><span data-en="Few">Peu</span><input type="range" id="partRange" min="0.15" max="1.6" step="0.05" value="1" aria-label="Quantité de particules" data-en-aria="Amount of particles"><span data-en="Many">Beaucoup</span></div>
     <p class="prefs-note" id="prefsNote"></p>
+    <p class="prefs-k" data-en="Your sky, kept safe">Ton ciel, en lieu sûr</p>
+    <p class="prefs-note keep-txt" data-en="Everything stays on this device. Keep a copy now and then: it lets you find your sky again on another device, or if your browser forgets it.">Tout reste sur cet appareil. Garde une copie de temps en temps : elle te permettra de retrouver ton ciel sur un autre appareil, ou si le navigateur l’oublie.</p>
+    <div class="keep-row"><button class="ghost" id="keepSave" type="button" data-en="Keep a copy">Garder une copie</button><button class="ghost" id="keepLoad" type="button" data-en="Find my sky again">Retrouver mon ciel</button></div>
+    <p class="prefs-note" id="keepNote" aria-live="polite"></p>
     <button class="redo" id="prefsReset" type="button" data-en="Back to the original settings">Revenir aux réglages d’origine</button>
   </section>
   <div class="we" id="we" hidden role="dialog" aria-modal="true" aria-labelledby="weTitle">
@@ -4133,6 +4157,82 @@ bootLock();
   if(b) b.addEventListener('click',function(e){ e.stopPropagation();
     if(invite){ invite.prompt(); invite.userChoice.then(cache,cache); return; }
     if(ios) ouvre(); });
+})();
+</script>
+<script>
+// ton ciel en lieu sûr (bêta) : tout vit dans le navigateur ; on lui demande de ne pas l'effacer, et on peut en garder une copie
+(function(){
+  var PFX='56n-', SAFE='56n-avant-retour', LAST='56n-copie', $=function(id){ return document.getElementById(id); };
+  function en(){ return document.documentElement.lang==='en'; }
+  function T(fr,e){ return en()?e:fr; }
+  function get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function keys(){ var out=[]; try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf(PFX)===0&&k!==SAFE) out.push(k); } }catch(e){} return out; }
+  function snapshot(){ var d={}; keys().forEach(function(k){ d[k]=get(k); }); return d; }
+  function nbSoirs(d){ try{ return Object.keys(JSON.parse(d['56n-soirs']||'{}')).length; }catch(e){ return 0; } }
+  function fmt(iso){ try{ return new Date(iso).toLocaleDateString(en()?'en-GB':'fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return String(iso).slice(0,10); } }
+  function say(t,cls){ var n=$('keepNote'); if(n){ n.textContent=t||''; n.className='prefs-note'+(cls?' '+cls:''); } }
+  // 1. demander au navigateur de garder les données (Chrome et Safari le font sans rien demander ; Firefox pose une question : seulement au premier geste de copie)
+  function persist(){ try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persisted().then(function(p){ if(!p) return navigator.storage.persist(); }).catch(function(){}); }catch(e){} }
+  if(!/Firefox\//.test(navigator.userAgent)) persist();
+  function lastLine(){
+    var l=get(LAST), n=nbSoirs(snapshot()), old=l&&(Date.now()-new Date(l).getTime())>7*864e5;
+    if(l) say(T('Dernière copie : ','Last copy: ')+fmt(l)+'.',old&&n?'warm':'');
+    else say(n>=2?T('Pas encore de copie.','No copy yet.'):'',n>=2?'warm':'');
+  }
+  // 2. garder une copie : un fichier (sur iPhone, la feuille de partage propose « Enregistrer dans Fichiers »)
+  function save(){
+    persist();
+    var d=snapshot(), now=new Date().toISOString(), n=nbSoirs(d);
+    var body=JSON.stringify({app:'56 notes',format:1,cree:now,soirs:n,donnees:d});
+    var name='56-notes-mon-ciel-'+now.slice(0,10)+'.json', blob=new Blob([body],{type:'application/json'});
+    function done(){ try{ localStorage.setItem(LAST,now); }catch(e){} say(T('Copie gardée. Ce fichier contient ton journal : garde-le pour toi.','Copy kept. This file holds your journal: keep it to yourself.')); }
+    function download(){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },4000); done(); }
+    var ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1), f=null;
+    try{ f=new File([blob],name,{type:'application/json'}); }catch(e){}
+    if(ios&&f&&navigator.canShare&&navigator.canShare({files:[f]})){
+      navigator.share({files:[f],title:'56 notes'}).then(done).catch(function(e){ if(!(e&&e.name==='AbortError')) download(); });
+      return;
+    }
+    download();
+  }
+  // 3. retrouver son ciel : choisir le fichier, confirmer, et l'app repart avec ce ciel
+  var input=document.createElement('input'); input.type='file'; input.accept='.json,.txt,application/json,text/plain'; input.hidden=true; document.body.appendChild(input);
+  var pending=null, from=null;
+  function pick(src){ from=src; input.value=''; input.click(); }
+  function bad(){ var t=T('Ce fichier n’est pas une copie de 56 notes.','This file isn’t a 56 notes copy.'); say(t,'bad'); if(from==='lock'){ var b=$('keepLoad0'); if(b){ b.textContent=t; setTimeout(function(){ b.textContent=T('Retrouver mon ciel','Find my sky again'); },4000); } } }
+  input.addEventListener('change',function(){
+    var f=input.files&&input.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(){ try{ var j=JSON.parse(r.result); if(!j||j.app!=='56 notes'||!j.donnees||typeof j.donnees!=='object') throw 0; pending=j; ask(j); }catch(e){ bad(); } };
+    r.onerror=bad; r.readAsText(f);
+  });
+  var tm=null;
+  function ask(j){
+    var n=j.soirs!=null?j.soirs:nbSoirs(j.donnees);
+    $('keepWhat').textContent=T('Copie du ','Copy from ')+fmt(j.cree)+' · '+n+' '+(en()?(n>1?'evenings':'evening'):(n>1?'soirs':'soir'))+'.';
+    var b=$('keepBack'), a=$('keepAsk'); clearTimeout(tm); b.hidden=false; a.hidden=false; void a.offsetWidth; b.classList.add('open'); a.classList.add('open');
+    setTimeout(function(){ try{ $('keepYes').focus({preventScroll:true}); }catch(e){} },400);
+  }
+  function close(){ var b=$('keepBack'), a=$('keepAsk'); if(a.hidden) return; b.classList.remove('open'); a.classList.remove('open'); tm=setTimeout(function(){ b.hidden=true; a.hidden=true; },600); pending=null; }
+  function restore(){
+    if(!pending) return; var d=pending.donnees;
+    try{
+      localStorage.setItem(SAFE,JSON.stringify({quand:new Date().toISOString(),donnees:snapshot()})); // le ciel d'avant, gardé en secours
+      keys().forEach(function(k){ localStorage.removeItem(k); });
+      Object.keys(d).forEach(function(k){ if(k.indexOf(PFX)===0&&k!==SAFE&&typeof d[k]==='string') localStorage.setItem(k,d[k]); });
+    }catch(e){ say(T('Impossible de retrouver ce ciel ici (le navigateur refuse d’écrire).','Can’t restore this sky here (the browser refuses to write).'),'bad'); close(); return; }
+    persist(); location.reload();
+  }
+  $('keepSave').addEventListener('click',save);
+  $('keepLoad').addEventListener('click',function(){ pick('prefs'); });
+  $('keepLoad0').addEventListener('click',function(e){ e.stopPropagation(); pick('lock'); });
+  $('keepYes').addEventListener('click',restore);
+  $('keepNo').addEventListener('click',close);
+  $('keepBack').addEventListener('click',close);
+  addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+  var pb=$('prefsBtn'); if(pb) pb.addEventListener('click',lastLine);
+  // sur l'écran de la mélodie : seulement quand cet appareil n'a pas encore de ciel
+  if(!get('56n-lock')){ var l0=$('keepLoad0'); if(l0) l0.hidden=false; }
 })();
 </script>
 </body>
