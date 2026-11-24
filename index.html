@@ -54,6 +54,8 @@ a:focus-visible,button:focus-visible,canvas:focus-visible,textarea:focus-visible
 button{font:inherit;cursor:pointer}
 
 #galaxy{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+/* l'heure de la nuit : une lueur de crépuscule ou d'aube, posée sur la galaxie (voir « Le ciel qui vit avec l'heure ») */
+#nuit{position:fixed;inset:0;z-index:0;pointer-events:none}
 
 /* ---------- le cadenas ---------- */
 .lock{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
@@ -136,7 +138,7 @@ h1 .n{font-style:italic;color:var(--gold)}
 .principle{font-style:italic;color:var(--muted);margin:0;max-width:30rem}
 .sky{position:relative;width:100%}
 .sky canvas{display:block;width:100%}
-#dust{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transition:opacity 1.2s ease}
+#dust{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;transition:opacity 1.2s ease;opacity:var(--dustK,1)}
 #dust.off{opacity:0}
 #stars{position:relative;touch-action:manipulation}
 /* les particules qui tournent autour des notes vivent dans le ciel (et non sur le calque fixe) : au défilement, elles suivent les étoiles sans attendre */
@@ -540,6 +542,7 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 </style>
 
 <canvas id="galaxy" aria-hidden="true"></canvas>
+<div id="nuit" aria-hidden="true"></div>
 <canvas id="dust" class="off" aria-hidden="true"></canvas>
 
 <div class="sheet-back" id="iosBack" hidden></div>
@@ -1035,7 +1038,7 @@ function weekLabel(w){ var n=weekName(w); return L("semaine ","week ")+(w+1)+(n?
 
 // ===== Le son : verre, bourdon, réverbération =====
 var MOBILE=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Android|iPhone|iPad/i.test(navigator.userAgent);
-var AC=null,bus=null,dry=null,rev=null,master=null,volAmb=null,volDrone=null;
+var AC=null,bus=null,dry=null,rev=null,master=null,volAmb=null,volDrone=null,nightLP=null,nightG=null;
 var VOL=100, volKeep=100; // le volume de la musique, de 0 à 100 ; volKeep = le dernier volume non nul, celui qu'on garde
 function volGain(v){ var x=v/100; return x*x; } // une courbe qui suit l'oreille : la moitié du curseur sonne vraiment à mi-chemin
 function audio(){
@@ -1059,7 +1062,11 @@ function audio(){
   var dly=AC.createDelay(2); dly.delayTime.value=.42; var fb=AC.createGain(); fb.gain.value=.3; var dw=AC.createGain(); dw.gain.value=.16;
   bus.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(dw); dw.connect(master);
   // le volume de la musique (la chanson et le bourdon) : 100 % = le niveau d'origine
-  volAmb=AC.createGain(); volAmb.gain.value=volGain(VOL); volAmb.connect(master);
+  volAmb=AC.createGain(); volAmb.gain.value=volGain(VOL);
+  // la nuit feutre la musique : un filtre doux, grand ouvert le jour, qui se referme lentement jusqu'à la nuit profonde
+  nightLP=AC.createBiquadFilter(); nightLP.type="lowpass"; nightLP.Q.value=.5; nightLP.frequency.value=nightFreq(NUIT.feutre);
+  nightG=AC.createGain(); nightG.gain.value=1-.16*NUIT.feutre;
+  volAmb.connect(nightLP); nightLP.connect(nightG); nightG.connect(master);
   volDrone=AC.createGain(); volDrone.gain.value=volGain(VOL); volDrone.connect(dry); volDrone.connect(rev);
   return AC;
 }
@@ -1373,6 +1380,40 @@ document.addEventListener('keydown',function(e){ if(e.key==="Escape"&&volOpen){ 
 window.addEventListener('hashchange',closeVol);
 
 // ===== La galaxie, derrière tout =====
+// ===== Le ciel qui vit avec l'heure (24 nov.) =====
+// Quatre moments de la nuit, en fondu minute après minute :
+//   le crépuscule (pleinement vers 18 h 45 – 20 h), la nuit (21 h – minuit : le ciel d'origine),
+//   la nuit profonde (pleinement 1 h – 2 h 45 : plus sombre, moins de poussière, plus d'étoiles), l'aube (pleinement 4 h 30 – 5 h 45 : un bleu froid qui monte).
+// Le jour (7 h – 17 h 30) garde le ciel d'origine, pour l'instant. La musique se feutre à mesure que la nuit avance.
+// Pour voir une heure sans l'attendre : ajouter ?heure=3 (ou 18.5) à l'adresse. Rien ne s'affiche à l'écran.
+var NUIT={h:0,crep:0,prof:0,aube:0,feutre:0};
+var HEURE_FORCEE=(function(){ try{ var m=/[?&#]heure=(\d{1,2}(?:[.,]\d+)?)/.exec((location.search||"")+(location.hash||"")); return m?parseFloat(m[1].replace(',','.'))%24:null; }catch(e){ return null; } })();
+function nuitAt(h){
+  function ss(a,b,x){ var t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); }
+  var hh=h<12?h+24:h; // la nuit, d'un seul tenant : de 12 h à 36 h
+  return {h:h,
+    crep:ss(17.5,18.75,hh)*(1-ss(20,21.5,hh)),
+    prof:ss(23.75,25,hh)*(1-ss(26.75,28,hh)),
+    aube:ss(27.25,28.5,hh)*(1-ss(29.75,30.75,hh)),
+    feutre:ss(21,26.5,hh)*(1-.55*ss(28,30,hh))*(1-ss(30,31,hh))};
+}
+function nightFreq(f){ return Math.exp(Math.log(20000)*(1-f)+Math.log(1900)*f); }
+var nuitBg="";
+function nuitTick(){
+  var d=new Date(), h=HEURE_FORCEE!=null?HEURE_FORCEE:d.getHours()+d.getMinutes()/60;
+  NUIT=nuitAt(h);
+  var c=NUIT.crep,a=NUIT.aube,layers=[];
+  if(c>.004) layers.push("radial-gradient(140% 70% at 50% 110%,rgba(226,144,98,"+(.21*c).toFixed(3)+") 0%,rgba(178,98,122,"+(.085*c).toFixed(3)+") 40%,rgba(120,80,130,0) 74%)");
+  if(a>.004) layers.push("radial-gradient(150% 68% at 50% 112%,rgba(222,176,168,"+(.11*a).toFixed(3)+") 0%,rgba(146,174,214,"+(.17*a).toFixed(3)+") 26%,rgba(110,124,186,"+(.06*a).toFixed(3)+") 50%,rgba(100,110,170,0) 78%)");
+  if(NUIT.prof>.004) layers.push("linear-gradient(rgba(2,1,3,"+(.3*NUIT.prof).toFixed(3)+"),rgba(2,1,3,"+(.3*NUIT.prof).toFixed(3)+"))");
+  var bg=layers.join(",")||"none";
+  if(bg!==nuitBg){ nuitBg=bg; var el=document.getElementById('nuit'); if(el) el.style.background=bg; }
+  try{ document.documentElement.style.setProperty('--dustK',(1-.45*NUIT.prof).toFixed(3)); }catch(e){}
+  if(AC&&nightLP){ var t=AC.currentTime; nightLP.frequency.setTargetAtTime(nightFreq(NUIT.feutre),t,6); nightG.gain.setTargetAtTime(1-.16*NUIT.feutre,t,6); }
+}
+nuitTick(); setInterval(nuitTick,30000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) nuitTick(); });
+
 var gal=$('galaxy'),gctx=gal.getContext('2d'),goff=null,VW=0,VH=0,OW=0,OH=0,cam={x:0,y:0},twinkles=[],par={x:0,y:0};
 var VIEW_CAM={ciel:[0,0],soir:[-.12,.05],carnet:[.12,-.04],lock:[0,.06]};
 function buildGalaxy(){
@@ -1396,11 +1437,11 @@ function frameGalaxy(now){
   var tx=tg[0]*VW+par.x*16, ty=tg[1]*VH-Math.min(my*.6,window.scrollY*.05)+par.y*12;
   var k=REDUCED?1:.022; cam.x+=(tx-cam.x)*k; cam.y+=(ty-cam.y)*k;
   var ox=-mx+clamp(cam.x,-mx,mx), oy=-my+clamp(cam.y,-my,my);
-  gctx.clearRect(0,0,VW,VH); gctx.globalAlpha=.92; gctx.drawImage(goff,ox,oy); gctx.globalAlpha=1;
+  gctx.clearRect(0,0,VW,VH); gctx.globalAlpha=.92*(1-.4*NUIT.prof); gctx.drawImage(goff,ox,oy); gctx.globalAlpha=1;
   var t=now*.001; gctx.fillStyle="rgb("+SKY.twinkle+")";
   for(var i=0;i<twinkles.length;i++){
     var w=twinkles[i],x=w.x+ox,y=w.y+oy; if(x<-4||y<-4||x>VW+4||y>VH+4) continue;
-    gctx.globalAlpha=.1+.6*Math.max(0,Math.sin(t*w.sp+w.ph));
+    gctx.globalAlpha=Math.min(1,(.1+.6*Math.max(0,Math.sin(t*w.sp+w.ph)))*(1+.7*NUIT.prof));
     gctx.beginPath(); gctx.arc(x,y,.9,0,6.283); gctx.fill();
   }
   gctx.globalAlpha=1;
@@ -3423,7 +3464,7 @@ var PZ=(function(){
     if(dawnOn) dawn=Math.min(1,dawn+dt/7); else dawn=Math.max(0,dawn-dt/3);
   }
   function drawAmbientSky(t){
-    for(var i=0;i<twinkles.length;i++){ var s=twinkles[i], a=(RM?.7:(.35+.65*(.5+.5*Math.sin(s.ph+t*.001*s.sp))))*ia(.5+(i%9)*.13,1.2); if(a<=.004) continue;
+    for(var i=0;i<twinkles.length;i++){ var s=twinkles[i], a=Math.min(1,(RM?.7:(.35+.65*(.5+.5*Math.sin(s.ph+t*.001*s.sp))))*ia(.5+(i%9)*.13,1.2)*(1+.45*NUIT.prof)); if(a<=.004) continue;
       sprite(SP.warm,s.x,s.y,s.r*5,a*.28);
       cx.fillStyle='rgba(255,246,228,'+(a*.9).toFixed(3)+')'; cx.fillRect(s.x-s.r/2,s.y-s.r/2,s.r,s.r);
       if(s.big){ var Lg=s.r*7*a; cx.strokeStyle='rgba(255,240,214,'+(a*.22).toFixed(3)+')'; cx.lineWidth=.6;
@@ -3436,6 +3477,19 @@ var PZ=(function(){
       dg.addColorStop(0,'rgba(226,132,98,'+(.2*dawn).toFixed(3)+')'); dg.addColorStop(.35,'rgba(196,112,128,'+(.08*dawn).toFixed(3)+')'); dg.addColorStop(1,'rgba(110,96,170,0)');
       cx.fillStyle=dg; cx.fillRect(0,H*.22,W,H*.44);
       cx.globalAlpha=.3*dawn; cx.drawImage(SP.rose,W*.5-W*.6,ridgeFar(W*.5)-H*.12,W*1.2,H*.24); cx.globalAlpha=1; }
+  }
+  // l'heure de la nuit, derrière les crêtes : le crépuscule chaud, l'aube froide (les pierres s'y découpent), la nuit profonde plus noire
+  function drawHourSky(e){
+    var c=NUIT.crep*e, a=NUIT.aube*e, p=NUIT.prof*e, hz=ridgeFar(W*.5), g;
+    if(p>.004){ cx.fillStyle='rgba(2,1,3,'+(.32*p).toFixed(3)+')'; cx.fillRect(0,0,W,hz+H*.05);
+      // la lune ne pâlit pas : on la reprend telle quelle, par-dessus le voile
+      cx.save(); cx.beginPath(); cx.arc(MOON.x,MOON.y,MOON.r*1.25,0,6.2832); cx.clip(); cx.globalAlpha=e; cx.drawImage(skyL,0,0,W,H); cx.globalAlpha=1; cx.restore(); }
+    if(c>.004){ g=cx.createLinearGradient(0,hz+H*.04,0,H*.16);
+      g.addColorStop(0,'rgba(232,150,96,'+(.3*c).toFixed(3)+')'); g.addColorStop(.3,'rgba(196,108,116,'+(.13*c).toFixed(3)+')'); g.addColorStop(1,'rgba(120,80,140,0)');
+      cx.fillStyle=g; cx.fillRect(0,H*.16,W,hz+H*.04-H*.16); }
+    if(a>.004){ g=cx.createLinearGradient(0,hz+H*.04,0,H*.12);
+      g.addColorStop(0,'rgba(226,184,170,'+(.2*a).toFixed(3)+')'); g.addColorStop(.18,'rgba(150,180,222,'+(.26*a).toFixed(3)+')'); g.addColorStop(.6,'rgba(110,128,190,'+(.08*a).toFixed(3)+')'); g.addColorStop(1,'rgba(100,110,170,0)');
+      cx.fillStyle=g; cx.fillRect(0,H*.12,W,hz+H*.04-H*.12); }
   }
   function drawMist(f){ mist.forEach(function(m){ cx.globalAlpha=m.a*(1+dawn*.6)*(f==null?1:f); cx.drawImage(SP.moon,m.x-m.w/2,m.y-m.h/2,m.w,m.h); }); cx.globalAlpha=1; }
   function drawMotes(t){
@@ -3982,6 +4036,7 @@ var PZ=(function(){
     cx.globalCompositeOperation='source-over'; cx.globalAlpha=1;
     if(eS<1){ cx.fillStyle='#050407'; cx.fillRect(0,0,W,H); }
     cx.globalAlpha=eS; cx.drawImage(skyL,0,0,W,H); cx.globalAlpha=1;
+    drawHourSky(eS);
     cx.globalCompositeOperation='lighter';
     drawAmbientSky(t); drawStars(t);
     cx.globalCompositeOperation='source-over';
@@ -3989,6 +4044,8 @@ var PZ=(function(){
     cx.globalCompositeOperation='lighter'; cx.globalAlpha=1; if(eF>0) drawMist(eF);
     cx.globalCompositeOperation='source-over';
     if(eN>0){ cx.globalAlpha=eN; cx.drawImage(nearL,0,(1-eN)*H*.05,W,H); cx.globalAlpha=1; }
+    if(NUIT.prof>.004&&eF>0){ var vg=cx.createLinearGradient(0,H*.6,0,H*.7), va=(.34*NUIT.prof*eF).toFixed(3); vg.addColorStop(0,'rgba(1,0,1,0)'); vg.addColorStop(1,'rgba(1,0,1,'+va+')');
+      cx.fillStyle=vg; cx.fillRect(0,H*.6,W,H*.4); } // la nuit profonde : le sol presque noir (fondu sous les crêtes, pas de ligne)
     // les pierres levées sortent de terre (le sol cache ce qui est encore dessous), puis un souffle de lumière
     if(eD>0){ cx.save(); cx.beginPath(); cx.moveTo(0,0); for(var gi=0;gi<gclip.length;gi+=2) cx.lineTo(gclip[gi],gclip[gi+1]); cx.lineTo(W,0); cx.closePath(); cx.clip(); cx.globalAlpha=Math.min(1,eD*1.8); cx.drawImage(dolL,0,(1-eD)*U*3.4,W,H); cx.restore(); cx.globalAlpha=1; }
     if(kD>0&&kD<1){ cx.globalCompositeOperation='lighter'; sprite(SP.gold,P.dolX,ground(P.dolX)-U*1.5,U*(3+7*kD),.22*Math.sin(kD*Math.PI)); cx.globalCompositeOperation='source-over'; }
