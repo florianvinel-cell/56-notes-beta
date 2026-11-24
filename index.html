@@ -351,6 +351,14 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
 .ios-note{margin:1.2rem 0 0;color:var(--muted);font-size:.9rem;line-height:1.5}
 .ios-share{display:inline-block;width:.95em;height:1.15em;vertical-align:-.18em;background:var(--gold);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 9H4v13h12V9h-3M10 15V2M6 6l4-4 4 4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 9H4v13h12V9h-3M10 15V2M6 6l4-4 4 4'/%3E%3C/svg%3E") center/contain no-repeat}
 .keep-row{display:flex;gap:.6rem;flex-wrap:wrap}
+.keep-hint{margin:.1rem 0 0;font-size:.92rem;color:var(--muted);display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .9rem;opacity:0;transition:opacity 1.6s ease}
+.keep-hint.on{opacity:1}
+.keep-hint span{font-style:italic;flex-basis:100%}
+.kh-save,.kh-later{background:none;border:0;padding:.2rem 0;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:4px;-webkit-tap-highlight-color:transparent}
+.kh-save{color:var(--gold);text-decoration-color:rgba(var(--acc),.4)}
+.kh-later{color:var(--muted);text-decoration-color:rgba(168,159,146,.3)}
+.kh-save:focus-visible,.kh-later:focus-visible{outline:1px solid var(--text);outline-offset:3px}
+.keep-row{display:flex;gap:.6rem;flex-wrap:wrap}
 .keep-txt{min-height:0}
 .prefs-note.bad{color:#e08a7a}
 .prefs-note.warm{color:var(--gold)}
@@ -619,6 +627,7 @@ html.typing .dock{opacity:0;pointer-events:none;transform:translate(-50%,14px)}
       <div class="fold fold-lede"><div><p class="lede" data-en="Every evening, a star. Every week, a constellation. After eight, &lt;em&gt;music no one else could have written.&lt;/em&gt;">Chaque soir, une étoile. Chaque semaine, une constellation. Au bout de huit, <em>une musique que personne d’autre n’aurait pu écrire.</em></p></div></div>
       <div class="fold fold-pr"><div><p class="principle" data-en="The sky doesn’t sort its stars. The dark evenings shine here too.">Le ciel ne trie pas ses étoiles. Les soirs sombres y brillent aussi.</p></div></div>
       <p class="carte-line moonline"><svg id="carteMoon" viewBox="0 0 40 40" aria-hidden="true"></svg><span id="carteText"></span></p>
+      <p class="keep-hint" id="keepHint" hidden><span data-en="One more week in your sky.">Une semaine de plus dans ton ciel.</span><button class="kh-save" id="keepHintSave" type="button" data-en="Keep a copy">Garder une copie</button><button class="kh-later" id="keepHintLater" type="button" data-en="Later">Plus tard</button></p>
     </div>
     <div class="sky" id="sky">
       <canvas id="swirl" aria-hidden="true"></canvas>
@@ -4185,7 +4194,7 @@ bootLock();
     var d=snapshot(), now=new Date().toISOString(), n=nbSoirs(d);
     var body=JSON.stringify({app:'56 notes',format:1,cree:now,soirs:n,donnees:d});
     var name='56-notes-mon-ciel-'+now.slice(0,10)+'.json', blob=new Blob([body],{type:'application/json'});
-    function done(){ try{ localStorage.setItem(LAST,now); }catch(e){} say(T('Copie gardée. Ce fichier contient ton journal : garde-le pour toi.','Copy kept. This file holds your journal: keep it to yourself.')); }
+    function done(){ try{ localStorage.setItem(LAST,now); }catch(e){} hintHide(); say(T('Copie gardée. Ce fichier contient ton journal : garde-le pour toi.','Copy kept. This file holds your journal: keep it to yourself.')); }
     function download(){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },4000); done(); }
     var ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1), f=null;
     try{ f=new File([blob],name,{type:'application/json'}); }catch(e){}
@@ -4231,6 +4240,23 @@ bootLock();
   $('keepBack').addEventListener('click',close);
   addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
   var pb=$('prefsBtn'); if(pb) pb.addEventListener('click',lastLine);
+  // 4. le rappel de la semaine : quand une semaine se referme (le dimanche), si la dernière copie a plus de six jours,
+  //    une invitation discrète apparaît dans le ciel, juste après la constellation (pas pendant : ce sont des mots d'expérience)
+  var DAYMS=864e5, LATER='56n-copie-plustard';
+  function age(k){ var v=get(k); return v?(Date.now()-new Date(v).getTime())/DAYMS:Infinity; }
+  function stale(days){ return age(LAST)>days&&nbSoirs(snapshot())>=1; }
+  function hintShow(){ var h=$('keepHint'); if(!h||!h.hidden) return; h.hidden=false; void h.offsetWidth; h.classList.add('on'); }
+  function hintHide(){ var h=$('keepHint'); if(!h||h.hidden) return; h.classList.remove('on'); setTimeout(function(){ h.hidden=true; },1600); }
+  $('keepHintSave').addEventListener('click',save);
+  $('keepHintLater').addEventListener('click',function(){ try{ localStorage.setItem(LATER,new Date().toISOString()); }catch(e){} hintHide(); });
+  var weEl=$('we');
+  if(weEl&&window.MutationObserver){ var wasOpen=!weEl.hidden;
+    new MutationObserver(function(){ var open=!weEl.hidden&&weEl.classList.contains('show');
+      if(open) wasOpen=true;
+      else if(wasOpen&&!weEl.classList.contains('show')){ wasOpen=false; if(stale(6)) setTimeout(hintShow,2600); }
+    }).observe(weEl,{attributes:true,attributeFilter:['class','hidden']}); }
+  // au retour dans l'app, si une semaine entière est passée sans copie (et sans « plus tard » récent)
+  if(stale(7)&&nbSoirs(snapshot())>=7&&age(LATER)>7) setTimeout(hintShow,4000);
   // sur l'écran de la mélodie : seulement quand cet appareil n'a pas encore de ciel
   if(!get('56n-lock')){ var l0=$('keepLoad0'); if(l0) l0.hidden=false; }
 })();
