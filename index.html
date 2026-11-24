@@ -1644,7 +1644,7 @@ void main(){ vec3 c=texture(u_tex,v_uv).rgb; float m=max(c.r,max(c.g,c.b)), K=.6
     gl.bindVertexArray(emptyVao); gl.drawArrays(gl.TRIANGLES,0,3);
     p=P.draw; gl.useProgram(p); gl.uniform2f(U(p,'u_size'),VWl,VHl); gl.uniform2f(U(p,'u_c'),g.cx,g.cy); gl.uniform2f(U(p,'u_scal'),g.sc,g.al);
     gl.uniform1f(U(p,'u_dpr'),dpr); gl.uniform1f(U(p,'u_M'),Math.max(VWl,VHl)*.62); gl.uniform1f(U(p,'u_big'),Math.max(VWl,VHl)*.6); gl.uniform1f(U(p,'u_t'),(now-T0l)*.001);
-    gl.uniform1f(U(p,'u_gain'),LOCK_GAIN*(MOBILE?320:560)*PART/N); // même lumière totale que les grains 2D (à LOCK_GAIN 2,6), répartie sur beaucoup plus de grains
+    gl.uniform1f(U(p,'u_gain'),LOCK_GAIN*(MOBILE?320:560)*PART/N*(1-Math.pow(.8,fdt))/.2); // lumière déposée selon le temps écoulé : même éclat à 60 et à 120 images/s // même lumière totale que les grains 2D (à LOCK_GAIN 2,6), répartie sur beaucoup plus de grains
     gl.uniform3f(U(p,'u_acc'),ACCV[0]/255,ACCV[1]/255,ACCV[2]/255); gl.uniform3f(U(p,'u_dust'),SKY.dust[0]/255,SKY.dust[1]/255,SKY.dust[2]/255);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE); gl.bindVertexArray(vaos[cur]); gl.drawArrays(gl.POINTS,0,N); gl.disable(gl.BLEND);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,cv.width,cv.height);
@@ -1904,7 +1904,7 @@ function burst(day,k){ var o=skyOrigin(); bursts.push({x:day.x+o.x,y:day.y+o.y,t
 // (anneaux penchés, une seule note tient un grain, ondes, doigt qui creuse), mais calculée et peinte par la carte graphique.
 // Sans WebGL2 ni lumière en haute précision, en arc-en-ciel, ou avec « réduire les animations » : le dessin 2D reste.
 var SKYGL=(function(){
-  var MAXS=56,NB=4,cv=null,gl=null,ok=false,failed=false,P={},tf,emptyVao,bufs=[],vaos=[],cur=0,N=0,partK=-1,grid=null,gridKey="",gx0=0,gy0=0,
+  var NFULL=1,MAXS=56,NB=4,cv=null,gl=null,ok=false,failed=false,P={},tf,emptyVao,bufs=[],vaos=[],cur=0,N=0,partK=-1,grid=null,gridKey="",gx0=0,gy0=0,
       trails=[null,null],ti=0,VWg=0,VHg=0,dpr=1,lastSx=null,lastSy=null,T0g=performance.now(),s3=new Float32Array(MAXS*3),a3=new Float32Array(MAXS*3),c3=new Float32Array((MAXS+NB)*3),
       iv=[],lastF=0,shown=false;
   var UPD=`#version 300 es
@@ -2029,7 +2029,7 @@ void main(){ vec3 c=texture(u_tex,v_uv).rgb; float m=max(c.r,max(c.g,c.b)), K=.6
   }
   function quad(){ gl.bindVertexArray(emptyVao); gl.drawArrays(gl.TRIANGLES,0,3); }
   function frame(now,fdt,sx,sy,o){
-    size(); if(partK!==PART||!N){ partK=PART; seed(want()); }
+    size(); if(partK!==PART||!N){ partK=PART; seed(want()); NFULL=N; }
     // la cadence décide du nombre : si l'appareil peine vraiment, on allège (jamais sous 120 000 grains)
     if(lastF){ var di=now-lastF; if(di<100) iv.push(di); } lastF=now;
     if(iv.length>=150){ var srt=iv.slice().sort(function(a,b){ return a-b; }),med=srt[srt.length>>1]; iv=[]; if(med>23&&N>120000) N=Math.max(120000,Math.round(N*.65)); }
@@ -2053,7 +2053,11 @@ void main(){ vec3 c=texture(u_tex,v_uv).rgb; float m=max(c.r,max(c.g,c.b)), K=.6
     p=P.fade; gl.useProgram(p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,src.t); gl.uniform1i(U(p,'u_tex'),0);
     gl.uniform2f(U(p,'u_sh'),Math.round(dsx*dpr)/cv.width,-Math.round(dsy*dpr)/cv.height); gl.uniform1f(U(p,'u_keep'),Math.pow(.76,fdt)); quad();
     p=P.draw; gl.useProgram(p); gl.uniform2f(U(p,'u_size'),VWg,VHg); gl.uniform2f(U(p,'u_off'),sx,sy); gl.uniform1f(U(p,'u_dpr'),dpr); gl.uniform1f(U(p,'u_t'),t);
-    gl.uniform1f(U(p,'u_dg'),.16); gl.uniform1f(U(p,'u_wg'),.006); gl.uniform1f(U(p,'u_grain'),.62); gl.uniform1f(U(p,'u_minP'),3.2); gl.uniform1i(U(p,'u_ns'),ns); // sous 3 px d'écran, un grain gagnait ou perdait jusqu'à 66 % d'éclat selon sa place entre deux pixels : il clignotait en bougeant
+    // la lumière déposée suit le temps écoulé, comme l'effacement des sillages : sinon le ciel était presque deux fois plus lumineux à 120 images/s
+    // qu'à 60, et chaque changement de cadence de l'iPhone (ProMotion) faisait clignoter toute la poussière (25 nov.)
+    var dep=(1-Math.pow(.76,fdt))/.24;
+    dep*=NFULL/N; // allégé, le ciel garde sa lumière : moins de grains, chacun un peu plus vif
+    gl.uniform1f(U(p,'u_dg'),.16*dep); gl.uniform1f(U(p,'u_wg'),.006*dep); gl.uniform1f(U(p,'u_grain'),.62); gl.uniform1f(U(p,'u_minP'),3.2); gl.uniform1i(U(p,'u_ns'),ns); // sous 3 px d'écran, un grain gagnait ou perdait jusqu'à 66 % d'éclat selon sa place entre deux pixels : il clignotait en bougeant
     gl.uniform3fv(U(p,'u_star'),s3); gl.uniform3fv(U(p,'u_col'),c3); gl.uniform3f(U(p,'u_dust'),SKY.dust[0]/255,SKY.dust[1]/255,SKY.dust[2]/255);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE); gl.bindVertexArray(vaos[cur]); gl.drawArrays(gl.POINTS,0,N); gl.disable(gl.BLEND);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,cv.width,cv.height);
@@ -2086,6 +2090,7 @@ function frameSky(now){
   dctx.globalCompositeOperation='destination-out'; dctx.fillStyle='rgba(0,0,0,'+fadeA.toFixed(3)+')'; dctx.fillRect(0,0,DW,DH);
   dctx.globalCompositeOperation='lighter';
   for(var jj=0;jj<LIVED.length;jj++){ LIVED[jj].px=LIVED[jj].x+o.x; LIVED[jj].py=LIVED[jj].y+o.y; }
+  var depA=REDUCED?1:fadeA/.24; // la lumière déposée suit le temps écoulé, comme l'effacement : même éclat quelle que soit la cadence
   var PR=MOBILE?80:40; // le cercle que la souris (ou le doigt) creuse dans la poussière : deux fois plus petit sur ordinateur
   var R=62,R2=R*R; bursts=bursts.filter(function(b){return now-b.t<1600;});
   swx.globalCompositeOperation='destination-out'; swx.fillStyle='rgba(0,0,0,'+fadeA.toFixed(3)+')'; swx.fillRect(0,0,W,H); swx.globalCompositeOperation='lighter';
@@ -2125,7 +2130,7 @@ function frameSky(now){
     p.warm+=(warmT-p.warm)*warmK;
     var vy=p.y-sy; if(vy<-4||vy>DH+4) continue;
     var lx=p.x+sx-o.x,ly=p.y-o.y,onSky=p.warm>.06&&lx>-4&&lx<W+4&&ly>-4&&ly<H+4;
-    var tw=.6+.4*Math.sin(t*.002*p.tw+p.seed),wm=p.warm,a=(.13+.5*wm)*tw;
+    var tw=.6+.4*Math.sin(t*.002*p.tw+p.seed),wm=p.warm,a=(.13+.5*wm)*tw*depA;
     var bc=RAINBOW?(p.rb||(p.rb=rbAt((p.x/DW*.8+p.y/PH*.35+p.seed*.002)%1))):SKY.dust;
     var cs2;
     if(wm<.01){ if(RAINBOW){ if(p.rbk!==bc){ p.rbk=bc; p.rbs='rgb('+(bc[0]|0)+','+(bc[1]|0)+','+(bc[2]|0)+')'; } cs2=p.rbs; } else cs2=dustS; }

@@ -449,7 +449,7 @@ function EngineGL(cv,opt){
     // 2. les sillages s'effacent, puis les grains se posent, doux et additionnés
     to(trail); gl.enable(gl.BLEND);
     p=P.fade; gl.useProgram(p); gl.uniform1f(U(p,'u_a'),1-Math.pow(.76,f)); gl.blendFunc(gl.ZERO,gl.ONE_MINUS_SRC_ALPHA); quad();
-    p=P.draw; gl.useProgram(p); gl.uniform2f(U(p,'u_size'),W,H); gl.uniform1f(U(p,'u_dpr'),DPR3); gl.uniform1f(U(p,'u_t'),t); gl.uniform1f(U(p,'u_dg'),opt.dg); gl.uniform1f(U(p,'u_wg'),opt.wg);
+    p=P.draw; gl.useProgram(p); gl.uniform2f(U(p,'u_size'),W,H); gl.uniform1f(U(p,'u_dpr'),DPR3); gl.uniform1f(U(p,'u_t'),t); var dep=(1-Math.pow(.76,f))/.24; gl.uniform1f(U(p,'u_dg'),opt.dg*dep); gl.uniform1f(U(p,'u_wg'),opt.wg*dep); // même éclat à toute cadence
     gl.uniform1f(U(p,'u_grain'),opt.grain); gl.uniform1f(U(p,'u_minP'),opt.minP||1.8); gl.uniform1i(U(p,'u_ns'),ns); gl.uniform3fv(U(p,'u_star'),self._s3); gl.uniform3fv(U(p,'u_col'),self._c3);
     gl.uniform3f(U(p,'u_dust'),DUST[0]/255,DUST[1]/255,DUST[2]/255);
     gl.blendFunc(gl.ONE,gl.ONE); gl.bindVertexArray(vaos[cur]); gl.drawArrays(gl.POINTS,0,N);

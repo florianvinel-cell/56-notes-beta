@@ -1,5 +1,5 @@
 // 56 notes (bêta) : garder l'app sur l'appareil pour qu'elle s'ouvre même sans réseau.
-var V='56n-beta-ada128b55b';
+var V='56n-beta-668ffff98a';
 var CORE=['./','index.html','manifest.webmanifest','icones/icone-192.png','icones/icone-512.png','icones/icone-masquable-512.png','icones/apple-touch-icon.png','icones/favicon-32.png'];
 self.addEventListener('install',function(e){ e.waitUntil(caches.open(V).then(function(c){ return c.addAll(CORE); }).then(function(){ return self.skipWaiting(); })); });
 self.addEventListener('activate',function(e){ e.waitUntil(caches.keys().then(function(ks){ return Promise.all(ks.filter(function(k){ return k!==V; }).map(function(k){ return caches.delete(k); })); }).then(function(){ return self.clients.claim(); })); });
