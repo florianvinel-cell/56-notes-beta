@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Banc d'essai voix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --acc:214,178,106;
+  --void:#0a0809;
+  --card:rgba(255,248,235,.035);
+  --gold:rgb(var(--acc));
+  --text:#ece5d8; --soft:#cfc6b7; --muted:#a89f92;
+  --hair:rgba(var(--acc),.16); --line:rgba(236,229,216,.09);
+  --ok:#9fc79a; --warn:#e0b46a; --bad:#e08a7a;
+  --f-display:"Cormorant Garamond",Garamond,"Times New Roman",serif;
+  --f-body:"Newsreader",Georgia,serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --acc:150,110,40; --void:#f6f1e7; --card:rgba(60,40,10,.04);
+  --text:#231d16; --soft:#3e352a; --muted:#6f6455; --line:rgba(35,29,22,.1);
+  --ok:#3f7a3a; --warn:#94621a; --bad:#a3402f; } }
+:root[data-theme="light"]{ --acc:150,110,40; --void:#f6f1e7; --card:rgba(60,40,10,.04); --text:#231d16; --soft:#3e352a; --muted:#6f6455; --line:rgba(35,29,22,.1); --ok:#3f7a3a; --warn:#94621a; --bad:#a3402f; }
+:root[data-theme="dark"]{ --acc:214,178,106; --void:#0a0809; --card:rgba(255,248,235,.035); --text:#ece5d8; --soft:#cfc6b7; --muted:#a89f92; --line:rgba(236,229,216,.09); --ok:#9fc79a; --warn:#e0b46a; --bad:#e08a7a; }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--void);color:var(--text);font-family:var(--f-body);font-weight:300;font-size:1.05rem;line-height:1.65;-webkit-font-smoothing:antialiased}
+main{max-width:46rem;margin:0 auto;padding:calc(28px + env(safe-area-inset-top,0px)) 16px calc(48px + env(safe-area-inset-bottom,0px))}
+h1{font-family:var(--f-display);font-weight:300;font-size:clamp(2.1rem,7vw,2.9rem);line-height:1.05;margin:.2rem 0 .6rem}
+h2{font-family:var(--f-display);font-weight:400;font-size:1.55rem;line-height:1.15;margin:0}
+.kick{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin:0}
+.lead{color:var(--soft);margin:0 0 1.6rem;text-wrap:pretty}
+section{margin:2.2rem 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:1.2rem 1.1rem 1.1rem;margin:.9rem 0 0}
+.card-h{display:flex;align-items:baseline;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
+.card p{margin:.45rem 0 0;color:var(--soft)}
+.small{font-size:.88rem;color:var(--muted)}
+.diag{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.35rem 1rem;margin:.8rem 0 0;font-size:.95rem}
+.diag dt{color:var(--muted)}
+.diag dd{margin:0;text-align:right;font-family:var(--f-mono);font-size:.8rem;letter-spacing:.02em;align-self:center;white-space:nowrap}
+.y{color:var(--ok)} .n{color:var(--bad)} .m{color:var(--warn)}
+.pill{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:.18rem .6rem;color:var(--muted);white-space:nowrap}
+.pill.y{border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
+.pill.n{border-color:color-mix(in srgb,var(--bad) 45%,transparent);color:var(--bad)}
+.pill.m{border-color:color-mix(in srgb,var(--warn) 45%,transparent);color:var(--warn)}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.9rem 0 0}
+button{font:inherit;font-size:.98rem;color:var(--text);background:transparent;border:1px solid var(--hair);border-radius:999px;padding:.55rem 1.15rem;cursor:pointer;transition:border-color .2s,background-color .2s,color .2s}
+button:hover:not(:disabled),button:focus-visible{border-color:rgba(var(--acc),.6);outline:none}
+button:disabled{opacity:.4;cursor:default}
+button.glow{color:var(--gold);border-color:rgba(var(--acc),.5);background:rgba(var(--acc),.07)}
+button.on{color:var(--void);background:var(--gold);border-color:var(--gold)}
+.rate button{font-size:.88rem;padding:.4rem .85rem}
+.rate button[aria-pressed="true"]{color:var(--void);background:var(--gold);border-color:var(--gold)}
+textarea,select{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.75rem .85rem;width:100%}
+textarea{min-height:7.5rem;resize:vertical;line-height:1.55}
+textarea:focus,select:focus{outline:none;border-color:rgba(var(--acc),.5)}
+select{width:auto;padding:.45rem .7rem;border-radius:999px}
+.out{margin:.8rem 0 0}
+.partial{color:var(--muted);font-style:italic;min-height:1.4em;margin:.3rem 0 0;font-size:.95rem}
+.meter{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--f-mono);font-size:.75rem;color:var(--muted);margin:.6rem 0 0;letter-spacing:.04em}
+.meter b{font-weight:500;color:var(--text)}
+.ref{border-left:2px solid var(--hair);padding:.2rem 0 .2rem .9rem;margin:.8rem 0 0;color:var(--soft);font-style:italic}
+.ref .pause{font-style:normal;font-family:var(--f-mono);font-size:.75rem;color:var(--gold);letter-spacing:.08em}
+.score{font-family:var(--f-mono);font-size:.8rem;margin:.6rem 0 0}
+.saved{color:var(--ok);font-size:.9rem;margin:.5rem 0 0;min-height:1.3em}
+.mode{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0 0}
+.mode button{font-size:.88rem;padding:.4rem .9rem}
+.mode button[aria-pressed="true"]{color:var(--gold);border-color:rgba(var(--acc),.6);background:rgba(var(--acc),.08)}
+table{width:100%;border-collapse:collapse;font-size:.88rem;margin:.6rem 0 0}
+th,td{text-align:left;padding:.45rem .4rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-weight:400;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tbl{overflow-x:auto}
+.prog{height:3px;background:var(--line);border-radius:3px;overflow:hidden;margin:.7rem 0 0}
+.prog i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+.rec-dot{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;background:var(--bad);margin-right:.4rem;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){ .rec-dot{animation:none} }
+</style>
+</head>
+<body>
+<main>
+  <p class="kick">56 notes · atelier</p>
+  <h1>Banc d’essai de la voix</h1>
+  <p class="lead">Quatre façons de transformer ta voix en texte, essayées sur l’appareil où tu ouvres cette page. Chaque essai est gardé ici pour qu’on compare ensuite, appareil par appareil.</p>
+
+  <section>
+    <div class="card">
+      <div class="card-h"><h2>Cet appareil</h2><span class="pill" id="ctxPill">…</span></div>
+      <dl class="diag" id="diag"></dl>
+      <div class="row"><button id="micTest" class="glow" type="button">Tester le micro direct</button><button id="netBtn" type="button">Refaire les tests</button></div>
+      <p class="small">Le test du micro demande la permission une fois. Rien n’est enregistré. C’est la ligne la plus importante : elle dit si l’app peut enregistrer ta voix elle-même.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Le texte à dire</h2>
+    <div class="mode" role="group" aria-label="Ce que tu dis">
+      <button type="button" id="modeRef" aria-pressed="true">Lire le texte</button>
+      <button type="button" id="modeFree" aria-pressed="false">Parler librement</button>
+    </div>
+    <div class="ref" id="refBox">
+      <span id="refA">Ce matin, je suis parti marcher jusqu’au village, puis je suis rentré à vélo par les petites routes. Il faisait doux, le ciel était clair.</span>
+      <span class="pause"> ⟨ pause de dix secondes ⟩ </span>
+      <span id="refB">Le soir, la lune était pleine, avec un grand halo autour. Je crois que je choisirai une note un peu plus haute qu’hier.</span>
+    </div>
+    <p class="small" id="modeHint">Lis-le à voix normale. La pause au milieu vérifie que la dictée ne s’arrête pas quand tu réfléchis. Le banc compare ensuite ce qu’il a compris au texte.</p>
+  </section>
+
+  <section id="engines"></section>
+
+  <section>
+    <div class="card-h"><h2>Les essais gardés</h2><button id="reload" type="button">Rafraîchir</button></div>
+    <p class="small" id="resNote">Tous appareils confondus.</p>
+    <div class="tbl"><table><thead><tr><th>Quand</th><th>Appareil</th><th>Moteur</th><th>Justesse</th><th>Ressenti</th></tr></thead><tbody id="resBody"><tr><td colspan="5" class="small">…</td></tr></tbody></table></div>
+  </section>
+</main>
+
+<script>
+(function(){
+'use strict';
+var $=function(id){ return document.getElementById(id); };
+var UA=navigator.userAgent;
+var IOS=/iP(hone|ad|od)/.test(UA)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+var ANDROID=/Android/.test(UA);
+var MOBILE=IOS||ANDROID;
+var STANDALONE=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+var INAPP_CLAUDE=/Claude/i.test(UA);
+function deviceLabel(){
+  var os=IOS?(/iPad/.test(UA)?'iPad':'iPhone'):ANDROID?((/SM-|Samsung/i.test(UA))?'Samsung':'Android'):/Mac/.test(UA)?'Mac':/Windows/.test(UA)?'Windows':'Ordinateur';
+  var br=INAPP_CLAUDE?'app Claude':/SamsungBrowser/.test(UA)?'Samsung Internet':/CriOS/.test(UA)?'Chrome':/FxiOS|Firefox/.test(UA)?'Firefox':/EdgA|Edg\//.test(UA)?'Edge':/Chrome\//.test(UA)?'Chrome':/Safari/.test(UA)?'Safari':'navigateur';
+  if(IOS&&!/Safari/.test(UA)&&!/CriOS|FxiOS/.test(UA)&&!INAPP_CLAUDE) br='vue intégrée';
+  if(ANDROID&&/; wv\)/.test(UA)&&!INAPP_CLAUDE) br='vue intégrée';
+  return os+' · '+br+(STANDALONE?' (installée)':'');
+}
+var DEVICE=deviceLabel();
+$('ctxPill').textContent=DEVICE;
+
+// ---------- diagnostic ----------
+var D={appareil:DEVICE,ua:UA.slice(0,180)};
+var diagRows={};
+function diagSet(key,label,val,cls){
+  D[key]=val;
+  var r=diagRows[key];
+  if(!r){ var dt=document.createElement('dt'),dd=document.createElement('dd'); dt.textContent=label; $('diag').appendChild(dt); $('diag').appendChild(dd); r=diagRows[key]=dd; }
+  r.textContent=val; r.className=cls||'';
+}
+diagSet('srApi','Reconnaissance du navigateur',(window.SpeechRecognition||window.webkitSpeechRecognition)?'présente':'absente',(window.SpeechRecognition||window.webkitSpeechRecognition)?'y':'n');
+diagSet('claudeDict','Dictée de Claude','…','m');
+diagSet('mediaRec','Enregistrement audio',(window.MediaRecorder&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)?'possible':'absent',(window.MediaRecorder&&navigator.mediaDevices)?'y':'n');
+diagSet('webgpu','Calcul graphique (WebGPU)',navigator.gpu?'présent':'absent',navigator.gpu?'y':'m');
+diagSet('mic','Micro direct','pas encore testé','m');
+diagSet('net','Accès réseau','pas encore testé','m');
+var onDevice=false; try{ if(window.SpeechRecognition&&SpeechRecognition.available) onDevice=true; }catch(e){}
+diagSet('srLocal','Reconnaissance sans réseau (Chrome)',onDevice?'proposée':'non',onDevice?'y':'m');
+
+$('micTest').addEventListener('click',function(){
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){ diagSet('mic','Micro direct','absent','n'); return; }
+  diagSet('mic','Micro direct','demande…','m');
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(st){ st.getTracks().forEach(function(t){ t.stop(); }); diagSet('mic','Micro direct','permis','y'); })
+    .catch(function(e){ diagSet('mic','Micro direct','refusé ('+(e&&e.name||'erreur')+')','n'); });
+});
+var HOSTS=[['jsdelivr','https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1/package.json'],['huggingface','https://huggingface.co/onnx-community/whisper-base/resolve/main/config.json'],['mistral','https://api.mistral.ai/v1/models'],['openai','https://api.openai.com/v1/models']];
+var NET=null;
+function testNet(){
+  diagSet('net','Accès réseau','…','m');
+  return NET=Promise.all(HOSTS.map(function(h){
+    var ctl=new AbortController(),tm=setTimeout(function(){ ctl.abort(); },8000);
+    return fetch(h[1],{mode:'no-cors',signal:ctl.signal,cache:'no-store'}).then(function(){ clearTimeout(tm); return h[0]+' ✓'; }).catch(function(){ clearTimeout(tm); return h[0]+' ✕'; });
+  })).then(function(r){ var bad=r.filter(function(x){ return /✕/.test(x); }).map(function(x){ return x.replace(/ ✕/,''); });
+    D.netDetail=r.join(' ');
+    diagSet('net','Accès réseau',!bad.length?'tout joignable':bad.length===r.length?'tout bloqué':'bloqué : '+bad.join(', '),!bad.length?'y':bad.length===r.length?'n':'m');
+    return bad.indexOf('huggingface')<0; });
+}
+$('netBtn').addEventListener('click',testNet);
+// ce que la page peut charger elle-même : du code depuis un CDN (import), et ses propres fichiers (même origine)
+function testLoad(){
+  diagSet('cdn','Code chargé depuis un CDN','…','m'); diagSet('self','Fichiers de la page','…','m');
+  import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1').then(function(T){ diagSet('cdn','Code chargé depuis un CDN',T&&T.pipeline?'oui':'partiel',T&&T.pipeline?'y':'m'); })
+    .catch(function(e){ diagSet('cdn','Code chargé depuis un CDN','bloqué','n'); D.cdnErr=String(e&&e.message||e).slice(0,160); });
+  fetch(location.origin+'/_blob/00000000000000000000000000000000',{cache:'no-store'}).then(function(r){ diagSet('self','Fichiers de la page','joignables ('+r.status+')','y'); })
+    .catch(function(){ diagSet('self','Fichiers de la page','bloqués','n'); });
+}
+$('netBtn').addEventListener('click',testLoad);
+testNet(); testLoad();
+
+// ---------- le texte de référence et le calcul de justesse ----------
+var FREE=false;
+function setMode(free){ FREE=free; $('modeRef').setAttribute('aria-pressed',free?'false':'true'); $('modeFree').setAttribute('aria-pressed',free?'true':'false'); $('refBox').hidden=free;
+  $('modeHint').textContent=free?"Parle comme pour un vrai soir, avec tes pauses. Tu jugeras toi-même ce qu’il a compris.":"Lis-le à voix normale. La pause au milieu vérifie que la dictée ne s’arrête pas quand tu réfléchis. Le banc compare ensuite ce qu’il a compris au texte."; }
+$('modeRef').addEventListener('click',function(){ setMode(false); });
+$('modeFree').addEventListener('click',function(){ setMode(true); });
+function words(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[’']/g,' ').replace(/[^a-z0-9\s-]/g,' ').replace(/-/g,' ').split(/\s+/).filter(Boolean); }
+var REF=words($('refA').textContent+' '+$('refB').textContent);
+function accuracy(hyp){
+  var h=words(hyp),r=REF,n=r.length,m=h.length; if(!n) return null;
+  var prev=new Array(m+1),cur=new Array(m+1),i,j; for(j=0;j<=m;j++) prev[j]=j;
+  for(i=1;i<=n;i++){ cur[0]=i; for(j=1;j<=m;j++){ cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(r[i-1]===h[j-1]?0:1)); } var t=prev; prev=cur; cur=t; }
+  return Math.max(0,Math.round((1-prev[m]/n)*100));
+}
+
+// ---------- la base partagée (les essais gardés) ----------
+var db=null;
+var DBP=(window.claude&&window.claude.use)?window.claude.use('db').then(function(x){ db=x; return x; }).catch(function(){ return null; }):Promise.resolve(null);
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function fmtWhen(iso){ try{ return new Date(iso).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso; } }
+function loadResults(){
+  DBP.then(function(d){
+    var body=$('resBody');
+    if(!d){ body.innerHTML=''; var tr=document.createElement('tr'),td=document.createElement('td'); td.colSpan=5; td.className='small'; td.textContent="Les essais ne peuvent être gardés qu’en ouvrant cette page dans Claude."; tr.appendChild(td); body.appendChild(tr); return; }
+    d.collection('essais').get().then(function(snap){
+      var rows=[]; (snap.docs||snap).forEach(function(doc){ var v=doc.data?doc.data():doc; rows.push(v); });
+      rows.sort(function(a,b){ return (b.quand||'').localeCompare(a.quand||''); });
+      body.innerHTML='';
+      if(!rows.length){ var tr0=document.createElement('tr'),td0=document.createElement('td'); td0.colSpan=5; td0.className='small'; td0.textContent='Aucun essai pour l’instant.'; tr0.appendChild(td0); body.appendChild(tr0); return; }
+      rows.forEach(function(v){ var tr=document.createElement('tr');
+        [fmtWhen(v.quand),v.appareil,v.moteurNom,v.justesse==null?'—':v.justesse+' %',(v.ressenti||'—')+(v.arret?' · s’est arrêtée':'')].forEach(function(t){ var td=document.createElement('td'); td.textContent=t; tr.appendChild(td); });
+        body.appendChild(tr); });
+    }).catch(function(){ body.innerHTML='<tr><td colspan="5" class="small">Lecture impossible pour l’instant.</td></tr>'; });
+  });
+}
+$('reload').addEventListener('click',loadResults);
+
+// ---------- une carte par moteur ----------
+var ENGINES=[];
+function engineCard(o){
+  var c=document.createElement('div'); c.className='card'; c.id='eng-'+o.id;
+  c.innerHTML='<div class="card-h"><h2></h2><span class="pill"></span></div><p class="desc"></p>'+
+    '<div class="row ctl"></div><div class="prog" hidden><i></i></div>'+
+    '<div class="out"><textarea spellcheck="true"></textarea><p class="partial" aria-live="polite"></p></div>'+
+    '<div class="meter"><span>durée <b class="dur">0 s</b></span><span>mots <b class="nw">0</b></span><span class="st"></span></div>'+
+    '<p class="score"></p>'+
+    '<div class="row rate" role="group" aria-label="Ressenti"></div>'+
+    '<label class="row small" style="gap:.5rem"><input type="checkbox" class="stop"> La dictée s’est arrêtée toute seule pendant une pause</label>'+
+    '<div class="row"><button class="glow save" type="button">Garder cet essai</button><button class="copy" type="button">Copier le résultat</button></div><p class="saved" aria-live="polite"></p>';
+  c.querySelector('h2').textContent=o.title;
+  var pill=c.querySelector('.pill'); pill.textContent=o.status[0]; pill.className='pill '+o.status[1];
+  c.querySelector('.desc').textContent=o.desc;
+  var ta=c.querySelector('textarea'), part=c.querySelector('.partial');
+  ta.placeholder=o.placeholder||'Le texte compris apparaîtra ici.';
+  var E={o:o,card:c,ta:ta,partial:part,pill:pill,t0:0,tEnd:0,ressenti:'',timer:0};
+  E.setStatus=function(t,cls){ pill.textContent=t; pill.className='pill '+(cls||''); };
+  E.st=function(t){ c.querySelector('.st').textContent=t||''; };
+  E.update=function(){ var w=words(ta.value).length; c.querySelector('.nw').textContent=w; if(!FREE&&ta.value.trim()){ var a=accuracy(ta.value); c.querySelector('.score').textContent='Justesse par rapport au texte : '+a+' %'; c.querySelector('.score').className='score '+(a>=90?'y':a>=75?'m':'n'); } else c.querySelector('.score').textContent=''; };
+  ta.addEventListener('input',E.update);
+  E.startClock=function(){ E.t0=Date.now(); E.tEnd=0; clearInterval(E.timer); E.timer=setInterval(function(){ c.querySelector('.dur').textContent=Math.round((Date.now()-E.t0)/1000)+' s'; },500); };
+  E.stopClock=function(){ E.tEnd=Date.now(); clearInterval(E.timer); if(E.t0) c.querySelector('.dur').textContent=Math.round((E.tEnd-E.t0)/1000)+' s'; };
+  E.append=function(t){ t=(t||'').trim(); if(!t) return; ta.value=(ta.value.replace(/\s+$/,'')+(ta.value.trim()?' ':'')+t); E.update(); };
+  var rate=c.querySelector('.rate');
+  ['Parfait','Correct','Mauvais','N’a pas marché'].forEach(function(lbl){ var b=document.createElement('button'); b.type='button'; b.textContent=lbl; b.setAttribute('aria-pressed','false');
+    b.addEventListener('click',function(){ E.ressenti=lbl; Array.prototype.forEach.call(rate.children,function(x){ x.setAttribute('aria-pressed',x===b?'true':'false'); }); }); rate.appendChild(b); });
+  c.querySelector('.save').addEventListener('click',function(){
+    var sv=c.querySelector('.saved');
+    DBP.then(function(d){
+      if(!d){ sv.textContent="Pas gardé : ouvre cette page dans Claude pour garder les essais."; sv.className='saved n'; return; }
+      var doc={quand:new Date().toISOString(),appareil:DEVICE,moteur:o.id,moteurNom:o.short,mode:FREE?'libre':'texte',
+        justesse:(!FREE&&ta.value.trim())?accuracy(ta.value):null,ressenti:E.ressenti||'',arret:c.querySelector('.stop').checked,
+        duree:E.t0?Math.round(((E.tEnd||Date.now())-E.t0)/1000):null,mots:words(ta.value).length,texte:ta.value.slice(0,6000),
+        details:E.details||'',diag:D};
+      d.collection('essais').doc(uid()).set(doc).then(function(){ sv.textContent='Gardé.'; sv.className='saved'; loadResults(); })
+        .catch(function(){ sv.textContent='Pas gardé (la base a refusé).'; sv.className='saved n'; });
+    });
+  });
+  c.querySelector('.copy').addEventListener('click',function(){
+    var sv=c.querySelector('.saved');
+    var txt=['Essai voix — '+o.short,'Appareil : '+DEVICE,'Mode : '+(FREE?'libre':'texte'),
+      (!FREE&&ta.value.trim())?'Justesse : '+accuracy(ta.value)+' %':'','Ressenti : '+(E.ressenti||'—')+(c.querySelector('.stop').checked?' · s’est arrêtée seule':''),
+      'Durée : '+(E.t0?Math.round(((E.tEnd||Date.now())-E.t0)/1000)+' s':'—'),E.details?'Détails : '+E.details:'',
+      'Diagnostic : '+Object.keys(D).filter(function(k){ return k!=='ua'; }).map(function(k){ return k+'='+D[k]; }).join(' ; '),'',ta.value].filter(function(x,i){ return x!==''||i>7; }).join('\n');
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){ sv.textContent='Copié. Colle-le dans la conversation avec Claude.'; sv.className='saved'; })
+      .catch(function(){ ta.value=txt; ta.select(); sv.textContent='Sélectionné dans le champ : copie-le.'; sv.className='saved m'; });
+  });
+  $('engines').appendChild(c); ENGINES.push(E); return E;
+}
+function btn(E,label,cls){ var b=document.createElement('button'); b.type='button'; b.textContent=label; if(cls) b.className=cls; E.card.querySelector('.ctl').appendChild(b); return b; }
+
+// ===== 1. La dictée de Claude (la même que dans le chat) =====
+(function(){
+  var E=engineCard({id:'claude',short:'Dictée de Claude',title:'1 · La dictée de Claude',status:['…','m'],
+    desc:"La même reconnaissance que dans le chat. Claude tient le micro et renvoie les mots. Elle n’existe que dans Chrome et l’app Claude pour ordinateur."});
+  var b=btn(E,'Parler','glow'); b.disabled=true;
+  var dct=null;
+  var P=(window.claude&&window.claude.use)?window.claude.use('dictation'):Promise.resolve(null);
+  P.then(function(d){
+    dct=d;
+    diagSet('claudeDict','Dictée de Claude',d?'disponible':'absente ici',d?'y':'n');
+    if(!d){ E.setStatus('absente ici','n'); E.st('Pas proposée dans ce navigateur ou cette app.'); return; }
+    E.setStatus('disponible','y'); b.disabled=false;
+    d.onPartial(function(e){ E.partial.textContent=e.text||''; });
+    d.onFinal(function(e){ E.partial.textContent=''; E.append(e.text); });
+    d.onState(function(e){
+      var on=e.state!=='idle'; b.textContent=on?'Arrêter':'Parler'; b.className=on?'on':'glow';
+      E.st(e.state==='listening'?'écoute…':e.state==='finishing'?'derniers mots…':e.state==='starting'?'ouverture…':(e.reason?'fin : '+e.reason:''));
+      if(e.state==='listening'&&!E.timer) E.startClock();
+      if(e.state==='idle'){ E.stopClock(); E.timer=0; E.details='fin : '+(e.reason||''); }
+    });
+  }).catch(function(){ diagSet('claudeDict','Dictée de Claude','erreur','n'); E.setStatus('erreur','n'); });
+  b.addEventListener('click',function(){
+    if(!dct) return;
+    if(dct.active()){ dct.stop().catch(function(){}); return; }
+    E.timer=0; dct.start({language:'fr'}).catch(function(err){ E.st('refus : '+(err&&err.code||'erreur')); });
+  });
+})();
+
+// ===== 2. La reconnaissance du navigateur, en version robuste =====
+(function(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var E=engineCard({id:'navigateur',short:'Navigateur (robuste)',title:'2 · La reconnaissance du navigateur',status:SR?['présente','y']:['absente ici','n'],
+    desc:"Celle qu’utilisait l’app sur téléphone, réécrite pour être solide : elle se relance d’elle-même à chaque silence, ne garde que les phrases terminées et ignore les doublons."});
+  var b=btn(E,'Parler','glow'); if(!SR){ b.disabled=true; E.st('Ce navigateur ne la propose pas.'); return; }
+  var want=false,rec=null,restarts=0,lastFinal='',errors=[];
+  function launch(){
+    rec=new SR(); rec.lang='fr-FR'; rec.interimResults=true;
+    // une phrase à la fois, puis relance : évite les doublons d'Android et le blocage de Safari en mode continu
+    rec.continuous=false; rec.maxAlternatives=1;
+    rec.onresult=function(ev){ var interim='';
+      for(var i=ev.resultIndex;i<ev.results.length;i++){ var r=ev.results[i],t=(r[0]&&r[0].transcript)||'';
+        var fin=r.isFinal&&!(ANDROID&&r[0].confidence===0&&ev.results.length>1);
+        if(fin){ var tt=t.trim(); if(tt&&tt!==lastFinal){ lastFinal=tt; E.append(tt); } } else interim+=t; }
+      E.partial.textContent=interim; };
+    rec.onerror=function(ev){ var c=ev&&ev.error; if(c&&c!=='no-speech'&&c!=='aborted') errors.push(c);
+      if(c==='not-allowed'||c==='service-not-allowed'||c==='audio-capture'){ want=false; E.st('refus : '+c); } };
+    rec.onend=function(){ E.partial.textContent='';
+      if(want){ restarts++; E.st('écoute… (relances : '+restarts+')'); setTimeout(function(){ if(!want) return; try{ launch(); }catch(e){ errors.push('relance'); stop(); } },120); return; }
+      stop(); };
+    rec.start();
+  }
+  function stop(){ want=false; try{ if(rec) rec.stop(); }catch(e){} b.textContent='Parler'; b.className='glow'; E.stopClock(); E.details='relances : '+restarts+(errors.length?' · erreurs : '+errors.join(','):''); E.st(E.details); }
+  b.addEventListener('click',function(){
+    if(want){ stop(); return; }
+    want=true; restarts=0; lastFinal=''; errors=[]; E.startClock(); b.textContent='Arrêter'; b.className='on'; E.st('écoute…');
+    try{ launch(); }catch(e){ errors.push('démarrage'); stop(); }
+  });
+})();
+
+// ===== 3. Enregistrer, puis Whisper sur l'appareil (rien ne quitte le téléphone) =====
+(function(){
+  var can=!!(window.MediaRecorder&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+  var E=engineCard({id:'whisper',short:'Whisper sur l’appareil',title:'3 · Enregistrer, puis transcrire sur l’appareil',status:can?['à essayer','m']:['absent ici','n'],
+    desc:"On enregistre sans jamais s’arrêter sur un silence, puis Whisper transcrit sur l’appareil même : rien ne quitte le téléphone. Hors de Claude, le premier essai télécharge le modèle (80 à 250 Mo), gardé ensuite. Dans Claude, la page ne peut rien télécharger : on vérifie seulement que l’enregistrement tient."});
+  var sel=document.createElement('select'); [['onnx-community/whisper-small','Modèle moyen (small, ~250 Mo)'],['onnx-community/whisper-base','Modèle léger (base, ~80 Mo)']].forEach(function(m){ var op=document.createElement('option'); op.value=m[0]; op.textContent=m[1]; sel.appendChild(op); });
+  E.card.querySelector('.ctl').appendChild(sel);
+  var b=btn(E,'Enregistrer','glow'); if(!can){ b.disabled=true; sel.disabled=true; E.st('Pas d’enregistrement possible ici.'); return; }
+  var prog=E.card.querySelector('.prog'),bar=prog.querySelector('i');
+  var mr=null,chunks=[],stream=null,recOn=false,pipe=null,pipeModel='';
+  function loadPipe(model){
+    if(pipe&&pipeModel===model) return Promise.resolve(pipe);
+    E.st('chargement de Whisper…'); prog.hidden=false; bar.style.width='2%';
+    return import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1').then(function(T){
+      T.env.allowLocalModels=false;
+      var gpu=!!navigator.gpu, files={};
+      var opts={device:gpu?'webgpu':'wasm',dtype:gpu?{encoder_model:'fp32',decoder_model_merged:'q4'}:'q8',
+        progress_callback:function(p){ if(p&&p.status==='progress'&&p.file){ files[p.file]=p.progress||0; var ks=Object.keys(files),s=0; ks.forEach(function(k){ s+=files[k]; }); bar.style.width=Math.max(2,Math.round(s/ks.length))+'%'; E.st('téléchargement du modèle… '+Math.round(s/ks.length)+' %'); } }};
+      return T.pipeline('automatic-speech-recognition',model,opts).catch(function(e){ if(gpu){ opts.device='wasm'; opts.dtype='q8'; return T.pipeline('automatic-speech-recognition',model,opts); } throw e; })
+        .then(function(p){ pipe=p; pipeModel=model; E.details='calcul : '+opts.device; return p; });
+    });
+  }
+  function toPcm(blob){
+    return blob.arrayBuffer().then(function(buf){
+      var AC=window.AudioContext||window.webkitAudioContext, ac=new AC({sampleRate:16000});
+      return new Promise(function(res,rej){ ac.decodeAudioData(buf,res,rej); }).then(function(ab){
+        var ch=ab.numberOfChannels,len=ab.length,out=new Float32Array(len);
+        for(var c=0;c<ch;c++){ var d=ab.getChannelData(c); for(var i=0;i<len;i++) out[i]+=d[i]/ch; }
+        try{ ac.close(); }catch(e){} return out; });
+    });
+  }
+  function recordOnly(blob){
+    var secs=E.t0?Math.round(((E.tEnd||Date.now())-E.t0)/1000):0, url=URL.createObjectURL(blob);
+    E.details='enregistrement seul : '+secs+' s, '+Math.round(blob.size/1024)+' Ko, '+(blob.type||'?');
+    E.st(E.details); E.setStatus('enregistrement seul','m');
+    var au=E.card.querySelector('audio')||document.createElement('audio'); au.controls=true; au.src=url; au.style.width='100%'; au.style.marginTop='.7rem';
+    if(!au.parentNode) E.card.querySelector('.out').appendChild(au);
+    E.partial.textContent="Ici, le modèle ne peut pas être téléchargé. Réécoute : si ta voix est là du début à la fin, pauses comprises, l’enregistrement est fiable.";
+  }
+  function transcribe(blob){
+    if(NET){ return NET.then(function(ok){ if(ok) transcribeNow(blob); else recordOnly(blob); }); }
+    transcribeNow(blob);
+  }
+  function transcribeNow(blob){
+    var t0=Date.now(); b.disabled=true;
+    loadPipe(sel.value).then(function(p){ E.st('transcription…'); bar.style.width='100%'; return toPcm(blob).then(function(pcm){
+      return p(pcm,{language:'french',task:'transcribe',chunk_length_s:30,stride_length_s:5}); }); })
+      .then(function(r){ var txt=(r&&r.text)||(Array.isArray(r)&&r[0]&&r[0].text)||'';
+        // Whisper invente parfois quelque chose sur les silences : « [Musique] », des génériques de sous-titres…
+        txt=txt.replace(/\[[^\]]*\]|\([^)]*musique[^)]*\)/gi,' ').replace(/sous-titr[^.]*\.|merci d'avoir regardé[^.]*\.?/gi,' ').replace(/\.{3,}\s*$/,'.').replace(/\s{2,}/g,' ').trim(); E.append(txt);
+        var s=Math.round((Date.now()-t0)/100)/10; E.details=(E.details||'')+' · transcrit en '+s+' s · '+sel.options[sel.selectedIndex].text; E.st('fini en '+s+' s'); })
+      .catch(function(e){ E.st('échec : '+String(e&&e.message||e).slice(0,140)); E.details='échec : '+String(e&&e.message||e).slice(0,200); E.setStatus('a échoué','n'); })
+      .then(function(){ b.disabled=false; prog.hidden=true; });
+  }
+  b.addEventListener('click',function(){
+    if(recOn){ recOn=false; try{ mr.stop(); }catch(e){} b.textContent='Enregistrer'; b.className='glow'; return; }
+    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then(function(st){
+      stream=st; chunks=[];
+      var type=['audio/webm;codecs=opus','audio/mp4','audio/webm',''].filter(function(t){ return !t||(MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t)); })[0];
+      mr=type?new MediaRecorder(st,{mimeType:type}):new MediaRecorder(st);
+      mr.ondataavailable=function(ev){ if(ev.data&&ev.data.size) chunks.push(ev.data); };
+      mr.onstop=function(){ E.stopClock(); stream.getTracks().forEach(function(t){ t.stop(); }); E.partial.textContent='';
+        transcribe(new Blob(chunks,{type:mr.mimeType||type||'audio/webm'})); };
+      mr.start(1000); recOn=true; E.startClock(); b.textContent='Arrêter'; b.className='on';
+      E.partial.innerHTML='<span class="rec-dot"></span>enregistrement… parle, fais tes pauses, touche « Arrêter » à la fin.';
+      E.st('enregistrement');
+      // charger le modèle pendant qu'on parle (seulement si le réseau le permet)
+      (NET||Promise.resolve(true)).then(function(ok){ if(ok) loadPipe(sel.value).catch(function(){}); });
+    }).catch(function(e){ E.st('micro refusé : '+(e&&e.name||'erreur')); E.setStatus('micro refusé','n'); diagSet('mic','Micro direct','refusé ('+(e&&e.name||'erreur')+')','n'); });
+  });
+})();
+
+// ===== 4. Le micro du clavier =====
+(function(){
+  var E=engineCard({id:'clavier',short:'Micro du clavier',title:'4 · Le micro du clavier',status:['partout','y'],
+    desc:IOS?"Touche le champ ci-dessous, puis le micro du clavier (en bas à droite). C’est la dictée d’Apple, intégrée à l’iPhone.":ANDROID?"Touche le champ ci-dessous, puis le micro du clavier (Gboard ou Samsung). C’est la dictée du téléphone.":"Sur Mac : place-toi dans le champ et appuie deux fois sur la touche fn (ou 🎤). Sur Windows : touche Windows + H.",
+    placeholder:'Touche ici, puis le micro du clavier.'});
+  var b=btn(E,'Démarrer le chrono'); var on=false;
+  b.addEventListener('click',function(){ if(on){ on=false; E.stopClock(); b.textContent='Démarrer le chrono'; b.className=''; return; } on=true; E.startClock(); b.textContent='Arrêter le chrono'; b.className='on'; E.ta.focus(); });
+})();
+
+loadResults();
+})();
+</script>
+</body>
+</html>

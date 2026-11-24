@@ -2675,8 +2675,12 @@ var dictation=null,voiceTried=false;
   document.addEventListener('focusout',function(){ setTimeout(function(){ if(!isField(document.activeElement)) document.documentElement.classList.remove('typing'); },120); }); })();
 // les champs qui peuvent recevoir la dictée (remplis plus bas, une fois les champs connus)
 // Dictée : celle de Claude d'abord (ordinateur), sinon la reconnaissance vocale du navigateur (Safari iPhone, Chrome Android).
+// 24 nov. : les boutons « Parler » sont retirés tant que la dictée n'est pas complètement solide (l’auteur).
+// Le micro du clavier reste suggéré. Remettre VOIX_PRETE à true quand le nouveau moteur sera choisi et éprouvé.
+var VOIX_PRETE=false;
 function initVoice(){
   if(voiceTried) return; voiceTried=true;
+  if(!VOIX_PRETE){ voiceHint(); return; }
   var fallback=function(){ var b=browserSpeech(); if(b) setupDictation(b); else voiceHint(); };
   if(window.claude&&window.claude.use) window.claude.use('dictation').then(function(dct){ if(dct) setupDictation(dct); else fallback(); }).catch(fallback);
   else fallback();
