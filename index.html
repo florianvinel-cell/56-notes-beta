@@ -1904,9 +1904,7 @@ function burst(day,k){ var o=skyOrigin(); bursts.push({x:day.x+o.x,y:day.y+o.y,t
 // (anneaux penchés, une seule note tient un grain, ondes, doigt qui creuse), mais calculée et peinte par la carte graphique.
 // Sans WebGL2 ni lumière en haute précision, en arc-en-ciel, ou avec « réduire les animations » : le dessin 2D reste.
 var SKYGL=(function(){
-  var NFULL=1,MAXS=56,NB=4,cv=null,gl=null,ok=false,failed=false,P={},tf,emptyVao,bufs=[],vaos=[],cur=0,N=0,partK=-1,grid=null,gridKey="",gx0=0,gy0=0,
-      trails=[null,null],ti=0,VWg=0,VHg=0,dpr=1,lastSx=null,lastSy=null,T0g=performance.now(),s3=new Float32Array(MAXS*3),a3=new Float32Array(MAXS*3),c3=new Float32Array((MAXS+NB)*3),
-      iv=[],lastF=0,shown=false;
+  var MAXS=56,NB=4;
   var UPD=`#version 300 es
 precision highp float;
 layout(location=0) in vec4 a_p; layout(location=1) in vec4 a_v; layout(location=2) in float a_c;
@@ -1946,14 +1944,14 @@ precision mediump float; out vec4 o; void main(){ o=vec4(0); }`;
   var DRAW=`#version 300 es
 precision highp float;
 layout(location=0) in vec4 a_p; layout(location=1) in vec4 a_v; layout(location=2) in float a_c;
-uniform vec2 u_size,u_off; uniform float u_dpr,u_dg,u_wg,u_grain,u_t,u_minP; uniform int u_ns;
+uniform vec2 u_size,u_off; uniform float u_dpr,u_dg,u_wg,u_grain,u_t,u_minP,u_free; uniform int u_ns;
 uniform vec3 u_star[${MAXS}]; uniform vec3 u_col[${MAXS+NB}]; uniform vec3 u_dust;
 out vec3 v_col;
 float h1(float n){ return fract(sin(n)*43758.5453); }
 void main(){
   vec3 p=a_p.xyz; float w=a_p.w, id=float(gl_VertexID);
   float s=.5+h1(id*.77)*1.2, tws=.5+h1(id*.53)*1.5, seed=h1(id*.31)*100.;
-  float a=(.13*u_dg+.5*w*u_wg)*(.6+.4*sin(u_t*.002*tws+seed)), sz=s*(1.+w*.7);
+  float a=(.13*u_dg*(u_free>.5?1.:smoothstep(.02,.2,w))+.5*w*u_wg)*(.6+.4*sin(u_t*.002*tws+seed)), sz=s*(1.+w*.7); // dans le ciel, seuls les grains tenus par une note brillent
   vec3 col=u_dust; int ci=int(a_c+.5); if(w>.01&&a_c>=0.&&ci<${MAXS+NB}) col=mix(u_dust,u_col[ci],w);
   if(w>.02){ float zn=clamp(p.z/14.,-1.,1.)*min(1.,w*2.); a*=1.+.5*zn; sz*=1.+.25*zn;
     int cp=int(a_v.w+.5); if(a_v.w>=0.&&cp<u_ns&&p.z<-2.){ vec2 o=u_star[cp].xy-(p.xy+u_off); if(dot(o,o)<20.) a=0.; } }
@@ -1978,102 +1976,125 @@ precision highp float; in vec2 v_uv; uniform sampler2D u_tex; out vec4 o;
 void main(){ vec3 c=texture(u_tex,v_uv).rgb; float m=max(c.r,max(c.g,c.b)), K=.6;
   if(m>K){ float t=K+(1.-K)*(1.-exp(-(m-K)/(1.-K))); c*=t/m; c=mix(c,vec3(t),smoothstep(1.5,8.,m)*.4); }
   o=vec4(c,clamp(max(c.r,max(c.g,c.b)),0.,1.)); }`;
-  function sh(type,src){ var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
-  function prog(vs,fs,tfv){ var p=gl.createProgram(); gl.attachShader(p,sh(gl.VERTEX_SHADER,vs)); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs)); if(tfv) gl.transformFeedbackVaryings(p,tfv,gl.INTERLEAVED_ATTRIBS); gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); p.__k={}; return p; }
-  function U(p,n){ var k=p.__k; return k[n]!==undefined?k[n]:(k[n]=gl.getUniformLocation(p,n)); }
-  function target(w,h){ var t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,w,h,0,gl.RGBA,gl.HALF_FLOAT,null);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-    var f=gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER,f); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
-    var good=gl.checkFramebufferStatus(gl.FRAMEBUFFER)===gl.FRAMEBUFFER_COMPLETE; gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); gl.bindFramebuffer(gl.FRAMEBUFFER,null);
-    return {t:t,f:f,w:w,h:h,ok:good}; }
-  function drop(r){ if(r){ gl.deleteTexture(r.t); gl.deleteFramebuffer(r.f); } }
-  function init(){
-    if(REDUCED) return false;
-    cv=document.createElement('canvas'); cv.id='dustgl'; cv.setAttribute('aria-hidden','true'); cv.className=dustCv.className;
-    gl=cv.getContext('webgl2',{antialias:false,alpha:true,depth:false,stencil:false,premultipliedAlpha:true,powerPreference:'high-performance'});
-    if(!gl||!gl.getExtension('EXT_color_buffer_float')) return false;
-    var tt=target(4,4); drop(tt); if(!tt.ok) return false;
-    P.upd=prog(UPD,NUL,['o_p','o_v','o_c']); P.draw=prog(DRAW,DRAWF); P.fade=prog(QUAD,FADE); P.fin=prog(QUAD,FIN);
-    tf=gl.createTransformFeedback(); emptyVao=gl.createVertexArray(); grid=gl.createTexture();
-    cv.addEventListener('webglcontextlost',function(e){ e.preventDefault(); fail(new Error('contexte perdu')); });
-    dustCv.parentNode.insertBefore(cv,dustCv.nextSibling); cv.style.display='none';
-    return true;
+  // Deux calques, deux contextes : la poussière libre, fixée à l'écran, et les anneaux, posés DANS le ciel.
+  // Sur iPhone, la page défile avant que l'app ne le sache (jusqu'à un dixième de seconde) : un calque fixé à l'écran arrive en retard
+  // sur les notes. Les anneaux vivent donc dans un canevas qui défile avec elles, comme le calque 2D des anneaux depuis la V41.
+  function layer(kind){
+    var DUST=kind==="dust",cv=null,gl=null,P={},tf,emptyVao,grid=null,gridKey="",gx0=0,gy0=0,bufs=[],vaos=[],cur=0,N=0,NFULL=1,partK=-1,
+        trails=[null,null],ti=0,LW=0,LH=0,dpr=1,lastSx=null,lastSy=null,iv=[],lastF=0,
+        s3=new Float32Array(MAXS*3),a3=new Float32Array(MAXS*3),c3=new Float32Array((MAXS+NB)*3);
+    function shd(type,src){ var x=gl.createShader(type); gl.shaderSource(x,src); gl.compileShader(x); if(!gl.getShaderParameter(x,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; }
+    function prog(vs,fs,tfv){ var p=gl.createProgram(); gl.attachShader(p,shd(gl.VERTEX_SHADER,vs)); gl.attachShader(p,shd(gl.FRAGMENT_SHADER,fs)); if(tfv) gl.transformFeedbackVaryings(p,tfv,gl.INTERLEAVED_ATTRIBS); gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); p.__k={}; return p; }
+    function U(p,n){ var k=p.__k; return k[n]!==undefined?k[n]:(k[n]=gl.getUniformLocation(p,n)); }
+    function target(w,h){ var t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,w,h,0,gl.RGBA,gl.HALF_FLOAT,null);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+      var f=gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER,f); gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+      var good=gl.checkFramebufferStatus(gl.FRAMEBUFFER)===gl.FRAMEBUFFER_COMPLETE; gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+      return {t:t,f:f,w:w,h:h,ok:good}; }
+    function drop(r){ if(r){ gl.deleteTexture(r.t); gl.deleteFramebuffer(r.f); } }
+    function init(onLost){
+      cv=document.createElement('canvas'); cv.setAttribute('aria-hidden','true');
+      if(DUST){ cv.id='dustgl'; cv.className=dustCv.className; }
+      else { cv.id='swirlgl'; cv.style.cssText='position:absolute;left:0;top:0;pointer-events:none'; }
+      gl=cv.getContext('webgl2',{antialias:false,alpha:true,depth:false,stencil:false,premultipliedAlpha:true,powerPreference:'high-performance'});
+      if(!gl||!gl.getExtension('EXT_color_buffer_float')) return false;
+      var tt=target(4,4); drop(tt); if(!tt.ok) return false;
+      P.upd=prog(UPD,NUL,['o_p','o_v','o_c']); P.draw=prog(DRAW,DRAWF); P.fade=prog(QUAD,FADE); P.fin=prog(QUAD,FIN);
+      tf=gl.createTransformFeedback(); emptyVao=gl.createVertexArray(); grid=gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D,grid); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,255,0,255]));
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+      cv.addEventListener('webglcontextlost',function(e){ e.preventDefault(); onLost(new Error('contexte perdu')); });
+      if(DUST) dustCv.parentNode.insertBefore(cv,dustCv.nextSibling); else swCv.parentNode.insertBefore(cv,swCv.nextSibling);
+      cv.style.display='none';
+      return true;
+    }
+    // poussière : moins de grains, un peu plus vifs (elle passe partout, même au-dessus du ciel) ; anneaux : la densité du rendu A
+    function want(){ return DUST?Math.round(clamp(200000*LW*LH/(390*844)*PART,40000,260000)):Math.round(clamp(400000*LW*LH/(390*844)*PART,40000,420000)); }
+    function seed(n){
+      bufs.forEach(function(b){ gl.deleteBuffer(b); }); vaos.forEach(function(v){ gl.deleteVertexArray(v); }); bufs=[]; vaos=[]; N=n;
+      var d=new Float32Array(n*9),m=DUST?40:20; for(var i=0;i<n;i++){ d[i*9]=-m+Math.random()*(LW+2*m); d[i*9+1]=-m+Math.random()*(LH+2*m); d[i*9+7]=-1; }
+      for(var k=0;k<2;k++){ var b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_COPY); bufs.push(b);
+        var v=gl.createVertexArray(); gl.bindVertexArray(v); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,4,gl.FLOAT,false,36,0);
+        gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,4,gl.FLOAT,false,36,16); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2,1,gl.FLOAT,false,36,32); vaos.push(v); }
+      gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER,null); cur=0; iv=[]; NFULL=n;
+    }
+    function size(){
+      var w=DUST?window.innerWidth:W,h=DUST?window.innerHeight:H; if(w===LW&&h===LH&&trails[0]) return;
+      var grow=!trails[0]||w*h>LW*LH*1.3; LW=w; LH=h; dpr=Math.min(DUST?2:3,window.devicePixelRatio||1);
+      cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); if(!DUST){ cv.style.width=w+'px'; cv.style.height=h+'px'; }
+      drop(trails[0]); drop(trails[1]); trails=[target(cv.width,cv.height),target(cv.width,cv.height)];
+      if(grow&&N) seed(want());
+    }
+    // la grille des notes, en coordonnées de la page : pour chaque case de 8 px, les deux notes les plus proches
+    function buildGrid(o){
+      var key=o.x+"|"+o.y+"|"+W+"|"+H+"|"+LIVED.map(function(d){ return d.i+":"+Math.round(d.x)+","+Math.round(d.y); }).join(";");
+      if(key===gridKey) return; gridKey=key;
+      var R=62,cell=8; gx0=o.x-R-cell; gy0=o.y-R-cell; var gw=Math.ceil((W+2*R+2*cell)/cell),gh=Math.ceil((H+2*R+2*cell)/cell),d=new Uint8Array(gw*gh*4),lim=(R+cell)*(R+cell);
+      for(var y=0;y<gh;y++) for(var x=0;x<gw;x++){ var px=gx0+(x+.5)*cell,py=gy0+(y+.5)*cell,b1=255,d1=lim,b2=255,d2=lim;
+        for(var i=0;i<LIVED.length&&i<MAXS;i++){ var dx=LIVED[i].px-px,dy=LIVED[i].py-py,dd=dx*dx+dy*dy; if(dd<d1){ d2=d1; b2=b1; d1=dd; b1=i; } else if(dd<d2){ d2=dd; b2=i; } }
+        var k=(y*gw+x)*4; d[k]=b1; d[k+1]=b2; d[k+3]=255; }
+      gl.bindTexture(gl.TEXTURE_2D,grid); gl.pixelStorei(gl.UNPACK_ALIGNMENT,1); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,gw,gh,0,gl.RGBA,gl.UNSIGNED_BYTE,d);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    }
+    function quad(){ gl.bindVertexArray(emptyVao); gl.drawArrays(gl.TRIANGLES,0,3); }
+    function frame(now,fdt,sx,sy,o,t){
+      size(); if(partK!==PART||!N){ partK=PART; seed(want()); }
+      // la cadence décide du nombre : si l'appareil peine vraiment, on allège (sans tout relancer, et sans perdre de lumière)
+      if(lastF){ var di=now-lastF; if(di<100) iv.push(di); } lastF=now;
+      if(iv.length>=150){ var srt=iv.slice().sort(function(a,b){ return a-b; }),med=srt[srt.length>>1]; iv=[]; if(med>23&&N>NFULL*.3) N=Math.max(Math.round(NFULL*.3),Math.round(N*.65)); }
+      var ns=0,i;
+      if(!DUST){ buildGrid(o); ns=Math.min(LIVED.length,MAXS); }
+      for(i=0;i<MAXS;i++){ var dd=i<ns?LIVED[i]:null; s3[i*3]=dd?dd.px:-1e5; s3[i*3+1]=dd?dd.py:-1e5; s3[i*3+2]=0; a3[i*3]=dd?dd.ax[0]:0; a3[i*3+1]=dd?dd.ax[1]:0; a3[i*3+2]=dd?dd.ax[2]:1;
+        var cc=dd&&dd.col||ACCV; c3[i*3]=cc[0]/255; c3[i*3+1]=cc[1]/255; c3[i*3+2]=cc[2]/255; }
+      var bv=new Float32Array(NB*4); bursts.slice(-NB).forEach(function(b,k){ bv[k*4]=b.x; bv[k*4+1]=b.y; bv[k*4+2]=b.t-T0g; bv[k*4+3]=b.k||1; var cc=b.col||ACCV; c3[(MAXS+k)*3]=cc[0]/255; c3[(MAXS+k)*3+1]=cc[1]/255; c3[(MAXS+k)*3+2]=cc[2]/255; });
+      // la poussière vit dans l'écran (elle glisse du défilement) ; les anneaux vivent dans le ciel (ils ne bougent pas avec lui : c'est le ciel qui bouge)
+      var ox=DUST?sx:o.x,oy=DUST?sy:o.y,dsx=0,dsy=0;
+      if(DUST){ dsx=lastSx===null?0:sx-lastSx; dsy=lastSy===null?0:sy-lastSy; lastSx=sx; lastSy=sy; }
+      var p=P.upd; gl.useProgram(p);
+      gl.uniform1f(U(p,'u_t'),t); gl.uniform1f(U(p,'u_f'),fdt); gl.uniform1f(U(p,'u_spd'),SPD); gl.uniform1f(U(p,'u_R'),62); gl.uniform1f(U(p,'u_ring'),13); gl.uniform1f(U(p,'u_cell'),8); gl.uniform1f(U(p,'u_m'),DUST?40:20);
+      gl.uniform2f(U(p,'u_size'),LW,LH); gl.uniform2f(U(p,'u_off'),ox,oy); gl.uniform2f(U(p,'u_shift'),dsx,dsy); gl.uniform2f(U(p,'u_g0'),gx0,gy0); gl.uniform1i(U(p,'u_ns'),ns);
+      gl.uniform3fv(U(p,'u_star'),s3); gl.uniform3fv(U(p,'u_ax'),a3); gl.uniform4fv(U(p,'u_burst'),bv);
+      gl.uniform3f(U(p,'u_ptr'),pointer?pointer.x:0,pointer?pointer.y:0,pointer?(MOBILE?80:40):0);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,grid); gl.uniform1i(U(p,'u_grid'),0);
+      gl.bindVertexArray(vaos[cur]); gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,tf); gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER,0,bufs[1-cur]);
+      gl.enable(gl.RASTERIZER_DISCARD); gl.beginTransformFeedback(gl.POINTS); gl.drawArrays(gl.POINTS,0,N); gl.endTransformFeedback(); gl.disable(gl.RASTERIZER_DISCARD);
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER,0,null); gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,null); cur=1-cur;
+      var src=trails[ti],dst=trails[1-ti]; ti=1-ti;
+      gl.bindFramebuffer(gl.FRAMEBUFFER,dst.f); gl.viewport(0,0,dst.w,dst.h); gl.disable(gl.BLEND);
+      p=P.fade; gl.useProgram(p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,src.t); gl.uniform1i(U(p,'u_tex'),0);
+      // au défilement, les sillages de la poussière glissent d'un nombre entier de pixels
+      gl.uniform2f(U(p,'u_sh'),Math.round(dsx*dpr)/cv.width,-Math.round(dsy*dpr)/cv.height); gl.uniform1f(U(p,'u_keep'),Math.pow(.76,fdt)); quad();
+      // la lumière déposée suit le temps écoulé, comme l'effacement des sillages : même éclat à 60 et à 120 images/s (sinon tout clignotait sur iPhone) ;
+      // allégé, le calque garde sa lumière : moins de grains, chacun un peu plus vif
+      var dep=(1-Math.pow(.76,fdt))/.24*NFULL/N;
+      p=P.draw; gl.useProgram(p); gl.uniform2f(U(p,'u_size'),LW,LH); gl.uniform2f(U(p,'u_off'),ox,oy); gl.uniform1f(U(p,'u_dpr'),dpr); gl.uniform1f(U(p,'u_t'),t);
+      // grains libres : seulement dans la poussière (dans le ciel, un grain ne s'allume que lorsqu'une note le tient)
+      gl.uniform1f(U(p,'u_dg'),(DUST?.32:.16)*dep); gl.uniform1f(U(p,'u_free'),DUST?1:0); gl.uniform1f(U(p,'u_wg'),.006*dep); gl.uniform1f(U(p,'u_grain'),.62); gl.uniform1f(U(p,'u_minP'),3.2); gl.uniform1i(U(p,'u_ns'),ns); // sous 3 px d'écran, un grain clignotait en bougeant
+      gl.uniform3fv(U(p,'u_star'),s3); gl.uniform3fv(U(p,'u_col'),c3); gl.uniform3f(U(p,'u_dust'),SKY.dust[0]/255,SKY.dust[1]/255,SKY.dust[2]/255);
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE); gl.bindVertexArray(vaos[cur]); gl.drawArrays(gl.POINTS,0,N); gl.disable(gl.BLEND);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,cv.width,cv.height);
+      p=P.fin; gl.useProgram(p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,dst.t); gl.uniform1i(U(p,'u_tex'),0); quad(); gl.bindVertexArray(null);
+    }
+    return { init:init, frame:frame, el:function(){ return cv; }, n:function(){ return N; }, d:function(){ return dpr; }, reset:function(){ lastSx=lastSy=null; } };
   }
-  function fail(e){ if(failed) return; failed=true; ok=false; try{ console.warn('ciel : retour au dessin 2D',e&&e.message||e); }catch(x){} if(cv) cv.style.display='none'; dustCv.style.display=''; swCv.style.display=''; lastSy=-1; }
-  function want(){ return Math.round(clamp(400000*VWg*VHg/(390*844)*PART,60000,500000)); }
-  function seed(n){
-    bufs.forEach(function(b){ gl.deleteBuffer(b); }); vaos.forEach(function(v){ gl.deleteVertexArray(v); }); bufs=[]; vaos=[]; N=n;
-    var d=new Float32Array(n*9),m=40; for(var i=0;i<n;i++){ d[i*9]=-m+Math.random()*(VWg+2*m); d[i*9+1]=-m+Math.random()*(VHg+2*m); d[i*9+7]=-1; }
-    for(var k=0;k<2;k++){ var b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b); gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_COPY); bufs.push(b);
-      var v=gl.createVertexArray(); gl.bindVertexArray(v); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,4,gl.FLOAT,false,36,0);
-      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,4,gl.FLOAT,false,36,16); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2,1,gl.FLOAT,false,36,32); vaos.push(v); }
-    gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER,null); cur=0; iv=[];
-  }
-  function size(){
-    var w=window.innerWidth,h=window.innerHeight; if(w===VWg&&h===VHg&&trails[0]) return;
-    VWg=w; VHg=h; dpr=Math.min(3,window.devicePixelRatio||1); cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
-    drop(trails[0]); drop(trails[1]); trails=[target(cv.width,cv.height),target(cv.width,cv.height)];
-  }
-  // la grille des notes, en coordonnées de la page : pour chaque case de 8 px, les deux notes les plus proches
-  function buildGrid(o){
-    var key=o.x+"|"+o.y+"|"+W+"|"+H+"|"+LIVED.map(function(d){ return d.i+":"+Math.round(d.x)+","+Math.round(d.y); }).join(";");
-    if(key===gridKey) return; gridKey=key;
-    var R=62,cell=8; gx0=o.x-R-cell; gy0=o.y-R-cell; var gw=Math.ceil((W+2*R+2*cell)/cell),gh=Math.ceil((H+2*R+2*cell)/cell),d=new Uint8Array(gw*gh*4),lim=(R+cell)*(R+cell);
-    for(var y=0;y<gh;y++) for(var x=0;x<gw;x++){ var px=gx0+(x+.5)*cell,py=gy0+(y+.5)*cell,b1=255,d1=lim,b2=255,d2=lim;
-      for(var i=0;i<LIVED.length&&i<MAXS;i++){ var dx=LIVED[i].px-px,dy=LIVED[i].py-py,dd=dx*dx+dy*dy; if(dd<d1){ d2=d1; b2=b1; d1=dd; b1=i; } else if(dd<d2){ d2=dd; b2=i; } }
-      var k=(y*gw+x)*4; d[k]=b1; d[k+1]=b2; d[k+3]=255; }
-    gl.bindTexture(gl.TEXTURE_2D,grid); gl.pixelStorei(gl.UNPACK_ALIGNMENT,1); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,gw,gh,0,gl.RGBA,gl.UNSIGNED_BYTE,d);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-  }
-  function quad(){ gl.bindVertexArray(emptyVao); gl.drawArrays(gl.TRIANGLES,0,3); }
-  function frame(now,fdt,sx,sy,o){
-    size(); if(partK!==PART||!N){ partK=PART; seed(want()); NFULL=N; }
-    // la cadence décide du nombre : si l'appareil peine vraiment, on allège (jamais sous 120 000 grains)
-    if(lastF){ var di=now-lastF; if(di<100) iv.push(di); } lastF=now;
-    if(iv.length>=150){ var srt=iv.slice().sort(function(a,b){ return a-b; }),med=srt[srt.length>>1]; iv=[]; if(med>23&&N>120000) N=Math.max(120000,Math.round(N*.65)); }
-    buildGrid(o);
-    var ns=Math.min(LIVED.length,MAXS),t=now-T0g,i;
-    for(i=0;i<MAXS;i++){ var dd=LIVED[i]; s3[i*3]=dd?dd.px:-1e5; s3[i*3+1]=dd?dd.py:-1e5; s3[i*3+2]=0; a3[i*3]=dd?dd.ax[0]:0; a3[i*3+1]=dd?dd.ax[1]:0; a3[i*3+2]=dd?dd.ax[2]:1;
-      var cc=dd&&dd.col||ACCV; c3[i*3]=cc[0]/255; c3[i*3+1]=cc[1]/255; c3[i*3+2]=cc[2]/255; }
-    var bv=new Float32Array(NB*4); bursts.slice(-NB).forEach(function(b,k){ bv[k*4]=b.x; bv[k*4+1]=b.y; bv[k*4+2]=b.t-T0g; bv[k*4+3]=b.k||1; var cc=b.col||ACCV; c3[(MAXS+k)*3]=cc[0]/255; c3[(MAXS+k)*3+1]=cc[1]/255; c3[(MAXS+k)*3+2]=cc[2]/255; });
-    var dsx=lastSx===null?0:sx-lastSx,dsy=lastSy===null?0:sy-lastSy; lastSx=sx; lastSy=sy;
-    var p=P.upd; gl.useProgram(p);
-    gl.uniform1f(U(p,'u_t'),t); gl.uniform1f(U(p,'u_f'),fdt); gl.uniform1f(U(p,'u_spd'),SPD); gl.uniform1f(U(p,'u_R'),62); gl.uniform1f(U(p,'u_ring'),13); gl.uniform1f(U(p,'u_cell'),8); gl.uniform1f(U(p,'u_m'),40);
-    gl.uniform2f(U(p,'u_size'),VWg,VHg); gl.uniform2f(U(p,'u_off'),sx,sy); gl.uniform2f(U(p,'u_shift'),dsx,dsy); gl.uniform2f(U(p,'u_g0'),gx0,gy0); gl.uniform1i(U(p,'u_ns'),ns);
-    gl.uniform3fv(U(p,'u_star'),s3); gl.uniform3fv(U(p,'u_ax'),a3); gl.uniform4fv(U(p,'u_burst'),bv);
-    gl.uniform3f(U(p,'u_ptr'),pointer?pointer.x:0,pointer?pointer.y:0,pointer?(MOBILE?80:40):0);
-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,grid); gl.uniform1i(U(p,'u_grid'),0);
-    gl.bindVertexArray(vaos[cur]); gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,tf); gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER,0,bufs[1-cur]);
-    gl.enable(gl.RASTERIZER_DISCARD); gl.beginTransformFeedback(gl.POINTS); gl.drawArrays(gl.POINTS,0,N); gl.endTransformFeedback(); gl.disable(gl.RASTERIZER_DISCARD);
-    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER,0,null); gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK,null); cur=1-cur;
-    var src=trails[ti],dst=trails[1-ti]; ti=1-ti;
-    gl.bindFramebuffer(gl.FRAMEBUFFER,dst.f); gl.viewport(0,0,dst.w,dst.h); gl.disable(gl.BLEND);
-    p=P.fade; gl.useProgram(p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,src.t); gl.uniform1i(U(p,'u_tex'),0);
-    gl.uniform2f(U(p,'u_sh'),Math.round(dsx*dpr)/cv.width,-Math.round(dsy*dpr)/cv.height); gl.uniform1f(U(p,'u_keep'),Math.pow(.76,fdt)); quad();
-    p=P.draw; gl.useProgram(p); gl.uniform2f(U(p,'u_size'),VWg,VHg); gl.uniform2f(U(p,'u_off'),sx,sy); gl.uniform1f(U(p,'u_dpr'),dpr); gl.uniform1f(U(p,'u_t'),t);
-    // la lumière déposée suit le temps écoulé, comme l'effacement des sillages : sinon le ciel était presque deux fois plus lumineux à 120 images/s
-    // qu'à 60, et chaque changement de cadence de l'iPhone (ProMotion) faisait clignoter toute la poussière (25 nov.)
-    var dep=(1-Math.pow(.76,fdt))/.24;
-    dep*=NFULL/N; // allégé, le ciel garde sa lumière : moins de grains, chacun un peu plus vif
-    gl.uniform1f(U(p,'u_dg'),.16*dep); gl.uniform1f(U(p,'u_wg'),.006*dep); gl.uniform1f(U(p,'u_grain'),.62); gl.uniform1f(U(p,'u_minP'),3.2); gl.uniform1i(U(p,'u_ns'),ns); // sous 3 px d'écran, un grain gagnait ou perdait jusqu'à 66 % d'éclat selon sa place entre deux pixels : il clignotait en bougeant
-    gl.uniform3fv(U(p,'u_star'),s3); gl.uniform3fv(U(p,'u_col'),c3); gl.uniform3f(U(p,'u_dust'),SKY.dust[0]/255,SKY.dust[1]/255,SKY.dust[2]/255);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE); gl.bindVertexArray(vaos[cur]); gl.drawArrays(gl.POINTS,0,N); gl.disable(gl.BLEND);
-    gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,cv.width,cv.height);
-    p=P.fin; gl.useProgram(p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,dst.t); gl.uniform1i(U(p,'u_tex'),0); quad(); gl.bindVertexArray(null);
-  }
+  var dust=layer("dust"),ring=layer("ring"),ok=false,failed=false,shown=false,T0g=performance.now();
+  function fail(e){ if(failed&&!ok) return; failed=true; ok=false; try{ console.warn('ciel : retour au dessin 2D',e&&e.message||e); }catch(x){}
+    [dust.el(),ring.el()].forEach(function(c){ if(c) c.style.display='none'; }); dustCv.style.display=''; swCv.style.display=''; lastSy=-1; shown=false; }
   return {
     // à chaque image : la carte graphique dessine-t-elle le ciel ? (sinon le dessin 2D reprend, sans rien perdre)
     use:function(){
-      if(!ok&&!failed){ try{ ok=init(); }catch(e){ ok=false; } if(!ok){ failed=true; if(cv) cv.remove(); } }
+      if(!ok&&!failed){ try{ ok=!REDUCED&&dust.init(fail)&&ring.init(fail); }catch(e){ ok=false; }
+        if(!ok){ failed=true; [dust.el(),ring.el()].forEach(function(c){ if(c&&c.parentNode) c.remove(); }); } }
       var on=ok&&!RAINBOW;
-      if(on!==shown){ shown=on; cv.style.display=on?'':'none'; dustCv.style.display=on?'none':''; swCv.style.display=on?'none':'';
-        if(on){ lastSx=lastSy=null; } else { lastSy=-1; dctx.clearRect(0,0,DW,DH); swx.clearRect(0,0,W,H); } }
+      if(on!==shown){ shown=on; dust.el().style.display=on?'':'none'; ring.el().style.display=on?'':'none'; dustCv.style.display=on?'none':''; swCv.style.display=on?'none':'';
+        if(on){ dust.reset(); } else { lastSy=-1; dctx.clearRect(0,0,DW,DH); swx.clearRect(0,0,W,H); } }
       return on; },
-    frame:function(now,fdt,sx,sy,o){ try{ frame(now,fdt,sx,sy,o); }catch(e){ fail(e); } },
-    cls:function(off){ if(cv) cv.classList.toggle('off',off); },
-    info:function(){ return {ok:ok,failed:failed,N:N,dpr:dpr}; }
+    // les anneaux ne se calculent que si le ciel est à l'écran (ou presque) ; la poussière, toujours
+    frame:function(now,fdt,sx,sy,o){ try{ var t=now-T0g; dust.frame(now,fdt,sx,sy,o,t); var top=o.y-sy; if(top<window.innerHeight+120&&top+H>-120) ring.frame(now,fdt,sx,sy,o,t); }catch(e){ fail(e); } },
+    cls:function(off){ var c=dust.el(); if(c) c.classList.toggle('off',off); },
+    info:function(){ return {ok:ok,failed:failed,N:dust.n()+ring.n(),poussiere:dust.n(),anneaux:ring.n(),dpr:ring.d()}; }
   };
 })();
 function frameSky(now){
