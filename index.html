@@ -147,6 +147,9 @@ h1 .n{font-style:italic;color:var(--gold)}
 /* la carte : deux lignes de quatre semaines ; chaque semaine a son bouton lecture, et des points assez grands pour le doigt */
 .carte-dots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem 1.8rem}
 .carte-week{display:flex;flex-wrap:wrap;align-items:center;gap:.2rem .4rem;min-width:0}
+.carte-week.pre{grid-column:1/-1;max-width:calc((100% - 5.4rem)/4)}
+.cd-gap{visibility:hidden;pointer-events:none}
+@media (max-width:640px){ .carte-week.pre{max-width:calc((100% - 1.1rem)/2)} }
 .cw-lab{flex:0 0 100%;font-family:var(--f-mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);opacity:.75;padding-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .carte-week.now .cw-lab{color:var(--gold);opacity:1}
 .cw-play{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--hair);background:rgba(10,8,9,.5);color:var(--gold);display:grid;place-items:center;cursor:pointer;padding:0;transition:border-color .3s,box-shadow .3s;-webkit-tap-highlight-color:transparent}
@@ -1027,11 +1030,14 @@ function moonSvg(svg,age){
 }
 
 // ===== Les 56 soirs =====
-var START=(function(){ var k='56n-debut',v=null; try{ v=localStorage.getItem(k); }catch(e){}
-  if(v&&/^\d{4}-\d\d-\d\d$/.test(v)){ var p=v.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
-  var n=new Date(),d=new Date(n.getFullYear(),n.getMonth(),n.getDate()-(n.getHours()<4?1:0)); // le soir dure jusqu'à 4 h
-  try{ localStorage.setItem(k,d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); }catch(e){}
-  return d; })(); // bêta : le premier soir est le jour de la première ouverture
+function isoLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fromIso(v){ if(!v||!/^\d{4}-\d\d-\d\d$/.test(v)) return null; var p=v.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+var BETA_DEBUT=null,BETA_PRELUDE=null; try{ BETA_DEBUT=fromIso(localStorage.getItem('56n-debut')); BETA_PRELUDE=fromIso(localStorage.getItem('56n-prelude')); }catch(e){}
+var BETA_SOIR=(function(){ var n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()-(n.getHours()<4?1:0)); })(); // le soir dure jusqu'à 4 h
+var START=BETA_DEBUT||(function(){ var k=(8-BETA_SOIR.getDay())%7; return new Date(BETA_SOIR.getFullYear(),BETA_SOIR.getMonth(),BETA_SOIR.getDate()+k); })(); // bêta : le lundi qui vient (ou ce soir, si c'est lundi)
+// la première note posée lance le voyage : le départ et le prélude sont gardés à ce moment-là
+function journeyPin(){ try{ if(localStorage.getItem('56n-debut')) return; localStorage.setItem('56n-debut',isoLocal(START)); if(PRELUDE_FROM) localStorage.setItem('56n-prelude',isoLocal(PRELUDE_FROM)); }catch(e){} }
+var PRELUDE_FROM=BETA_DEBUT?(BETA_PRELUDE&&BETA_PRELUDE<BETA_DEBUT?BETA_PRELUDE:null):(BETA_SOIR<START?BETA_SOIR:null); // le premier soir, s'il vient avant le premier lundi : ces soirs-là forment le prélude (bêta)
 // le soir dure jusqu'à 4 h du matin : un récit dicté après minuit appartient encore à la veille
 var SOIR_FIN_H=4;
 var nowD=new Date(), todayMid=new Date(nowD.getFullYear(),nowD.getMonth(),nowD.getDate()-(nowD.getHours()<SOIR_FIN_H?1:0));
@@ -1044,6 +1050,15 @@ for(var i=0;i<56;i++){
   var tilt=.45+.65*rnd(i*2.17),azi=rnd(i*4.93)*6.283;
   DAYS.push({i:i,w:Math.floor(i/7),d:i%7,date:dt,iso:isoOf(dt),moon:moonAge(dt),x:0,y:0,flash:-1e9,phase:rnd(i*5.31)*6.283,ax:[Math.sin(tilt)*Math.cos(azi),Math.sin(tilt)*Math.sin(azi),Math.cos(tilt)]});
 }
+// Le prélude : quand on commence un autre jour qu'un lundi, les soirs jusqu'au dimanche se vivent pleinement
+// (on respire, on raconte, on pose sa note), mais hors des 56. Les huit semaines restent huit vraies semaines, du lundi au dimanche.
+// Ces soirs ont des indices négatifs (-n … -1), la semaine -1, et leur place dans la semaine (jeudi = 3, dimanche = 6).
+var PRELUDE=[];
+(function(){ if(!PRELUDE_FROM) return; var n=Math.round((START-PRELUDE_FROM)/864e5); if(!(n>0&&n<7)) return;
+  for(var j=0;j<n;j++){ var i=j-n,dt=new Date(START.getFullYear(),START.getMonth(),START.getDate()+i),tilt=.45+.65*rnd((i+100)*2.17),azi=rnd((i+100)*4.93)*6.283;
+    PRELUDE.push({i:i,w:-1,d:7-n+j,date:dt,iso:isoOf(dt),moon:moonAge(dt),x:0,y:0,flash:-1e9,phase:rnd((i+100)*5.31)*6.283,ax:[Math.sin(tilt)*Math.cos(azi),Math.sin(tilt)*Math.sin(azi),Math.cos(tilt)],pre:true}); } })();
+var ALLDAYS=PRELUDE.concat(DAYS);
+function dayAt(i){ return i>=0?(i<56?DAYS[i]:null):(PRELUDE[PRELUDE.length+i]||null); }
 function validEntry(e){
   return e && typeof e==="object" && /^[A-G]$/.test(e.note) && (e.acc===""||e.acc==="b"||e.acc==="#") && typeof e.oct==="number" && e.oct>=2 && e.oct<=7 && typeof e.why==="string";
 }
@@ -1052,7 +1067,7 @@ function validEntry(e){
 var dbReady=false;
 function entryFor(iso){ var le=localEntries[iso]; return NOTES[iso] || (validEntry(dbEntries[iso])&&dbEntries[iso]) || (validEntry(le)&&(!dbReady||le.saved==="local")&&le) || null; }
 function applyEntries(){
-  DAYS.forEach(function(day){
+  ALLDAYS.forEach(function(day){
     var e=entryFor(day.iso);
     if(e){
       day.status="lived"; day.note=e.note; day.acc=e.acc; day.oct=e.oct; day.why=e.why.slice(0,20000); day.recit=typeof e.recit==="string"&&e.recit!==e.why?e.recit.slice(0,30000):null;
@@ -1063,7 +1078,7 @@ function applyEntries(){
       day.status = day.i===TODAY_I ? "tonight" : (day.i<TODAY_I ? "silence" : "future");
     }
   });
-  LIVED=DAYS.filter(function(d){return d.status==="lived";});
+  LIVED=ALLDAYS.filter(function(d){return d.status==="lived";});
   if(skyReady) placeStars();
   renderCarte();
   if(currentView==="soir") enterSoir(false);
@@ -1071,7 +1086,7 @@ function applyEntries(){
 // une seule gamme pour tout le monde et toutes les semaines : do dorien (décision du 21 nov. : rester simple ;
 // une version avancée, plus tard, pourra rendre la gamme réglable)
 function weekMode(w){ return WEEK_MODES[0]; }
-function weekLabel(w){ var n=weekName(w); return L("semaine ","week ")+(w+1)+(n?" · "+n:""); }
+function weekLabel(w){ if(w<0) return L("prélude","prelude"); var n=weekName(w); return L("semaine ","week ")+(w+1)+(n?" · "+n:""); }
 
 // ===== Le son : verre, bourdon, réverbération =====
 var MOBILE=(window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -1845,7 +1860,7 @@ window.addEventListener('hashchange',route);
 
 // ===== Le ciel =====
 var sky=$('sky'),dustCv=$('dust'),starCv=$('stars'),dctx=dustCv.getContext('2d'),sctx=starCv.getContext('2d'),swCv=$('swirl'),swx=swCv.getContext('2d');
-var W=0,H=0,skyLastT=0,WEEKS_META=[],particles=[],bursts=[],pointer=null,hover=null,skyVisible=true,sprites={},T0=performance.now(),linesFrom=0;
+var PRE_META=null,W=0,H=0,skyLastT=0,WEEKS_META=[],particles=[],bursts=[],pointer=null,hover=null,skyVisible=true,sprites={},T0=performance.now(),linesFrom=0;
 function sprite(col){
   var key=col.map(Math.round).join(",");
   if(sprites[key]) return sprites[key];
@@ -1870,14 +1885,16 @@ function layoutSky(){
   }
   var cellW=(W-2*gut)/cols;
   sky.style.setProperty('--skyRight',Math.round(gut+cellW*.1)+'px');
-  H=rows*cellH+16;
+  var preH=PRELUDE.length?Math.round(cellH*.7):0; // la bande du prélude, au-dessus de la semaine 1
+  H=rows*cellH+16+preH;
   starCv.width=Math.round(W*dpr); starCv.height=Math.round(H*dpr); starCv.style.height=H+"px"; sctx.setTransform(dpr,0,0,dpr,0,0);
   swCv.width=starCv.width; swCv.height=starCv.height; swCv.style.height=H+"px"; swx.setTransform(dpr,0,0,dpr,0,0);
   WEEKS_META=[];
   for(var w=0;w<8;w++){
-    var col=w%cols,row=Math.floor(w/cols),x0=gut+col*cellW,y0=8+row*cellH,padX=cellW*.1,top=22,bottom=46,ih=cellH-top-bottom;
+    var col=w%cols,row=Math.floor(w/cols),x0=gut+col*cellW,y0=8+preH+row*cellH,padX=cellW*.1,top=22,bottom=46,ih=cellH-top-bottom;
     WEEKS_META.push({x:x0+padX,y:y0+cellH-24,cx:x0+cellW/2,cy:y0+top+ih/2,r:cellW*.5,x0:x0,y0:y0,padX:padX,top:top,ih:ih,cellW:cellW});
   }
+  PRE_META=preH?{x:gut+cellW*.1,y:8+preH-20,cx:gut+cellW/2,cy:8+preH/2,r:cellW*.5,x0:gut,y0:8,padX:cellW*.1,top:16,ih:preH-16-40,cellW:cellW}:null;
   skyReady=true; placeStars(); layoutDust(); linesFrom=performance.now();
 }
 // la poussière vit à l'échelle de toute la page ; le calque est fixe et suit le défilement
@@ -1893,8 +1910,8 @@ function layoutDust(){
 }
 function skyOrigin(){ var r=starCv.getBoundingClientRect(); return {x:r.left+window.scrollX,y:r.top+window.scrollY}; }
 function placeStars(){
-  DAYS.forEach(function(day){
-    var m=WEEKS_META[day.w]; if(!m) return;
+  ALLDAYS.forEach(function(day){
+    var m=day.w<0?PRE_META:WEEKS_META[day.w]; if(!m) return;
     day.x=m.x0+m.padX+day.d*((m.cellW-2*m.padX)/6)+(rnd(day.i*7.13)-.5)*m.cellW*.035;
     if(day.status==="lived"){ var t=clamp((day.midi-55)/(84-55),0,1); day.y=m.y0+m.top+(1-t)*m.ih; }
     else day.y=m.y0+m.top+m.ih*(.3+.4*rnd(day.i*3.71));
@@ -2175,10 +2192,10 @@ function frameSky(now){
   var curW=clamp(Math.floor(TODAY_I/7),0,7),tint=WEEKS_META[curW];
   if(tint&&TODAY_I>=0&&TODAY_I<56){ var tg=sctx.createRadialGradient(tint.cx,tint.cy,0,tint.cx,tint.cy,tint.r); tg.addColorStop(0,'rgba(79,163,184,.07)'); tg.addColorStop(1,'rgba(79,163,184,0)'); sctx.fillStyle=tg; sctx.fillRect(tint.cx-tint.r,tint.cy-tint.r,tint.r*2,tint.r*2); }
   var draw=Math.min(1,(now-linesFrom)/2800); sctx.lineWidth=.7;
-  for(var m=1;m<DAYS.length;m++){ var A=DAYS[m-1],B=DAYS[m]; if(A.status!=="lived"||B.status!=="lived"||A.w!==B.w) continue;
+  for(var m=1;m<ALLDAYS.length;m++){ var A=ALLDAYS[m-1],B=ALLDAYS[m]; if(A.status!=="lived"||B.status!=="lived"||A.w!==B.w) continue;
     sctx.strokeStyle='rgba('+ACC+',.24)'; sctx.beginPath(); sctx.moveTo(A.x,A.y); sctx.lineTo(lerp(A.x,B.x,draw),lerp(A.y,B.y,draw)); sctx.stroke(); }
-  for(var q=0;q<DAYS.length;q++){
-    var dy2=DAYS[q],ph=dy2.phase,isSel=dy2===selected&&sheetOpen,isHov=dy2===hover;
+  for(var q=0;q<ALLDAYS.length;q++){
+    var dy2=ALLDAYS[q],ph=dy2.phase,isSel=dy2===selected&&sheetOpen,isHov=dy2===hover;
     if(dy2.status==="lived"){
       var fage=(now-dy2.flash)/1900,fl=fage<1&&fage>=0?1-fage:0,ef=fl*fl*(3-2*fl);
       var size=30+5*Math.sin(t*.0009+ph)+(isSel?14:0)+(isHov?6:0)+ef*14;
@@ -2215,7 +2232,7 @@ function frameSky(now){
     }
   }
   // les noms des semaines : leur halo sombre coûte cher à redessiner ; on les peint une fois sur un calque, puis on le pose
-  var lkey=W+"|"+H+"|"+starCv.width+"|"+curW+"|"+(TODAY_I>=0)+"|"+ACC+"|"+LANG+"|"+(document.fonts?document.fonts.status:"")+"|"+weekName(0)+weekName(1)+weekName(2)+weekName(3)+weekName(4)+weekName(5)+weekName(6)+weekName(7);
+  var lkey=W+"|"+H+"|"+starCv.width+"|"+curW+"|"+(TODAY_I>=0)+"|"+ACC+"|"+LANG+"|"+(document.fonts?document.fonts.status:"")+"|"+weekName(0)+weekName(1)+weekName(2)+weekName(3)+weekName(4)+weekName(5)+weekName(6)+weekName(7)+"|"+PRELUDE.length;
   if(lkey!==LBL.key){ LBL.key=lkey; paintLabels(curW); }
   sctx.drawImage(LBL.cv,0,0,W,H);
 }
@@ -2237,9 +2254,10 @@ function paintLabels(curW){
       lx2.font=f0; if(ls0!==null) lx2.letterSpacing=ls0;
     }
   }
+  if(PRE_META){ lx2.fillStyle=TODAY_I<0?'rgba(236,229,216,.9)':'rgba(206,198,186,.58)'; lx2.fillText(L("prélude","prelude").toUpperCase(),PRE_META.x,PRE_META.y); }
   lx2.shadowBlur=0; lx2.shadowColor='transparent';
 }
-function nearest(x,y,maxD){ var best=null,bd=maxD*maxD; DAYS.forEach(function(d){ var dx=d.x-x,dy=d.y-y,dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=d;} }); return best; }
+function nearest(x,y,maxD){ var best=null,bd=maxD*maxD; ALLDAYS.forEach(function(d){ var dx=d.x-x,dy=d.y-y,dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=d;} }); return best; }
 function localPos(e){ var r=starCv.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
 starCv.addEventListener('pointermove',function(e){ var lp=localPos(e); hover=nearest(lp.x,lp.y,24); starCv.style.cursor=hover&&hover.status==="lived"?'pointer':'default'; });
 starCv.addEventListener('pointerleave',function(){ hover=null; });
@@ -2254,24 +2272,26 @@ starCv.addEventListener('click',function(e){
 // ----- la carte des 56 soirs -----
 function renderCarte(){
   var box=$('carteDots'); box.innerHTML="";
-  for(var w=0;w<8;w++){
-    var g=document.createElement('div'); g.className='carte-week'+(TODAY_I>=w*7&&TODAY_I<w*7+7?' now':'');
+  function cdBtn(day){ var b=document.createElement('button'); b.type="button"; b.className='cd '+day.status; b.dataset.iso=day.iso;
+    var lab=fmtD(day.date,{weekday:'long',day:'numeric',month:'long'});
+    b.setAttribute('aria-label',lab+(day.status==="lived"?", "+noteName(day):day.status==="tonight"?L(", ce soir",", tonight"):""));
+    b.title=lab; var dot=document.createElement('i'); b.appendChild(dot);
+    if(day.status==="lived"){ var ck=day.col.map(function(v){return v|0;}).join(","); dot.style.background="rgb("+ck+")"; dot.style.boxShadow="0 0 8px 2px rgba("+ck+",.5)"; }
+    b.addEventListener('click',function(){ openSheet(day,true); }); return b; }
+  for(var w=(PRELUDE.length?-1:0);w<8;w++){
+    var g=document.createElement('div'); g.className='carte-week'+(w<0?' pre':'')+((w<0?TODAY_I<0:TODAY_I>=w*7&&TODAY_I<w*7+7)?' now':'');
     // chaque semaine porte son nom : sur grand écran, la liste tombe juste sous les mots « semaine 5 · 6 · 7 · 8 » du ciel,
     // et la rangée des semaines 1 à 4 se lisait comme la semaine 5 (24 nov.)
     var lb=document.createElement('span'); lb.className='cw-lab'; lb.textContent=weekLabel(w); g.appendChild(lb);
-    var hasLived=DAYS.some(function(x){ return x.w===w&&x.status==="lived"; }),pb=document.createElement('button');
+    var hasLived=ALLDAYS.some(function(x){ return x.w===w&&x.status==="lived"; }),pb=document.createElement('button');
     pb.type="button"; pb.className="cw-play"; pb.disabled=!hasLived; pb.setAttribute('aria-label',L("Écouter la semaine ","Listen to week ")+(w+1)); pb.title=pb.getAttribute('aria-label');
     pb.innerHTML='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 .8v8.4L9 5z"/></svg>';
     (function(ww){ pb.addEventListener('click',function(){ playWeek(ww); }); })(w);
     g.appendChild(pb); var days=document.createElement('div'); days.className='cw-days'; g.appendChild(days);
     for(var d=0;d<7;d++){
-      var day=DAYS[w*7+d],b=document.createElement('button'); b.type="button"; b.className='cd '+day.status;
-      var lab=fmtD(day.date,{weekday:'long',day:'numeric',month:'long'});
-      b.setAttribute('aria-label',lab+(day.status==="lived"?", "+noteName(day):day.status==="tonight"?L(", ce soir",", tonight"):""));
-      b.title=lab; var dot=document.createElement('i'); b.appendChild(dot);
-      if(day.status==="lived"){ var ck=day.col.map(function(v){return v|0;}).join(","); dot.style.background="rgb("+ck+")"; dot.style.boxShadow="0 0 8px 2px rgba("+ck+",.5)"; }
-      (function(dd){ b.addEventListener('click',function(){ openSheet(dd,true); }); })(day);
-      days.appendChild(b);
+      var day=w<0?PRELUDE[d-(7-PRELUDE.length)]:DAYS[w*7+d];
+      if(!day){ var gap=document.createElement('span'); gap.className='cd cd-gap'; gap.setAttribute('aria-hidden','true'); days.appendChild(gap); continue; } // les jours d'avant le premier soir du prélude
+      days.appendChild(cdBtn(day));
     }
     box.appendChild(g);
   }
@@ -2279,7 +2299,8 @@ function renderCarte(){
   moonSvg($('carteMoon'),moonAge(todayMid));
   var lit=LIVED.length,rest=56-lit,txt;
   // seulement la lune du soir : une phrase, en haut du ciel
-  if(TODAY_I<0) txt=L("Le premier soir sera le ","The first evening will be ")+fmtD(START,{weekday:'long',day:'numeric',month:'long'})+".";
+  if(TODAY_I<0&&today()) txt=L("Prélude. Ce soir, "+moonName(moonAge(todayMid))+".","Prelude. Tonight, "+moonName(moonAge(todayMid))+".");
+  else if(TODAY_I<0) txt=L("Le premier soir sera le ","The first evening will be ")+fmtD(START,{weekday:'long',day:'numeric',month:'long'})+".";
   else if(TODAY_I>55) txt=L("Les 56 soirs sont passés.","The 56 evenings have passed.");
   else txt=L("Ce soir, "+moonName(moonAge(todayMid))+".","Tonight, "+moonName(moonAge(todayMid))+".");
   $('carteText').textContent=txt;
@@ -2303,8 +2324,8 @@ function fillCard(d){
   moonSvg($('dayMoonSvg'),d.moon);
   var rb=$('dayRawBtn'),rr=$('dayRaw'); rr.hidden=true; rb.hidden=!(d.status==="lived"&&d.recit); rr.textContent=d.recit||""; rb.textContent=L("Ce que j’ai dit, tel quel","What I said, word for word");
   var cb=$('dayCopy'); cb.hidden=d.status!=="lived"; cb.textContent=L("Copier","Copy");
-  var wb=$('dayWeekEnd'); wb.hidden=!(d.d===6&&d.status==="lived"); wb.textContent=L("Revoir la semaine","See the week again");
-  $('prevDay').disabled=d.i===0; $('nextDay').disabled=d.i===55;
+  var wb=$('dayWeekEnd'); wb.hidden=!(d.d===6&&d.w>=0&&d.status==="lived"); wb.textContent=L("Revoir la semaine","See the week again");
+  $('prevDay').disabled=!dayAt(d.i-1); $('nextDay').disabled=d.i===55;
 }
 function openSheet(d,sound){
   if(sound&&d.status==="lived"){ glass(d.midi,0,1); d.flash=performance.now(); burst(d,1); }
@@ -2324,13 +2345,13 @@ function closeSheet(){
 $('sheetClose').addEventListener('click',closeSheet);
 sheetBack.addEventListener('click',closeSheet);
 document.addEventListener('keydown',function(e){ if(e.key==="Escape"&&sheetOpen) closeSheet(); });
-$('prevDay').addEventListener('click',function(){ if(selected&&selected.i>0) openSheet(DAYS[selected.i-1],true); });
-$('nextDay').addEventListener('click',function(){ if(selected&&selected.i<55) openSheet(DAYS[selected.i+1],true); });
+$('prevDay').addEventListener('click',function(){ var p=selected&&dayAt(selected.i-1); if(p) openSheet(p,true); });
+$('nextDay').addEventListener('click',function(){ var n2=selected&&selected.i<55&&dayAt(selected.i+1); if(n2) openSheet(n2,true); });
 $('playWeek').addEventListener('click',function(){ playWeek(selected?selected.w:0); });
-function dotPing(d){ var el=$('carteDots').querySelectorAll('.cd')[d.i]; if(!el) return; el.classList.remove('ping'); void el.offsetWidth; el.classList.add('ping'); }
+function dotPing(d){ var el=$('carteDots').querySelector('.cd[data-iso="'+d.iso+'"]'); if(!el) return; el.classList.remove('ping'); void el.offsetWidth; el.classList.add('ping'); }
 function playWeek(w){
   stopPath();
-  var seq=DAYS.filter(function(d){return d.w===w&&d.status==="lived";}); if(!seq.length) return;
+  var seq=ALLDAYS.filter(function(d){return d.w===w&&d.status==="lived";}); if(!seq.length) return;
   var c=audio(); if(c.state==="suspended") c.resume();
   seq.forEach(function(d,k){ glass(d.midi,c.currentTime+k*.95,k===seq.length-1?1:.85); setTimeout(function(){ d.flash=performance.now(); burst(d,.8); dotPing(d); },k*950); });
   ambDuck((seq.length-1)*.95+3);
@@ -2342,7 +2363,7 @@ function playWeek(w){
 var pathTimers=[],pathOn=false;
 function setPathUI(){
   var b=$('pathPlay'); if(!b) return;
-  var any=DAYS.some(function(d){ return d.status==="lived"; });
+  var any=ALLDAYS.some(function(d){ return d.status==="lived"; });
   b.disabled=!any&&!pathOn; b.setAttribute('aria-pressed',pathOn?'true':'false');
   if(pathOn&&!b.style.minWidth&&b.offsetWidth) b.style.minWidth=b.offsetWidth+'px'; else if(!pathOn) b.style.minWidth='';
   $('pathPlayTxt').textContent=pathOn?L("Arrêter","Stop"):L("Écouter tout le chemin","Listen to the whole path");
@@ -2353,7 +2374,7 @@ function stopPath(){
   if(amb.running&&AC&&amb.out){ var t=AC.currentTime,g=amb.out.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value,t); g.linearRampToValueAtTime(.62,t+2.5); } // la musique revient doucement
 }
 function playPath(){
-  var seq=DAYS.filter(function(d){ return d.status==="lived"; }); if(!seq.length) return 0;
+  var seq=ALLDAYS.filter(function(d){ return d.status==="lived"; }); if(!seq.length) return 0;
   stopPath(); var c=audio(); if(c.state==="suspended") c.resume();
   pathOn=true; setPathUI();
   var at=0,prevW=seq[0].w;
@@ -2408,7 +2429,7 @@ var CODA_QUESTIONS=[
 function codaQuestion(d){ var q=CODA_QUESTIONS[(d.i*7+3)%CODA_QUESTIONS.length]; return LANG==="en"&&q.en?q.en:q.t; }
 // une note plus haute que d'habitude invite un peu plus à la réflexion : le bouton « Une dernière pensée » brille alors davantage
 function codaLeansOpen(d){
-  var o=DAYS.filter(function(x){ return x!==d&&x.status==="lived"&&typeof x.midi==="number"; }).map(function(x){ return x.midi; }).sort(function(a,b){ return a-b; });
+  var o=ALLDAYS.filter(function(x){ return x!==d&&x.status==="lived"&&typeof x.midi==="number"; }).map(function(x){ return x.midi; }).sort(function(a,b){ return a-b; });
   if(o.length<3||typeof d.midi!=="number") return false;
   return d.midi>o[Math.floor(o.length/2)];
 }
@@ -2447,7 +2468,7 @@ function openCoda(d,where){
   $('codaDate').textContent=cap(fmtD(d.date,{weekday:'long',day:'numeric',month:'long'}))+" · "+weekLabel(d.w);
   // toute la mélodie posée depuis le premier soir, regroupée par semaine (pas seulement la semaine en cours)
   var seq=$('codaSeq'); seq.textContent=""; var grp=null,gw=-1;
-  DAYS.filter(function(x){ return x.status==="lived"; }).forEach(function(x){
+  ALLDAYS.filter(function(x){ return x.status==="lived"; }).forEach(function(x){
     if(!grp||x.w!==gw){ grp=document.createElement('span'); grp.className="cw"; seq.appendChild(grp); gw=x.w; }
     var el=document.createElement(x===d?'b':'span'); el.textContent=noteName(midiToNote(x.midi)); grp.appendChild(el); });
   var po=$('codaPoem'); po.textContent=""; po.className="coda-poem hush";
@@ -2957,7 +2978,7 @@ function playIntro(){
 
 // ===== Ce soir : le rituel, un écran à la fois =====
 var STEPS=["presence","raconter","traduire","contempler"],soirStep=null,breatheOnly=false;
-function today(){ return TODAY_I>=0&&TODAY_I<56?DAYS[TODAY_I]:null; }
+function today(){ return TODAY_I<56?dayAt(TODAY_I):null; }
 function showStep(s){
   soirStep=s;
   ["presence","raconter","traduire","done"].forEach(function(k){ $('st-'+k).hidden=k!==s; });
@@ -3242,7 +3263,7 @@ function layoutTr(){
   var td=today(); if(!td) return;
   var stg=$('trStage'),w=Math.floor(Math.min(360,stg.clientWidth-60)),hh=Math.floor(clamp(stg.clientHeight,180,440)); if(w<=0) return;
   tr.scale=scaleFor(td.w);
-  var prev=null; for(var i=td.i-1;i>=0;i--){ if(DAYS[i].status==="lived"){ prev=DAYS[i]; break; } }
+  var prev=null; for(var i=td.i-1;i>=-PRELUDE.length;i--){ var di=dayAt(i); if(di&&di.status==="lived"){ prev=di; break; } }
   tr.prev=prev; tr.yIdx=prev?nearestIdx(tr.scale,prev.midi):null;
   if(tr.W!==w||tr.H!==hh){
     tr.W=w; tr.H=hh; var dpr=Math.min(2,window.devicePixelRatio||1);
@@ -3273,7 +3294,7 @@ function initSample(){
 var WD_FR=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
 function isoWeekday(iso){ var p=iso.split('-'); return WD_FR[new Date(+p[0],p[1]-1,+p[2],12).getDay()]; }
 function heightPrompt(td,text){
-  var lived=[]; for(var i=0;i<td.i;i++){ var d=DAYS[i]; if(d.status==="lived") lived.push(d); }
+  var lived=[]; for(var i=-PRELUDE.length;i<td.i;i++){ var d=dayAt(i); if(d&&d.status==="lived") lived.push(d); }
   lived=lived.slice(-21);
   var past=lived.map(function(d){ return "- "+d.iso+" ("+isoWeekday(d.iso)+(d.i===td.i-1?", hier":"")+") : "+noteName(midiToNote(d.midi)); }).join("\n")||"(aucun)";
   var scale=tr.scale.map(function(m){ return noteName(midiToNote(m)); }).join(", ");
@@ -3306,7 +3327,7 @@ text.slice(-6000),
 ">>>"].join("\n");
 }
 function refDayFor(h,td){
-  if(h.ref&&h.ref!=="hier"){ for(var i=0;i<td.i;i++){ if(DAYS[i].iso===h.ref&&DAYS[i].status==="lived") return DAYS[i]; } }
+  if(h.ref&&h.ref!=="hier"){ for(var i=-PRELUDE.length;i<td.i;i++){ var di=dayAt(i); if(di&&di.iso===h.ref&&di.status==="lived") return di; } }
   return tr.prev;
 }
 function snapDown(m){ var lo=tr.scale[0],hi=tr.scale[tr.scale.length-1]; m=clamp(m,lo,hi); while(m>lo&&tr.scale.indexOf(m)<0) m--; return tr.scale.indexOf(m); }
@@ -3524,7 +3545,7 @@ $('trPose').addEventListener('click',function(){
   }
   var btn=$('trPose'); btn.disabled=true;
   function done(where){
-    btn.disabled=false; var k=draftKey(); if(k) lsDel(k);
+    btn.disabled=false; var k=draftKey(); if(k) lsDel(k); if(typeof journeyPin==="function") journeyPin();
     if(preWritten&&preWritten.iso===td.iso){ if(db) db.doc('brouillons/'+td.iso).delete().catch(function(){}); preWritten=null; }
     entry.saved=where; localEntries[td.iso]=entry; lsSet('56n-soirs',JSON.stringify(localEntries));
     showStepContempler(td,where);
@@ -3539,9 +3560,9 @@ function showStepContempler(td,where){
   setTimeout(function(){
     location.hash="#ciel";
     setTimeout(function(){
-      var d=DAYS[td.i]; d.flash=performance.now(); burst(d,1.4); linesFrom=performance.now();
+      var d=dayAt(td.i); d.flash=performance.now(); burst(d,1.4); linesFrom=performance.now();
       // le dimanche, la semaine se referme : elle devient une constellation (à la place de la coda)
-      if(d.d===6){ setTimeout(function(){ var ok=false; try{ ok=openWeekEnd(d.w,false); }catch(e){ ok=false; } if(!ok){ var dur=playPath()||2400; setTimeout(function(){ openCoda(d,where); },dur); } },900); return; }
+      if(d.d===6&&d.w>=0){ setTimeout(function(){ var ok=false; try{ ok=openWeekEnd(d.w,false); }catch(e){ ok=false; } if(!ok){ var dur=playPath()||2400; setTimeout(function(){ openCoda(d,where); },dur); } },900); return; }
       // toute la mélodie, depuis le premier soir, jusqu'à la note de ce soir
       setTimeout(function(){ var dur=playPath()||2400; setTimeout(function(){ openCoda(d,where); },dur); },500);
     },700);
@@ -3584,7 +3605,7 @@ function renderCarnet(){
     var g=weekGroupOf(iso);
     if(g.key!==lastWeek){ lastWeek=g.key; var h=document.createElement('h3'); h.className="c-week"; h.appendChild(document.createTextNode(g.label)); if(g.mode){ var bm=document.createElement('b'); bm.textContent=g.mode; h.appendChild(document.createTextNode(" · ")); h.appendChild(bm); } box.appendChild(h); }
     var items=byDay[iso],dt=dateOf(iso),isOpen=openDay===iso,day=null;
-    for(var k=0;k<DAYS.length;k++) if(DAYS[k].iso===iso){ day=DAYS[k]; break; }
+    for(var k=0;k<ALLDAYS.length;k++) if(ALLDAYS[k].iso===iso){ day=ALLDAYS[k]; break; }
     var wrap=document.createElement('div'); wrap.className="c-day"+(isOpen?" open":"");
     var head=document.createElement('button'); head.type="button"; head.className="c-dayhead"; head.setAttribute('aria-expanded',isOpen?'true':'false');
     // l'étoile de ce soir-là : sa couleur de note s'il a été vécu
@@ -4708,7 +4729,7 @@ bootLock();
 </script>
 <script>
 (function(){
-  var ICI='6387ddf33b', K='56n-maj', pending=null;
+  var ICI='1b21cb2400', K='56n-maj', pending=null;
   function get(){ try{ return JSON.parse(localStorage.getItem(K)||'null'); }catch(e){ return null; } }
   function visible(el){ return !!(el&&el.offsetParent!==null); }
   function calme(){
