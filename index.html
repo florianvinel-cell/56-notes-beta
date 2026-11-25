@@ -146,7 +146,9 @@ h1 .n{font-style:italic;color:var(--gold)}
 .carte{display:grid;gap:1.1rem;padding-block:2.2rem 0}
 /* la carte : deux lignes de quatre semaines ; chaque semaine a son bouton lecture, et des points assez grands pour le doigt */
 .carte-dots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem 1.8rem}
-.carte-week{display:flex;align-items:center;gap:.4rem;min-width:0}
+.carte-week{display:flex;flex-wrap:wrap;align-items:center;gap:.2rem .4rem;min-width:0}
+.cw-lab{flex:0 0 100%;font-family:var(--f-mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);opacity:.75;padding-left:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.carte-week.now .cw-lab{color:var(--gold);opacity:1}
 .cw-play{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--hair);background:rgba(10,8,9,.5);color:var(--gold);display:grid;place-items:center;cursor:pointer;padding:0;transition:border-color .3s,box-shadow .3s;-webkit-tap-highlight-color:transparent}
 .cw-play svg{width:9px;height:9px;fill:currentColor;margin-left:2px}
 .cw-play:hover:not(:disabled),.cw-play:focus-visible{border-color:rgba(var(--acc),.55);box-shadow:0 0 12px rgba(var(--acc),.2);outline:none}
@@ -2253,7 +2255,10 @@ starCv.addEventListener('click',function(e){
 function renderCarte(){
   var box=$('carteDots'); box.innerHTML="";
   for(var w=0;w<8;w++){
-    var g=document.createElement('div'); g.className='carte-week';
+    var g=document.createElement('div'); g.className='carte-week'+(TODAY_I>=w*7&&TODAY_I<w*7+7?' now':'');
+    // chaque semaine porte son nom : sur grand écran, la liste tombe juste sous les mots « semaine 5 · 6 · 7 · 8 » du ciel,
+    // et la rangée des semaines 1 à 4 se lisait comme la semaine 5 (24 nov.)
+    var lb=document.createElement('span'); lb.className='cw-lab'; lb.textContent=weekLabel(w); g.appendChild(lb);
     var hasLived=DAYS.some(function(x){ return x.w===w&&x.status==="lived"; }),pb=document.createElement('button');
     pb.type="button"; pb.className="cw-play"; pb.disabled=!hasLived; pb.setAttribute('aria-label',L("Écouter la semaine ","Listen to week ")+(w+1)); pb.title=pb.getAttribute('aria-label');
     pb.innerHTML='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 .8v8.4L9 5z"/></svg>';
@@ -2274,7 +2279,7 @@ function renderCarte(){
   moonSvg($('carteMoon'),moonAge(todayMid));
   var lit=LIVED.length,rest=56-lit,txt;
   // seulement la lune du soir : une phrase, en haut du ciel
-  if(TODAY_I<0) txt=L("Le premier soir sera le lundi 16 novembre.","The first evening will be Monday 16 November.");
+  if(TODAY_I<0) txt=L("Le premier soir sera le ","The first evening will be ")+fmtD(START,{weekday:'long',day:'numeric',month:'long'})+".";
   else if(TODAY_I>55) txt=L("Les 56 soirs sont passés.","The 56 evenings have passed.");
   else txt=L("Ce soir, "+moonName(moonAge(todayMid))+".","Tonight, "+moonName(moonAge(todayMid))+".");
   $('carteText').textContent=txt;
@@ -2970,7 +2975,7 @@ function enterSoir(fresh){
   $('soirDate').textContent=dateTxt; $('doneDate').textContent=dateTxt;
   if(!td){
     $('doneTitle').textContent=TODAY_I<0?L("Le premier soir n’est pas encore venu","The first evening hasn’t come yet"):L("Les 56 soirs sont passés","The 56 evenings have passed");
-    $('doneNote').textContent=TODAY_I<0?L("Il commencera le lundi 16 novembre 2026.","It will begin on Monday 16 November 2026."):L("Le ciel est complet. Tu peux encore respirer ici quand tu veux.","The sky is complete. You can still come and breathe here whenever you like.");
+    $('doneNote').textContent=TODAY_I<0?L("Il commencera le ","It will begin on ")+fmtD(START,{weekday:'long',day:'numeric',month:'long',year:'numeric'})+".":L("Le ciel est complet. Tu peux encore respirer ici quand tu veux.","The sky is complete. You can still come and breathe here whenever you like.");
     $('doneSee').hidden=TODAY_I<0;
     if(fresh||soirStep!=="presence") showStep("done"); return;
   }
@@ -4703,7 +4708,7 @@ bootLock();
 </script>
 <script>
 (function(){
-  var ICI='6dd4a58aa1', K='56n-maj', pending=null;
+  var ICI='6387ddf33b', K='56n-maj', pending=null;
   function get(){ try{ return JSON.parse(localStorage.getItem(K)||'null'); }catch(e){ return null; } }
   function visible(el){ return !!(el&&el.offsetParent!==null); }
   function calme(){
